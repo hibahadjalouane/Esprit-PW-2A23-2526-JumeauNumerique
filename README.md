@@ -1,8 +1,7 @@
-# Mon Projet
+# JumeauNum
 
 ## Description
-Ce projet est réalisé dans le module Projet Technologies Web.
-Il permet de faire (ex: gérer des tâches).
+Application web de gestion hospitalière permettant de digitaliser le parcours patient, de la prise de rendez-vous jusqu’à l’admission, en passant par la facturation et le paiement en ligne.
 
 ## Installation
 1. Télécharger le projet
