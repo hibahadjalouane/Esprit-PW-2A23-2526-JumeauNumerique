@@ -263,7 +263,6 @@ bind("btnAjouterRdv", "click", function () {
 
 document.addEventListener("click", function (e) {
 
-  // ✅ Re-remplir idMedecin si vide (était caché au chargement)
   if (window._medecinsData && window._medecinsData.length > 0) {
     const selMed = document.getElementById("idMedecin");
     if (selMed && selMed.options.length <= 1) {
