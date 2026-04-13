@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JumeauNum – Gestion des Ressources</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --sidebar-bg:     #1a3a8f;
+  --sidebar-hover:  #2248b0;
+  --sidebar-active: #3560d4;
+  --sidebar-w:      200px;
+  --bg:       #f0f4fb;
+  --surface:  #ffffff;
+  --surface2: #eef1f8;
+  --border:   #dde2ef;
+  --primary:    #2563eb;
+  --primary-lt: #eff4ff;
+  --text:       #111827;
+  --muted:      #6b7280;
+  --green:    #16a34a;
+  --green-lt: #dcfce7;
+  --red:      #dc2626;
+  --red-lt:   #fee2e2;
+  --amber:    #d97706;
+  --amber-lt: #fef3c7;
+  --header-h: 58px;
+  --radius:   10px;
+  --shadow:   0 1px 4px rgba(0,0,0,.07), 0 4px 14px rgba(0,0,0,.05);
+}
+
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+/* HEADER */
+header { height: var(--header-h); background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 12px; position: fixed; top: 0; left: 0; right: 0; z-index: 200; box-shadow: 0 1px 0 var(--border); }
+.logo { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 1rem; color: var(--primary); }
+.logo svg { width: 32px; height: 32px; }
+header .spacer { flex: 1; }
+.header-user { display: flex; align-items: center; gap: 8px; font-size: .85rem; font-weight: 500; background: var(--surface2); border: 1px solid var(--border); border-radius: 30px; padding: 4px 12px 4px 5px; cursor: pointer; }
+.avatar-icon { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; color: #fff; font-size: .75rem; font-weight: 700; }
+.header-power { width: 34px; height: 34px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: background .15s; }
+.header-power:hover { background: var(--red-lt); color: var(--red); }
+
+/* LAYOUT */
+.layout { display: flex; margin-top: var(--header-h); min-height: calc(100vh - var(--header-h)); }
+
+/* SIDEBAR */
+aside { width: var(--sidebar-w); background: var(--sidebar-bg); position: fixed; top: var(--header-h); bottom: 0; left: 0; display: flex; flex-direction: column; padding: 14px 8px; gap: 2px; overflow-y: auto; z-index: 100; }
+.nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-radius: 8px; font-size: .84rem; font-weight: 500; color: rgba(255,255,255,.7); cursor: pointer; user-select: none; white-space: nowrap; transition: background .12s, color .12s; }
+.nav-item:hover { background: var(--sidebar-hover); color: #fff; }
+.nav-item.active { background: var(--sidebar-active); color: #fff; }
+.nav-item svg { flex-shrink: 0; width: 17px; height: 17px; }
+.nav-bottom { margin-top: auto; }
+
+/* MAIN */
+main { margin-left: var(--sidebar-w); flex: 1; padding: 22px 20px 40px; min-width: 0; overflow-x: hidden; }
+.page-title { font-size: 1.45rem; font-weight: 700; }
+.page-sub { color: var(--muted); font-size: .82rem; margin-top: 2px; }
+
+/* CONNECTION BANNER */
+.conn-banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; font-size: .82rem; font-weight: 500; margin-top: 14px; border: 1px solid var(--border); background: var(--surface2); }
+.conn-banner.ok    { background: var(--green-lt); border-color: #86efac; color: var(--green); }
+.conn-banner.error { background: var(--red-lt);   border-color: #fca5a5; color: var(--red); }
+.conn-banner svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* STATS */
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+.stat-badge { position: absolute; top: 10px; right: 10px; font-size: .7rem; font-weight: 600; padding: 2px 7px; border-radius: 20px; }
+.badge-green { background: var(--green-lt); color: var(--green); }
+.badge-red   { background: var(--red-lt);   color: var(--red); }
+.badge-amber { background: var(--amber-lt); color: var(--amber); }
+.badge-blue  { background: var(--primary-lt); color: var(--primary); }
+.stat-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+.stat-icon.blue { background: var(--primary-lt); color: var(--primary); }
+.stat-icon.pink { background: #fce7f3; color: #db2777; }
+.stat-icon.teal { background: #d1faf5; color: #0d9488; }
+.stat-icon.ambr { background: var(--amber-lt); color: var(--amber); }
+.stat-label { font-size: .75rem; color: var(--muted); }
+.stat-value { font-size: 1.35rem; font-weight: 700; margin-top: 1px; }
+.stat-sub { font-size: .7rem; color: var(--muted); margin-top: 2px; }
+
+/* TWIN ZONE */
+.twin-zone { display: grid; grid-template-columns: 1fr 300px; gap: 16px; margin-top: 18px; align-items: start; }
+
+/* TABLE */
+.toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-family: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; border: none; transition: opacity .15s; }
+.btn:hover { opacity: .88; }
+.btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.22); }
+.btn-outline  { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn-ghost    { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-block    { width: 100%; justify-content: center; margin-top: 3px; }
+.toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.filter-label  { font-size: .8rem; color: var(--muted); }
+.filter-select { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px 10px; font-family: inherit; font-size: .82rem; color: var(--text); cursor: pointer; }
+.search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.search-wrap { flex: 1; position: relative; }
+.search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); width: 14px; height: 14px; pointer-events: none; }
+.search-wrap input { width: 100%; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 8px 10px 8px 32px; font-family: inherit; font-size: .82rem; color: var(--text); outline: none; }
+.search-wrap input:focus { border-color: var(--primary); }
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+thead th { text-align: left; padding: 10px 12px; font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--surface2); border-bottom: 1px solid var(--border); }
+tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+tbody td { padding: 10px 12px; vertical-align: middle; }
+.id-cell { font-family: 'DM Mono', monospace; font-size: .75rem; color: var(--muted); }
+.badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: .72rem; font-weight: 600; }
+.badge-disponible   { background: var(--green-lt); color: var(--green); }
+.badge-occupé       { background: var(--amber-lt); color: var(--amber); }
+.badge-maintenance  { background: var(--red-lt);   color: var(--red); }
+.badge-en_cours     { background: var(--amber-lt); color: var(--amber); }
+.badge-résolue      { background: var(--green-lt); color: var(--green); }
+.badge-en_attente   { background: var(--red-lt);   color: var(--red); }
+.actions-cell { display: flex; gap: 5px; }
+.icon-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: background .12s, color .12s; }
+.icon-btn:hover     { background: var(--primary-lt); color: var(--primary); border-color: var(--primary); }
+.icon-btn.del:hover { background: var(--red-lt); color: var(--red); border-color: var(--red); }
+.icon-btn svg { width: 12px; height: 12px; }
+.no-data { text-align: center; padding: 40px 20px; color: var(--muted); font-size: .85rem; }
+.pagination { display: flex; align-items: center; gap: 5px; padding: 10px 14px; border-top: 1px solid var(--border); font-size: .78rem; color: var(--muted); }
+.pagination .count { flex: 1; }
+.page-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .78rem; font-weight: 500; color: var(--text); }
+.page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* PANEL */
+.right-panel { display: flex; flex-direction: column; gap: 14px; }
+.panel-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+.panel-title { font-size: .92rem; font-weight: 700; margin-bottom: 12px; }
+.form-group { margin-bottom: 10px; }
+.form-label { font-size: .72rem; font-weight: 600; color: var(--muted); margin-bottom: 3px; display: block; }
+.form-control { width: 100%; border: 1px solid var(--border); background: var(--bg); border-radius: 7px; padding: 7px 9px; font-family: inherit; font-size: .8rem; color: var(--text); outline: none; transition: border-color .15s; }
+.form-control:focus    { border-color: var(--primary); background: var(--surface); }
+.form-control::placeholder { color: #b0b8cc; }
+.form-control:disabled { background: var(--surface2); color: var(--muted); cursor: not-allowed; }
+.form-control.error    { border-color: var(--red); }
+.field-msg { font-size: .68rem; color: var(--red); margin-top: 2px; display: none; }
+.field-msg.visible { display: block; }
+
+/* TABS */
+.tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+.tab-btn { padding: 8px 16px; background: none; border: none; font-size: .85rem; font-weight: 600; color: var(--muted); cursor: pointer; transition: all .15s; }
+.tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+.tab-btn:hover { color: var(--primary); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* TOAST */
+.toast { position: fixed; bottom: 24px; right: 24px; z-index: 999; background: var(--text); color: #fff; padding: 10px 18px; border-radius: 8px; font-size: .83rem; font-weight: 500; opacity: 0; transform: translateY(10px); transition: opacity .25s, transform .25s; pointer-events: none; }
+.toast.show    { opacity: 1; transform: translateY(0); }
+.toast.success { background: var(--green); }
+.toast.error   { background: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="#2563eb"/><path d="M10 20h4l3-7 4 14 3-10 3 6 3-3h4" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    JumeauNum
+  </div>
+  <div class="spacer"></div>
+  <div class="header-user">
+    <div class="avatar-icon">A</div>
+    Admin
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="header-power">
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v10M4.93 4.93a10 10 0 100 14.14"/></svg>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside>
+    <div class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Tableau de bord</div>
+    <div class="nav-item active"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Ressources</div>
+    <div class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Les rendez-vous</div>
+    <div class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Admissions</div>
+    <div class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>Dossiers médicaux</div>
+    <div class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 15h2M13 15h3"/></svg>Les factures</div>
+    <div class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M2 19c0-3 3-5 7-5s7 2 7 5"/><path d="M17 14c2 0 4 1.5 4 4"/></svg>Les médecins</div>
+    <div class="nav-bottom">
+      <div class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Paramètres</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+    <div class="page-title">Gestion des Ressources</div>
+    <div class="page-sub">Consultez, gérez et suivez toutes les ressources et pannes de l'hôpital.</div>
+
+    <!-- CONNECTION BANNER -->
+    <div class="conn-banner" id="connBanner">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      <span id="connMsg">Vérification de la connexion...</span>
+    </div>
+
+    <!-- STATS -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <span class="stat-badge badge-green" id="stat-badge-dispo">0</span>
+        <div class="stat-icon teal"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div class="stat-label">Disponibles</div>
+        <div class="stat-value" id="stat-dispo">0</div>
+        <div class="stat-sub">Ressources libres</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-amber" id="stat-badge-occupe">0</span>
+        <div class="stat-icon ambr"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div>
+        <div class="stat-label">Occupées</div>
+        <div class="stat-value" id="stat-occupe">0</div>
+        <div class="stat-sub">En utilisation</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-red" id="stat-badge-maint">0</span>
+        <div class="stat-icon pink"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg></div>
+        <div class="stat-label">Maintenance</div>
+        <div class="stat-value" id="stat-maint">0</div>
+        <div class="stat-sub">En réparation</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-blue" id="stat-badge-pannes">0</span>
+        <div class="stat-icon blue"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v10M4.93 4.93a10 10 0 100 14.14"/></svg></div>
+        <div class="stat-label">Pannes actives</div>
+        <div class="stat-value" id="stat-pannes">0</div>
+        <div class="stat-sub">Non résolues</div>
+      </div>
+    </div>
+
+    <!-- TWIN ZONE -->
+    <div class="twin-zone">
+
+      <!-- LEFT: TABLE WITH TABS -->
+      <div class="table-section">
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab('ressources')">📦 Ressources</button>
+          <button class="tab-btn" onclick="switchTab('pannes')">⚠️ Pannes</button>
+        </div>
+
+        <!-- TAB RESSOURCES -->
+        <div id="tab-ressources" class="tab-content active">
+          <div class="toolbar">
+            <button class="btn btn-outline" onclick="exportRessourcesCSV()">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 10v6M9 13l3 3 3-3M5 17a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2"/></svg>
+              Exporter CSV
+            </button>
+            <div class="toolbar-right">
+              <span class="filter-label">Statut</span>
+              <select class="filter-select" id="filterStatut" onchange="renderRessourcesTable()">
+                <option value="">Tous</option>
+                <option value="disponible">Disponible</option>
+                <option value="occupé">Occupé</option>
+                <option value="maintenance">Maintenance</option>
+              </select>
+            </div>
+          </div>
+          <div class="search-row">
+            <div class="search-wrap">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <input type="text" id="searchRessource" placeholder="Rechercher par ID, nom, type..." oninput="renderRessourcesTable()"/>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nom</th>
+                  <th>Type</th>
+                  <th>Statut</th>
+                  <th>Localisation</th>
+                  <th>Dernière maint.</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="ressourcesTableBody">
+                <tr><td colspan="7" class="no-data">Chargement...</td></tr>
+              </tbody>
+            </table>
+            <div class="pagination">
+              <div class="count" id="paginCountRessource">—</div>
+              <button class="page-btn" onclick="prevPageRessource()">‹</button>
+              <span id="pageInfoRessource" style="font-size:.78rem;color:var(--muted);padding:0 4px"></span>
+              <button class="page-btn" onclick="nextPageRessource()">›</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB PANNES -->
+        <div id="tab-pannes" class="tab-content">
+          <div class="toolbar">
+            <button class="btn btn-outline" onclick="exportPannesCSV()">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 10v6M9 13l3 3 3-3M5 17a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2"/></svg>
+              Exporter CSV
+            </button>
+            <div class="toolbar-right">
+              <span class="filter-label">Statut panne</span>
+              <select class="filter-select" id="filterPanneStatut" onchange="renderPannesTable()">
+                <option value="">Tous</option>
+                <option value="en_cours">En cours</option>
+                <option value="résolue">Résolue</option>
+                <option value="en_attente">En attente</option>
+              </select>
+            </div>
+          </div>
+          <div class="search-row">
+            <div class="search-wrap">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <input type="text" id="searchPanne" placeholder="Rechercher par ID, ressource, description..." oninput="renderPannesTable()"/>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Date panne</th>
+                  <th>Date réparation</th>
+                  <th>Statut</th>
+                  <th>Ressource</th>
+                  <th>Description</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="pannesTableBody">
+                <tr><td colspan="7" class="no-data">Chargement...</td></tr>
+              </tbody>
+            </table>
+            <div class="pagination">
+              <div class="count" id="paginCountPanne">—</div>
+              <button class="page-btn" onclick="prevPagePanne()">‹</button>
+              <span id="pageInfoPanne" style="font-size:.78rem;color:var(--muted);padding:0 4px"></span>
+              <button class="page-btn" onclick="nextPagePanne()">›</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: FORM PANEL -->
+      <div class="right-panel">
+        <div class="panel-card">
+          <div class="panel-title" id="formTitle">Ajouter une ressource</div>
+
+          <div class="form-group">
+            <label class="form-label" for="r_id">ID Ressource * (max 8 car.)</label>
+            <input class="form-control" type="text" id="r_id" placeholder="Ex: RES-001" maxlength="8"/>
+            <div class="field-msg" id="msg_r_id"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="r_nom">Nom *</label>
+            <input class="form-control" type="text" id="r_nom" placeholder="Ex: Scanner IRM"/>
+            <div class="field-msg" id="msg_r_nom"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="r_type">Type *</label>
+            <select class="form-control" id="r_type">
+              <option value="">Sélectionner...</option>
+              <option value="Imagerie">Imagerie</option>
+              <option value="Lit">Lit</option>
+              <option value="Équipement">Équipement</option>
+              <option value="Urgence">Urgence</option>
+              <option value="Dialyse">Dialyse</option>
+            </select>
+            <div class="field-msg" id="msg_r_type"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="r_statut">Statut *</label>
+            <select class="form-control" id="r_statut">
+              <option value="">Sélectionner...</option>
+              <option value="disponible">Disponible</option>
+              <option value="occupé">Occupé</option>
+              <option value="maintenance">Maintenance</option>
+            </select>
+            <div class="field-msg" id="msg_r_statut"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="r_localisation">Localisation</label>
+            <input class="form-control" type="text" id="r_localisation" placeholder="Ex: Salle 102, Bâtiment A"/>
+            <div class="field-msg" id="msg_r_localisation"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="r_maint">Dernière maintenance</label>
+            <input class="form-control" type="date" id="r_maint"/>
+            <div class="field-msg" id="msg_r_maint"></div>
+          </div>
+
+          <p id="msg_form_global" style="font-size:.72rem;color:var(--red);display:none;margin-bottom:6px"></p>
+          <p id="msg_form_success" style="font-size:.72rem;color:var(--green);display:none;margin-bottom:6px"></p>
+
+          <button class="btn btn-primary btn-block" onclick="submitRessource()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            <span id="btnSubmitLabel">Ajouter ressource</span>
+          </button>
+          <button class="btn btn-ghost btn-block" style="margin-top:5px" onclick="resetForm()">Réinitialiser</button>
+        </div>
+
+        <!-- FORM PANNE -->
+        <div class="panel-card">
+          <div class="panel-title" id="panneFormTitle">Déclarer une panne</div>
+
+          <div class="form-group">
+            <label class="form-label" for="p_id">ID Panne *</label>
+            <input class="form-control" type="text" id="p_id" placeholder="Ex: PAN-001" maxlength="8"/>
+            <div class="field-msg" id="msg_p_id"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="p_ressource">Ressource *</label>
+            <select class="form-control" id="p_ressource">
+              <option value="">Chargement des ressources...</option>
+            </select>
+            <div class="field-msg" id="msg_p_ressource"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="p_date_panne">Date de panne *</label>
+            <input class="form-control" type="date" id="p_date_panne"/>
+            <div class="field-msg" id="msg_p_date_panne"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="p_date_rep">Date de réparation</label>
+            <input class="form-control" type="date" id="p_date_rep"/>
+            <div class="field-msg" id="msg_p_date_rep"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="p_statut">Statut *</label>
+            <select class="form-control" id="p_statut">
+              <option value="">Sélectionner...</option>
+              <option value="en_cours">En cours</option>
+              <option value="résolue">Résolue</option>
+              <option value="en_attente">En attente</option>
+            </select>
+            <div class="field-msg" id="msg_p_statut"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="p_description">Description *</label>
+            <textarea class="form-control" id="p_description" rows="2" placeholder="Description de la panne..."></textarea>
+            <div class="field-msg" id="msg_p_description"></div>
+          </div>
+
+          <p id="msg_panne_form_global" style="font-size:.72rem;color:var(--red);display:none;margin-bottom:6px"></p>
+          <p id="msg_panne_form_success" style="font-size:.72rem;color:var(--green);display:none;margin-bottom:6px"></p>
+
+          <button class="btn btn-primary btn-block" onclick="submitPanne()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            <span id="panneSubmitLabel">Déclarer panne</span>
+          </button>
+          <button class="btn btn-ghost btn-block" style="margin-top:5px" onclick="resetPanneForm()">Réinitialiser</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  PATHS - À MODIFIER SELON VOTRE STRUCTURE
+// ═══════════════════════════════════════════════════════════
+const CRUD_RESSOURCE = '../../controleur/backoffice/ressource_crud.php';
+const CRUD_PANNE = '../../controleur/backoffice/panne_crud.php';
+
+// ── STATE ───────────────────────────────────────────────────
+let allRessources = [];
+let allPannes = [];
+let editingRessourceId = null;
+let editingPanneId = null;
+let currentPageRessource = 1;
+let currentPagePanne = 1;
+const PAGE_SIZE = 8;
+
+// ── INIT ────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('r_maint').value = new Date().toISOString().split('T')[0];
+  document.getElementById('p_date_panne').value = new Date().toISOString().split('T')[0];
+  testConnection();
+});
+
+// ── TEST CONNEXION ──────────────────────────────────────────
+async function testConnection() {
+  const banner = document.getElementById('connBanner');
+  try {
+    const res = await fetch(CRUD_RESSOURCE + '?action=ping');
+    const r = await res.json();
+    if (r.success) {
+      banner.className = 'conn-banner ok';
+      banner.innerHTML = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+        <span>Connecté à la base <strong>jumeaunum</strong> avec succès ✓</span>`;
+      loadRessources();
+      loadPannes();
+    } else {
+      showConnError(r.error);
+    }
+  } catch (e) {
+    showConnError('Erreur de connexion au serveur');
+  }
+}
+
+function showConnError(msg) {
+  const banner = document.getElementById('connBanner');
+  banner.className = 'conn-banner error';
+  banner.innerHTML = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+    <span>${msg}</span>`;
+}
+
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
+async function postData(url, data) {
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(data)) {
+    if (v !== null && v !== undefined) fd.append(k, v);
+  }
+  const res = await fetch(url, { method: 'POST', body: fd });
+  return res.json();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RESSOURCES
+// ═══════════════════════════════════════════════════════════
+
+async function loadRessources() {
+  try {
+    const r = await postData(CRUD_RESSOURCE, { action: 'getAll' });
+    if (r.success) {
+      allRessources = r.data;
+      updateStats();
+      renderRessourcesTable();
+      populateRessourceSelect();
+    }
+  } catch (e) {
+    document.getElementById('ressourcesTableBody').innerHTML = '<tr><td colspan="7" class="no-data">Erreur chargement</td></tr>';
+  }
+}
+
+function updateStats() {
+  const dispo = allRessources.filter(r => r.Statut === 'disponible').length;
+  const occupe = allRessources.filter(r => r.Statut === 'occupé').length;
+  const maint = allRessources.filter(r => r.Statut === 'maintenance').length;
+  const pannesActives = allPannes.filter(p => p.statut === 'en_cours' || p.statut === 'en_attente').length;
+  
+  document.getElementById('stat-dispo').textContent = dispo;
+  document.getElementById('stat-occupe').textContent = occupe;
+  document.getElementById('stat-maint').textContent = maint;
+  document.getElementById('stat-pannes').textContent = pannesActives;
+  document.getElementById('stat-badge-dispo').textContent = dispo;
+  document.getElementById('stat-badge-occupe').textContent = occupe;
+  document.getElementById('stat-badge-maint').textContent = maint;
+  document.getElementById('stat-badge-pannes').textContent = pannesActives;
+}
+
+function renderRessourcesTable() {
+  const search = document.getElementById('searchRessource').value.toLowerCase();
+  const filterStatut = document.getElementById('filterStatut').value;
+
+  const filtered = allRessources.filter(r => {
+    const matchSearch = !search || 
+      (r.id_ressource || '').toLowerCase().includes(search) ||
+      (r.Nom || '').toLowerCase().includes(search) ||
+      (r.Type || '').toLowerCase().includes(search);
+    const matchStatut = !filterStatut || r.Statut === filterStatut;
+    return matchSearch && matchStatut;
+  });
+
+  const total = filtered.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (currentPageRessource > pages) currentPageRessource = pages;
+  const slice = filtered.slice((currentPageRessource - 1) * PAGE_SIZE, currentPageRessource * PAGE_SIZE);
+
+  document.getElementById('paginCountRessource').textContent = `Affichage de ${slice.length} sur ${total} ressource(s)`;
+  document.getElementById('pageInfoRessource').textContent = `${currentPageRessource} / ${pages}`;
+
+  const tbody = document.getElementById('ressourcesTableBody');
+  if (!slice.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="no-data">Aucune ressource</td></tr>';
+    return;
+  }
+
+  const statutClass = { 'disponible': 'badge-disponible', 'occupé': 'badge-occupé', 'maintenance': 'badge-maintenance' };
+
+  tbody.innerHTML = slice.map(r => `
+    <tr>
+      <td class="id-cell">${escapeHtml(r.id_ressource)}</td>
+      <td>${escapeHtml(r.Nom)}</td>
+      <td>${escapeHtml(r.Type)}</td>
+      <td><span class="badge ${statutClass[r.Statut]}">${escapeHtml(r.Statut)}</span></td>
+      <td>${escapeHtml(r.Localisation) || '-'}</td>
+      <td>${r.Dernier_Maintenence || '-'}</td>
+      <td>
+        <div class="actions-cell">
+          <button class="icon-btn" onclick="editRessource('${escapeHtml(r.id_ressource)}')" title="Modifier">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="icon-btn del" onclick="deleteRessource('${escapeHtml(r.id_ressource)}')" title="Supprimer">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function prevPageRessource() { if (currentPageRessource > 1) { currentPageRessource--; renderRessourcesTable(); } }
+function nextPageRessource() { currentPageRessource++; renderRessourcesTable(); }
+
+function populateRessourceSelect() {
+  const sel = document.getElementById('p_ressource');
+  sel.innerHTML = '<option value="">Sélectionner une ressource...</option>';
+  allRessources.forEach(r => {
+    sel.innerHTML += `<option value="${escapeHtml(r.id_ressource)}">${escapeHtml(r.Nom)} (${escapeHtml(r.Type)})</option>`;
+  });
+}
+
+function validateRessource() {
+  let ok = true;
+  const id = document.getElementById('r_id');
+  const nom = document.getElementById('r_nom');
+  const type = document.getElementById('r_type');
+  const statut = document.getElementById('r_statut');
+
+  document.querySelectorAll('.field-msg').forEach(el => el.classList.remove('visible'));
+  document.querySelectorAll('.form-control').forEach(el => el.classList.remove('error'));
+
+  if (!id.value.trim()) { showFieldError('r_id', "L'ID est obligatoire"); ok = false; }
+  else if (id.value.trim().length > 8) { showFieldError('r_id', "Max 8 caractères"); ok = false; }
+  if (!nom.value.trim()) { showFieldError('r_nom', "Le nom est obligatoire"); ok = false; }
+  if (!type.value) { showFieldError('r_type', "Le type est obligatoire"); ok = false; }
+  if (!statut.value) { showFieldError('r_statut', "Le statut est obligatoire"); ok = false; }
+  return ok;
+}
+
+function showFieldError(fieldId, msg) {
+  const el = document.getElementById(fieldId);
+  const msgEl = document.getElementById('msg_' + fieldId);
+  if (el) el.classList.add('error');
+  if (msgEl) { msgEl.textContent = msg; msgEl.classList.add('visible'); }
+}
+
+async function submitRessource() {
+  if (!validateRessource()) return;
+
+  const data = {
+    action: editingRessourceId ? 'update' : 'add',
+    id_ressource: document.getElementById('r_id').value.trim(),
+    Nom: document.getElementById('r_nom').value.trim(),
+    Type: document.getElementById('r_type').value,
+    Statut: document.getElementById('r_statut').value,
+    Localisation: document.getElementById('r_localisation').value.trim(),
+    Dernier_Maintenence: document.getElementById('r_maint').value || null
+  };
+
+  try {
+    const r = await postData(CRUD_RESSOURCE, data);
+    if (r.success) {
+      showToast(r.message, 'success');
+      resetForm();
+      loadRessources();
+    } else {
+      document.getElementById('msg_form_global').textContent = r.error;
+      document.getElementById('msg_form_global').style.display = 'block';
+    }
+  } catch (e) {
+    document.getElementById('msg_form_global').textContent = 'Erreur réseau';
+    document.getElementById('msg_form_global').style.display = 'block';
+  }
+}
+
+function editRessource(id) {
+  const r = allRessources.find(x => x.id_ressource === id);
+  if (!r) return;
+  editingRessourceId = id;
+  document.getElementById('formTitle').textContent = 'Modifier ressource';
+  document.getElementById('btnSubmitLabel').textContent = 'Enregistrer';
+  document.getElementById('r_id').value = r.id_ressource;
+  document.getElementById('r_id').disabled = true;
+  document.getElementById('r_nom').value = r.Nom;
+  document.getElementById('r_type').value = r.Type;
+  document.getElementById('r_statut').value = r.Statut;
+  document.getElementById('r_localisation').value = r.Localisation || '';
+  document.getElementById('r_maint').value = r.Dernier_Maintenence || '';
+}
+
+async function deleteRessource(id) {
+  if (!confirm(`Supprimer "${id}" ?`)) return;
+  const r = await postData(CRUD_RESSOURCE, { action: 'delete', id_ressource: id });
+  if (r.success) {
+    showToast(r.message, 'success');
+    loadRessources();
+    loadPannes();
+  } else {
+    showToast(r.error, 'error');
+  }
+}
+
+function resetForm() {
+  editingRessourceId = null;
+  document.getElementById('formTitle').textContent = 'Ajouter une ressource';
+  document.getElementById('btnSubmitLabel').textContent = 'Ajouter ressource';
+  document.getElementById('r_id').value = '';
+  document.getElementById('r_id').disabled = false;
+  document.getElementById('r_nom').value = '';
+  document.getElementById('r_type').value = '';
+  document.getElementById('r_statut').value = '';
+  document.getElementById('r_localisation').value = '';
+  document.getElementById('r_maint').value = new Date().toISOString().split('T')[0];
+  document.getElementById('msg_form_global').style.display = 'none';
+  document.querySelectorAll('.field-msg').forEach(el => el.classList.remove('visible'));
+  document.querySelectorAll('.form-control').forEach(el => el.classList.remove('error'));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PANNES
+// ═══════════════════════════════════════════════════════════
+
+async function loadPannes() {
+  try {
+    const r = await postData(CRUD_PANNE, { action: 'getAll' });
+    if (r.success) {
+      allPannes = r.data;
+      updateStats();
+      renderPannesTable();
+    }
+  } catch (e) {
+    document.getElementById('pannesTableBody').innerHTML = '<tr><td colspan="7" class="no-data">Erreur chargement</td></tr>';
+  }
+}
+
+function renderPannesTable() {
+  const search = document.getElementById('searchPanne').value.toLowerCase();
+  const filterStatut = document.getElementById('filterPanneStatut').value;
+
+  const filtered = allPannes.filter(p => {
+    const matchSearch = !search ||
+      (p.id_Panne || '').toLowerCase().includes(search) ||
+      (p.ressource_nom || '').toLowerCase().includes(search);
+    const matchStatut = !filterStatut || p.statut === filterStatut;
+    return matchSearch && matchStatut;
+  });
+
+  const total = filtered.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (currentPagePanne > pages) currentPagePanne = pages;
+  const slice = filtered.slice((currentPagePanne - 1) * PAGE_SIZE, currentPagePanne * PAGE_SIZE);
+
+  document.getElementById('paginCountPanne').textContent = `Affichage de ${slice.length} sur ${total} panne(s)`;
+  document.getElementById('pageInfoPanne').textContent = `${currentPagePanne} / ${pages}`;
+
+  const tbody = document.getElementById('pannesTableBody');
+  if (!slice.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="no-data">Aucune panne</td></tr>';
+    return;
+  }
+
+  const statutClass = { 'en_cours': 'badge-en_cours', 'résolue': 'badge-résolue', 'en_attente': 'badge-en_attente' };
+
+  tbody.innerHTML = slice.map(p => `
+    <tr>
+      <td class="id-cell">${escapeHtml(p.id_Panne)}</td>
+      <td>${p.date_de_panne || '-'}</td>
+      <td>${p.date_de_reparation || '-'}</td>
+      <td><span class="badge ${statutClass[p.statut]}">${escapeHtml(p.statut)}</span></td>
+      <td>${escapeHtml(p.ressource_nom) || '-'}</td>
+      <td>${escapeHtml(p.description)}</td>
+      <td>
+        <div class="actions-cell">
+          <button class="icon-btn" onclick="editPanne('${escapeHtml(p.id_Panne)}')" title="Modifier">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="icon-btn del" onclick="deletePanne('${escapeHtml(p.id_Panne)}')" title="Supprimer">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function prevPagePanne() { if (currentPagePanne > 1) { currentPagePanne--; renderPannesTable(); } }
+function nextPagePanne() { currentPagePanne++; renderPannesTable(); }
+
+function validatePanne() {
+  let ok = true;
+  const id = document.getElementById('p_id');
+  const ressource = document.getElementById('p_ressource');
+  const datePanne = document.getElementById('p_date_panne');
+  const statut = document.getElementById('p_statut');
+  const desc = document.getElementById('p_description');
+
+  document.querySelectorAll('.field-msg').forEach(el => el.classList.remove('visible'));
+  document.querySelectorAll('.form-control').forEach(el => el.classList.remove('error'));
+
+  if (!id.value.trim()) { showFieldError('p_id', "L'ID est obligatoire"); ok = false; }
+  if (!ressource.value) { showFieldError('p_ressource', "Choisir une ressource"); ok = false; }
+  if (!datePanne.value) { showFieldError('p_date_panne', "Date obligatoire"); ok = false; }
+  if (!statut.value) { showFieldError('p_statut', "Statut obligatoire"); ok = false; }
+  if (!desc.value.trim()) { showFieldError('p_description', "Description obligatoire"); ok = false; }
+  return ok;
+}
+
+async function submitPanne() {
+  if (!validatePanne()) return;
+
+  const data = {
+    action: editingPanneId ? 'update' : 'add',
+    id_Panne: document.getElementById('p_id').value.trim(),
+    id_ressource: document.getElementById('p_ressource').value,
+    date_de_panne: document.getElementById('p_date_panne').value,
+    date_de_reparation: document.getElementById('p_date_rep').value || null,
+    statut: document.getElementById('p_statut').value,
+    description: document.getElementById('p_description').value.trim()
+  };
+
+  try {
+    const r = await postData(CRUD_PANNE, data);
+    if (r.success) {
+      showToast(r.message, 'success');
+      resetPanneForm();
+      loadPannes();
+    } else {
+      document.getElementById('msg_panne_form_global').textContent = r.error;
+      document.getElementById('msg_panne_form_global').style.display = 'block';
+    }
+  } catch (e) {
+    document.getElementById('msg_panne_form_global').textContent = 'Erreur réseau';
+    document.getElementById('msg_panne_form_global').style.display = 'block';
+  }
+}
+
+function editPanne(id) {
+  const p = allPannes.find(x => x.id_Panne === id);
+  if (!p) return;
+  editingPanneId = id;
+  document.getElementById('panneFormTitle').textContent = 'Modifier panne';
+  document.getElementById('panneSubmitLabel').textContent = 'Enregistrer';
+  document.getElementById('p_id').value = p.id_Panne;
+  document.getElementById('p_id').disabled = true;
+  document.getElementById('p_ressource').value = p.id_ressource;
+  document.getElementById('p_date_panne').value = p.date_de_panne;
+  document.getElementById('p_date_rep').value = p.date_de_reparation || '';
+  document.getElementById('p_statut').value = p.statut;
+  document.getElementById('p_description').value = p.description;
+}
+
+async function deletePanne(id) {
+  if (!confirm(`Supprimer la panne "${id}" ?`)) return;
+  const r = await postData(CRUD_PANNE, { action: 'delete', id_Panne: id });
+  if (r.success) {
+    showToast(r.message, 'success');
+    loadPannes();
+  } else {
+    showToast(r.error, 'error');
+  }
+}
+
+function resetPanneForm() {
+  editingPanneId = null;
+  document.getElementById('panneFormTitle').textContent = 'Déclarer une panne';
+  document.getElementById('panneSubmitLabel').textContent = 'Déclarer panne';
+  document.getElementById('p_id').value = '';
+  document.getElementById('p_id').disabled = false;
+  document.getElementById('p_ressource').value = '';
+  document.getElementById('p_date_panne').value = new Date().toISOString().split('T')[0];
+  document.getElementById('p_date_rep').value = '';
+  document.getElementById('p_statut').value = '';
+  document.getElementById('p_description').value = '';
+  document.getElementById('msg_panne_form_global').style.display = 'none';
+  document.querySelectorAll('.field-msg').forEach(el => el.classList.remove('visible'));
+  document.querySelectorAll('.form-control').forEach(el => el.classList.remove('error'));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  EXPORTS CSV
+// ═══════════════════════════════════════════════════════════
+
+function exportRessourcesCSV() {
+  const headers = ['ID', 'Nom', 'Type', 'Statut', 'Localisation', 'Dernière Maintenance'];
+  const rows = allRessources.map(r => [r.id_ressource, r.Nom, r.Type, r.Statut, r.Localisation || '', r.Dernier_Maintenence || '']);
+  const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ressources.csv';
+  a.click();
+}
+
+function exportPannesCSV() {
+  const headers = ['ID', 'Date Panne', 'Date Réparation', 'Statut', 'Ressource', 'Description'];
+  const rows = allPannes.map(p => [p.id_Panne, p.date_de_panne || '', p.date_de_reparation || '', p.statut, p.ressource_nom || '', p.description || '']);
+  const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'pannes.csv';
+  a.click();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════════════
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+  
+  if (tab === 'ressources') {
+    document.querySelectorAll('.tab-btn')[0].classList.add('active');
+    document.getElementById('tab-ressources').classList.add('active');
+  } else {
+    document.querySelectorAll('.tab-btn')[1].classList.add('active');
+    document.getElementById('tab-pannes').classList.add('active');
+    loadPannes();
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>
