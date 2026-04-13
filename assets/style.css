@@ -1,0 +1,174 @@
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #f4f6fb;
+    display: flex;
+}
+
+/* SIDEBAR */
+.sidebar {
+    width: 240px;
+    height: 100vh;
+    background: #1e3a8a;
+    color: white;
+    padding: 20px;
+}
+
+.sidebar h2 {
+    margin-bottom: 30px;
+}
+
+.sidebar a {
+    display: block;
+    color: white;
+    padding: 12px;
+    text-decoration: none;
+    margin-bottom: 8px;
+    border-radius: 8px;
+}
+
+.sidebar a:hover {
+    background: #3b82f6;
+}
+
+/* MAIN */
+.main {
+    flex: 1;
+    padding: 20px;
+}
+
+/* TOPBAR */
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* CARDS */
+.cards {
+    display: flex;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.card {
+    flex: 1;
+    padding: 15px;
+    border-radius: 10px;
+    color: white;
+}
+
+.green { background: #22c55e; }
+.red { background: #ef4444; }
+.orange { background: #f59e0b; }
+
+/* CONTENT */
+.content {
+    display: flex;
+    gap: 20px;
+}
+
+/* TABLE */
+.table-box {
+    flex: 2;
+    background: white;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background: #1e3a8a;
+    color: white;
+    padding: 10px;
+}
+
+td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+}
+
+/* INPUTS */
+input, select {
+    width: 100%;
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+
+/* RIGHT PANEL */
+.right-panel {
+    flex: 1;
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+/* BUTTON */
+button {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 8px;
+    width: 100%;
+    margin-top: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #1d4ed8;
+}
+
+/* ICON ACTIONS (✏️ ❌ 💾) */
+.btn-edit {
+    background: #f59e0b;
+    color: white;
+    border: none;
+    padding: 5px 8px;
+    border-radius: 6px;
+    margin-left: 5px;
+    cursor: pointer;
+}
+
+.btn-del {
+    color: #ef4444;
+    margin-left: 10px;
+    text-decoration: none;
+    font-size: 18px;
+}
+
+.btn-save {
+    background: #22c55e;
+    color: white;
+    border: none;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-save:hover {
+    background: #16a34a;
+}
+
+/* SEARCH */
+.search-box {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.search-box input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+.search-box button {
+    width: 150px;
+}
