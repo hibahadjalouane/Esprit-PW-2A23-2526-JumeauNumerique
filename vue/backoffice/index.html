@@ -123,6 +123,9 @@ tbody td { padding: 10px 12px; vertical-align: middle; }
 .field-msg.visible { display: block; }
 .ticket-info { background: var(--primary-lt); border: 1px solid #bfdbfe; border-radius: 7px; padding: 8px 10px; font-size: .75rem; color: var(--primary); margin-top: 4px; display: none; }
 .ticket-info.visible { display: block; }
+.section-title { font-size: 1.05rem; font-weight: 700; color: var(--text); margin: 28px 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--border); display: flex; align-items: center; gap: 8px; }
+.section-title svg { width: 15px; height: 15px; color: var(--primary); }
+.right-panel-salle { display: flex; flex-direction: column; gap: 14px; }
 .toast { position: fixed; bottom: 24px; right: 24px; z-index: 999; background: var(--text); color: #fff; padding: 10px 18px; border-radius: 8px; font-size: .83rem; font-weight: 500; opacity: 0; transform: translateY(10px); transition: opacity .25s, transform .25s; pointer-events: none; }
 .toast.show    { opacity: 1; transform: translateY(0); }
 .toast.success { background: var(--green); }
@@ -174,7 +177,7 @@ tbody td { padding: 10px 12px; vertical-align: middle; }
       <span id="connMsg">Vérification de la connexion...</span>
     </div>
 
-    <!-- STATS -->
+    <!-- STATS ADMISSIONS -->
     <div class="stat-grid">
       <div class="stat-card">
         <span class="stat-badge badge-blue" id="stat-badge-total">0</span>
@@ -325,6 +328,147 @@ tbody td { padding: 10px 12px; vertical-align: middle; }
         </div>
       </div>
     </div>
+
+    <!-- ════════════════════════════════════════════
+         SECTION SALLES
+    ════════════════════════════════════════════ -->
+    <div class="section-title">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Gestion des Salles
+    </div>
+
+    <!-- Stats salles -->
+    <div class="stat-grid" style="margin-top:0;margin-bottom:18px">
+      <div class="stat-card">
+        <span class="stat-badge badge-blue" id="stat-badge-salles">0</span>
+        <div class="stat-icon blue"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></div>
+        <div class="stat-label">Total salles</div>
+        <div class="stat-value" id="stat-total-salles">0</div>
+        <div class="stat-sub">Enregistrées</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-green">—</span>
+        <div class="stat-icon teal"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div class="stat-label">Disponibles</div>
+        <div class="stat-value" id="stat-dispo-salles">0</div>
+        <div class="stat-sub">Prêtes à l'usage</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-red">—</span>
+        <div class="stat-icon pink"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg></div>
+        <div class="stat-label">Non disponibles</div>
+        <div class="stat-value" id="stat-indispo-salles">0</div>
+        <div class="stat-sub">Occupées / fermées</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-amber">—</span>
+        <div class="stat-icon ambr"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M2 19c0-3 3-5 7-5s7 2 7 5"/></svg></div>
+        <div class="stat-label">Avec médecin assigné</div>
+        <div class="stat-value">—</div>
+        <div class="stat-sub">Médecin référent</div>
+      </div>
+    </div>
+
+    <!-- Tableau + formulaire salles -->
+    <div class="twin-zone">
+
+      <!-- Tableau salles -->
+      <div class="table-section">
+        <div class="toolbar">
+          <button class="btn btn-outline" onclick="exportSalleCSV()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 10v6M9 13l3 3 3-3M5 17a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2"/></svg>
+            Exporter CSV
+          </button>
+          <div class="toolbar-right">
+            <span class="filter-label">Statut</span>
+            <select class="filter-select" id="filterSalleStatut" onchange="renderSalleTable()">
+              <option value="">Tous</option>
+              <option value="disponible">Disponible</option>
+              <option value="non disponible">Non disponible</option>
+            </select>
+          </div>
+        </div>
+        <div class="search-row">
+          <div class="search-wrap">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" id="salleSearch" placeholder="Rechercher par ID, numéro, médecin..." oninput="renderSalleTable()"/>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID Salle</th>
+                <th>Numéro</th>
+                <th>Statut</th>
+                <th>Médecin assigné</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="salleTableBody">
+              <tr><td colspan="5" class="no-data">Chargement...</td></tr>
+            </tbody>
+          </table>
+          <div class="pagination">
+            <div class="count" id="sallePaginCount">—</div>
+            <button class="page-btn" onclick="prevPageS()">‹</button>
+            <span id="sallePageInfo" style="font-size:.78rem;color:var(--muted);padding:0 4px"></span>
+            <button class="page-btn" onclick="nextPageS()">›</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formulaire salle -->
+      <div class="right-panel-salle">
+        <div class="panel-card">
+          <div class="panel-title" id="salleFormTitle">Nouvelle Salle</div>
+
+          <!-- ID Salle (entier, max 8 chiffres) -->
+          <div class="form-group">
+            <label class="form-label" for="s_id">ID Salle * (entier, max 8 chiffres)</label>
+            <input class="form-control" type="number" id="s_id" placeholder="Ex: 101" min="1" max="99999999" step="1"/>
+            <div class="field-msg" id="msg_s_id"></div>
+          </div>
+
+          <!-- Numéro (lettres + chiffres, pas de symboles) -->
+          <div class="form-group">
+            <label class="form-label" for="s_numero">Numéro de salle *</label>
+            <input class="form-control" type="text" id="s_numero" placeholder="Ex: A12 ou Salle 3"/>
+            <div class="field-msg" id="msg_s_numero"></div>
+          </div>
+
+          <!-- Statut -->
+          <div class="form-group">
+            <label class="form-label" for="s_statut">Statut *</label>
+            <select class="form-control" id="s_statut">
+              <option value="">Sélectionner...</option>
+              <option value="disponible">Disponible</option>
+              <option value="non disponible">Non disponible</option>
+            </select>
+            <div class="field-msg" id="msg_s_statut"></div>
+          </div>
+
+          <!-- Médecin assigné (id_role = 3) -->
+          <div class="form-group">
+            <label class="form-label" for="s_medecin">Médecin assigné (optionnel)</label>
+            <select class="form-control" id="s_medecin">
+              <option value="">Chargement des médecins...</option>
+            </select>
+          </div>
+
+          <p id="msg_salle_global"  style="font-size:.72rem;color:var(--red);  display:none;margin-bottom:6px"></p>
+          <p id="msg_salle_success" style="font-size:.72rem;color:var(--green);display:none;margin-bottom:6px"></p>
+
+          <button class="btn btn-primary btn-block" onclick="submitSalle()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            <span id="salleBtnLabel">Ajouter Salle</span>
+          </button>
+          <button class="btn btn-ghost btn-block" style="margin-top:5px" onclick="resetSalleForm()">Réinitialiser</button>
+        </div>
+      </div>
+
+    </div><!-- /twin-zone salles -->
+
   </main>
 </div>
 

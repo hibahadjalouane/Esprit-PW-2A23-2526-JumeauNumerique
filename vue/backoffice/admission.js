@@ -13,6 +13,8 @@
 // On pointe vers le fichier PHP qui gère toutes les opérations base de données.
 // Le chemin est relatif à l'emplacement de index.html.
 const CRUD_ADMISSION = '../../controleur/backoffice/admission_crud.php';
+// Chemin vers le contrôleur PHP pour les salles
+const CRUD_SALLE     = '../../controleur/backoffice/salle_crud.php';
 
 
 // ── VARIABLES D'ÉTAT (STATE) ─────────────────────────────────────────────────
@@ -53,6 +55,8 @@ async function testConnection() {
         <span>Connecté à la base <strong>jumeaunum</strong> avec succès ✓</span>`;
       loadAdmissions(); // Charger le tableau des admissions
       loadTickets();    // Charger le dropdown des tickets disponibles
+      loadSalles();     // Charger le tableau des salles
+      loadMedecins();   // Charger le dropdown des médecins pour le formulaire salle
     } else {
       showConnError(r.error);
     }
@@ -61,7 +65,7 @@ async function testConnection() {
     showConnError('Impossible de joindre le serveur PHP. Vérifiez que :<br>'
       + '<strong>1.</strong> XAMPP est démarré (Apache + MySQL)<br>'
       + '<strong>2.</strong> Vous ouvrez la page via <code>localhost</code> et non depuis le système de fichiers<br>'
-      + '<strong>3.</strong> Le fichier est bien dans <code>htdocs/gestion_des_admission/</code>');
+      + '<strong>3.</strong> Le fichier est bien dans <code>htdocs/projetweb/gestion_des_admission/</code>');
   }
 }
 
@@ -502,4 +506,283 @@ function clearErrors(ids) {
 function hide(id) {
   const el = document.getElementById(id);
   if (el) el.style.display = 'none';
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SECTION SALLES
+// ════════════════════════════════════════════════════════════════════════════
+
+// État salle
+let allSalles      = [];
+let editingSalleId = null;
+let currentPageS   = 1;
+const PAGE_SIZE_S  = 8;
+
+// ── CHARGER LES MÉDECINS pour le dropdown salle ───────────────────────────────
+async function loadMedecins() {
+  try {
+    const r   = await fetch(CRUD_SALLE + '?action=getMedecins');
+    const j   = await r.json();
+    const sel = document.getElementById('s_medecin');
+    if (!sel) return;
+    if (j.success && j.data.length > 0) {
+      sel.innerHTML = '<option value="">Sélectionner un médecin (optionnel)...</option>';
+      j.data.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id_user;
+        const label = [m.nom, m.prenom].filter(Boolean).join(' ');
+        opt.textContent = label ? `${label} (${m.id_user})` : m.id_user;
+        sel.appendChild(opt);
+      });
+    } else {
+      sel.innerHTML = '<option value="">Aucun médecin trouvé</option>';
+    }
+  } catch (e) {
+    const sel = document.getElementById('s_medecin');
+    if (sel) sel.innerHTML = '<option value="">Erreur chargement médecins</option>';
+  }
+}
+
+// ── CHARGER LES SALLES depuis la BDD ─────────────────────────────────────────
+async function loadSalles() {
+  try {
+    const fd = new FormData();
+    fd.append('action', 'getAll');
+    const res = await fetch(CRUD_SALLE, { method: 'POST', body: fd });
+    const r   = await res.json();
+    if (r.success) {
+      allSalles = r.data;
+      updateStatsSalles();
+      renderSalleTable();
+    } else {
+      const tb = document.getElementById('salleTableBody');
+      if (tb) tb.innerHTML = `<tr><td colspan="5" class="no-data" style="color:var(--red)">Erreur : ${r.error}</td></tr>`;
+    }
+  } catch (e) {
+    const tb = document.getElementById('salleTableBody');
+    if (tb) tb.innerHTML = `<tr><td colspan="5" class="no-data" style="color:var(--red)">Erreur réseau.</td></tr>`;
+  }
+}
+
+// ── STATS SALLES ──────────────────────────────────────────────────────────────
+function updateStatsSalles() {
+  const total  = allSalles.length;
+  const dispo  = allSalles.filter(s => s.statut === 'disponible').length;
+  const indispo = allSalles.filter(s => s.statut !== 'disponible').length;
+
+  const elTotal  = document.getElementById('stat-total-salles');
+  const elDispo  = document.getElementById('stat-dispo-salles');
+  const elIndispo = document.getElementById('stat-indispo-salles');
+  const badgeT   = document.getElementById('stat-badge-salles');
+
+  if (elTotal)   elTotal.textContent   = total;
+  if (elDispo)   elDispo.textContent   = dispo;
+  if (elIndispo) elIndispo.textContent = indispo;
+  if (badgeT)    badgeT.textContent    = total;
+}
+
+// ── RENDER TABLE SALLES ───────────────────────────────────────────────────────
+function renderSalleTable() {
+  const search = (document.getElementById('salleSearch')?.value || '').toLowerCase();
+  const fStat  = document.getElementById('filterSalleStatut')?.value || '';
+
+  const filtered = allSalles.filter(s => {
+    const ms = !search ||
+      String(s.id_salle).includes(search) ||
+      (s.numero               || '').toLowerCase().includes(search) ||
+      (s.medecin_nom_complet  || '').toLowerCase().includes(search);
+    return ms && (!fStat || s.statut === fStat);
+  });
+
+  const total = filtered.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE_S));
+  if (currentPageS > pages) currentPageS = pages;
+  const slice = filtered.slice((currentPageS - 1) * PAGE_SIZE_S, currentPageS * PAGE_SIZE_S);
+
+  const countEl = document.getElementById('sallePaginCount');
+  const pageEl  = document.getElementById('sallePageInfo');
+  if (countEl) countEl.textContent = `Affichage de ${slice.length} sur ${total} salle(s)`;
+  if (pageEl)  pageEl.textContent  = `${currentPageS} / ${pages}`;
+
+  const tbody = document.getElementById('salleTableBody');
+  if (!tbody) return;
+
+  if (!slice.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="no-data">Aucune salle trouvée.</td></tr>';
+    return;
+  }
+
+  const statusMap = {
+    'disponible':     ['badge-normal',   'Disponible'],
+    'non disponible': ['badge-urgence',  'Non disponible'],
+  };
+
+  tbody.innerHTML = slice.map(s => {
+    const med = s.medecin_nom_complet || '—';
+    const [sCls, sLabel] = statusMap[s.statut] || ['badge-autre', s.statut || '—'];
+    return `<tr>
+      <td class="id-cell">${esc(s.id_salle)}</td>
+      <td>${esc(s.numero)}</td>
+      <td><span class="badge ${sCls}">${esc(sLabel)}</span></td>
+      <td>${esc(med)}</td>
+      <td>
+        <div class="actions-cell">
+          <button class="icon-btn" onclick="editSalle(${s.id_salle})" title="Modifier">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="icon-btn del" onclick="deleteSalle(${s.id_salle})" title="Supprimer">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function prevPageS() { if (currentPageS > 1) { currentPageS--; renderSalleTable(); } }
+function nextPageS() {
+  const s = (document.getElementById('salleSearch')?.value || '').toLowerCase();
+  const f = document.getElementById('filterSalleStatut')?.value || '';
+  const total = allSalles.filter(x =>
+    (!s || String(x.id_salle).includes(s) || (x.numero||'').toLowerCase().includes(s))
+    && (!f || x.statut === f)
+  ).length;
+  if (currentPageS < Math.ceil(total / PAGE_SIZE_S)) { currentPageS++; renderSalleTable(); }
+}
+
+// ── VALIDATION SALLE ──────────────────────────────────────────────────────────
+async function validateSalle() {
+  let ok = true;
+  clearErrors(['s_id', 's_numero', 's_statut']);
+  hide('msg_salle_global'); hide('msg_salle_success');
+
+  const inputId     = document.getElementById('s_id');
+  const inputNumero = document.getElementById('s_numero');
+  const inputStatut = document.getElementById('s_statut');
+  const val         = inputId.value.trim();
+
+  // ── Validation ID salle (int, max 8 chiffres, unique) ──
+  if (val === '') {
+    showFieldError('s_id', "L'ID salle est obligatoire !"); ok = false;
+  } else if (!/^\d+$/.test(val)) {
+    showFieldError('s_id', "L'ID doit contenir uniquement des chiffres (entier) !"); ok = false;
+  } else if (val.length > 8) {
+    showFieldError('s_id', "Maximum 8 chiffres !"); ok = false;
+  } else if (parseInt(val) <= 0) {
+    showFieldError('s_id', "L'ID doit être supérieur à 0 !"); ok = false;
+  } else if (!editingSalleId) {
+    // Vérifier en BDD uniquement en mode ajout
+    try {
+      const r = await fetch(CRUD_SALLE + `?action=checkId&id=${encodeURIComponent(val)}`);
+      const j = await r.json();
+      if (j.success && j.exists) {
+        showFieldError('s_id', `L'ID ${val} existe déjà dans la base !`); ok = false;
+      }
+    } catch (e) { /* le PHP double-vérifie de toute façon */ }
+  }
+
+  // ── Validation numéro (lettres et chiffres, pas de symboles) ──
+  if (!inputNumero.value.trim()) {
+    showFieldError('s_numero', "Le numéro est obligatoire !"); ok = false;
+  } else if (/[^a-zA-Z0-9À-ÿ\s]/.test(inputNumero.value.trim())) {
+    showFieldError('s_numero', "Le numéro ne doit pas contenir de caractères spéciaux !"); ok = false;
+  }
+
+  // ── Validation statut ──
+  if (!inputStatut.value) {
+    showFieldError('s_statut', "Veuillez sélectionner un statut !"); ok = false;
+  }
+
+  return ok;
+}
+
+// ── SUBMIT SALLE ──────────────────────────────────────────────────────────────
+async function submitSalle() {
+  if (!(await validateSalle())) return;
+
+  const fd = new FormData();
+  fd.append('action',     editingSalleId ? 'update' : 'add');
+  fd.append('id_salle',   document.getElementById('s_id').value.trim());
+  fd.append('numero',     document.getElementById('s_numero').value.trim());
+  fd.append('statut',     document.getElementById('s_statut').value);
+  fd.append('id_medecin', document.getElementById('s_medecin').value);
+
+  try {
+    const res = await fetch(CRUD_SALLE, { method: 'POST', body: fd });
+    const r   = await res.json();
+    if (r.success) {
+      const s = document.getElementById('msg_salle_success');
+      if (s) { s.textContent = r.message; s.style.display = 'block'; }
+      showToast(r.message, 'success');
+      resetSalleForm();
+      loadSalles();
+    } else {
+      const g = document.getElementById('msg_salle_global');
+      if (g) { g.textContent = r.error || 'Erreur.'; g.style.display = 'block'; }
+    }
+  } catch (e) {
+    const g = document.getElementById('msg_salle_global');
+    if (g) { g.textContent = 'Erreur réseau.'; g.style.display = 'block'; }
+  }
+}
+
+// ── EDIT SALLE ────────────────────────────────────────────────────────────────
+function editSalle(id) {
+  const s = allSalles.find(x => x.id_salle == id);
+  if (!s) return;
+  editingSalleId = id;
+
+  document.getElementById('salleFormTitle').textContent = 'Modifier Salle';
+  document.getElementById('salleBtnLabel').textContent  = 'Enregistrer';
+  document.getElementById('s_id').value       = s.id_salle;
+  document.getElementById('s_id').disabled    = true;
+  document.getElementById('s_numero').value   = s.numero    || '';
+  document.getElementById('s_statut').value   = s.statut    || '';
+  document.getElementById('s_medecin').value  = s.id_medecin || '';
+
+  document.querySelector('.right-panel-salle')?.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── DELETE SALLE ──────────────────────────────────────────────────────────────
+async function deleteSalle(id) {
+  if (!confirm(`Supprimer la salle #${id} ? Cette action est irréversible.`)) return;
+  const fd = new FormData();
+  fd.append('action',   'delete');
+  fd.append('id_salle', id);
+  try {
+    const res = await fetch(CRUD_SALLE, { method: 'POST', body: fd });
+    const r   = await res.json();
+    if (r.success) { showToast(r.message, 'success'); loadSalles(); }
+    else showToast(r.error || 'Erreur suppression', 'error');
+  } catch (e) { showToast('Erreur réseau', 'error'); }
+}
+
+// ── RESET SALLE FORM ──────────────────────────────────────────────────────────
+function resetSalleForm() {
+  editingSalleId = null;
+  document.getElementById('salleFormTitle').textContent = 'Nouvelle Salle';
+  document.getElementById('salleBtnLabel').textContent  = 'Ajouter Salle';
+  document.getElementById('s_id').value      = '';
+  document.getElementById('s_id').disabled   = false;
+  document.getElementById('s_numero').value  = '';
+  document.getElementById('s_statut').value  = '';
+  document.getElementById('s_medecin').value = '';
+  clearErrors(['s_id', 's_numero', 's_statut']);
+  hide('msg_salle_global'); hide('msg_salle_success');
+}
+
+// ── EXPORT CSV SALLE ──────────────────────────────────────────────────────────
+function exportSalleCSV() {
+  const headers = ['ID Salle', 'Numéro', 'Statut', 'Médecin'];
+  const rows = allSalles.map(s => [
+    s.id_salle,
+    s.numero,
+    s.statut,
+    s.medecin_nom_complet || s.id_medecin || ''
+  ]);
+  const csv  = [headers, ...rows].map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a    = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'salles.csv'; a.click();
 }
