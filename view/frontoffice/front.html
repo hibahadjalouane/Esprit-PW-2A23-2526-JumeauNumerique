@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JumeauNum – Espace Patient</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --sidebar-bg:     #1a3a8f;
+      --sidebar-hover:  #2248b0;
+      --sidebar-active: #3560d4;
+      --sidebar-w:      200px;
+      --bg:             #f0f4fb;
+      --surface:        #ffffff;
+      --surface2:       #eef1f8;
+      --border:         #dde2ef;
+      --primary:        #2563eb;
+      --primary-lt:     #eff4ff;
+      --text:           #111827;
+      --muted:          #6b7280;
+      --green:          #16a34a;
+      --green-lt:       #dcfce7;
+      --red:            #dc2626;
+      --red-lt:         #fee2e2;
+      --amber:          #d97706;
+      --amber-lt:       #fef3c7;
+      --header-h:       58px;
+      --radius:         10px;
+      --shadow:         0 1px 4px rgba(0,0,0,.07), 0 4px 14px rgba(0,0,0,.05);
+    }
+
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* HEADER */
+    header { height: var(--header-h); background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 12px; position: fixed; top: 0; left: 0; right: 0; z-index: 200; box-shadow: 0 1px 0 var(--border); }
+    .logo { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 1rem; color: var(--primary); }
+    .logo svg { width: 32px; height: 32px; }
+    header .spacer { flex: 1; }
+    .header-user { display: flex; align-items: center; gap: 8px; font-size: .85rem; font-weight: 500; background: var(--surface2); border: 1px solid var(--border); border-radius: 30px; padding: 4px 12px 4px 5px; cursor: pointer; }
+    .avatar-icon { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; color: #fff; font-size: .75rem; font-weight: 700; }
+    .header-power { width: 34px; height: 34px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: background .15s; }
+    .header-power:hover { background: var(--red-lt); color: var(--red); }
+
+    /* ROLE DROPDOWN */
+    .role-selector { position: relative; }
+    .role-selector .header-user { user-select: none; }
+    .role-dropdown { position: absolute; top: calc(100% + 8px); right: 0; min-width: 190px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 6px; z-index: 999; display: none; flex-direction: column; gap: 2px; }
+    .role-selector.open .role-dropdown { display: flex; }
+    .role-option { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; font-size: .84rem; font-weight: 500; color: var(--text); cursor: pointer; text-decoration: none; transition: background .12s; }
+    .role-option:hover { background: var(--surface2); }
+    .role-option.active { background: #d1faf5; color: #0d9488; }
+    .role-option .role-avatar { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: .72rem; font-weight: 700; flex-shrink: 0; }
+    .role-option .role-avatar.admin { background: var(--primary); }
+    .role-option .role-avatar.patient { background: #0d9488; }
+    .role-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+    /* LAYOUT */
+    .layout { display: flex; margin-top: var(--header-h); min-height: calc(100vh - var(--header-h)); }
+
+    /* SIDEBAR */
+    aside.sidebar { width: var(--sidebar-w); background: var(--sidebar-bg); position: fixed; top: var(--header-h); bottom: 0; left: 0; display: flex; flex-direction: column; padding: 14px 8px; gap: 2px; overflow-y: auto; z-index: 100; }
+    .nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-radius: 8px; font-size: .84rem; font-weight: 500; color: rgba(255,255,255,.7); cursor: pointer; user-select: none; white-space: nowrap; transition: background .12s, color .12s; text-decoration: none; }
+    .nav-item:hover  { background: var(--sidebar-hover);  color: #fff; }
+    .nav-item.active { background: var(--sidebar-active); color: #fff; }
+    .nav-item svg { flex-shrink: 0; width: 17px; height: 17px; }
+    .nav-bottom { margin-top: auto; }
+
+    /* MAIN */
+    main { margin-left: var(--sidebar-w); flex: 1; padding: 22px 20px 40px; min-width: 0; overflow-x: hidden; }
+    .page-title { font-size: 1.45rem; font-weight: 700; }
+    .page-sub   { color: var(--muted); font-size: .82rem; margin-top: 2px; }
+
+    /* WELCOME BANNER */
+    .welcome-banner { background: var(--primary); border-radius: var(--radius); padding: 18px 22px; color: #fff; margin: 16px 0; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow); }
+    .welcome-banner h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 3px; }
+    .welcome-banner p  { font-size: .82rem; opacity: .88; }
+    .welcome-banner .w-icon { font-size: 2.2rem; opacity: .7; }
+
+    /* STATS */
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+    .stat-badge { position: absolute; top: 10px; right: 10px; font-size: .7rem; font-weight: 600; padding: 2px 7px; border-radius: 20px; }
+    .badge-blue  { background: var(--primary-lt); color: var(--primary); }
+    .badge-amber { background: var(--amber-lt);   color: var(--amber); }
+    .badge-green { background: var(--green-lt);   color: var(--green); }
+    .badge-red   { background: var(--red-lt);     color: var(--red); }
+    .stat-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+    .stat-icon.blue  { background: var(--primary-lt); color: var(--primary); }
+    .stat-icon.teal  { background: #d1faf5; color: #0d9488; }
+    .stat-icon.ambr  { background: var(--amber-lt); color: var(--amber); }
+    .stat-label { font-size: .75rem; color: var(--muted); }
+    .stat-value { font-size: 1.35rem; font-weight: 700; margin-top: 1px; }
+    .stat-sub   { font-size: .7rem; color: var(--muted); margin-top: 2px; }
+
+    /* SECTION TITLE */
+    .section-title { font-size: 1.1rem; font-weight: 700; color: var(--text); margin: 22px 0 12px; }
+
+    /* TWIN ZONE */
+    .twin-zone { display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: start; }
+
+    /* TOOLBAR */
+    .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-family: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; border: none; transition: opacity .15s; }
+    .btn:hover { opacity: .88; }
+    .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.22); width: 100%; justify-content: center; margin-top: 4px; }
+    .btn-primary:disabled { background: var(--surface2); color: var(--muted); box-shadow: none; cursor: not-allowed; }
+    .toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .filter-label  { font-size: .8rem; color: var(--muted); white-space: nowrap; }
+    .filter-select { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px 10px; font-family: inherit; font-size: .82rem; color: var(--text); cursor: pointer; }
+    .search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .search-wrap { flex: 1; position: relative; }
+    .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); width: 14px; height: 14px; pointer-events: none; }
+    .search-wrap input { width: 100%; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 8px 10px 8px 32px; font-family: inherit; font-size: .82rem; color: var(--text); outline: none; }
+    .search-wrap input:focus { border-color: var(--primary); }
+
+    /* CALENDAR */
+    .calendar-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 16px; margin-bottom: 14px; }
+    .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .calendar-title { font-size: .88rem; font-weight: 700; }
+    .cal-nav { display: flex; gap: 5px; }
+    .cal-btn { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; color: var(--text); display: flex; align-items: center; justify-content: center; font-size: .7rem; transition: background .12s; }
+    .cal-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+    .cal-dh { font-size: .67rem; color: var(--muted); font-weight: 600; padding: 5px 0; }
+    .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: .72rem; cursor: pointer; transition: background .12s; }
+    .cal-day:hover { background: var(--primary); color: #fff; }
+    .cal-day.today { background: var(--primary); color: #fff; font-weight: 700; }
+    .cal-day.has-slots { background: var(--green-lt); color: var(--green); font-weight: 600; }
+    .cal-day.selected-date {
+  background: var(--primary) !important;
+  color: #fff !important;
+  font-weight: 700;
+}
+    .cal-day.other-month { color: #d1d5db; }
+
+    /* SLOTS GRID */
+    .slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .slot-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; cursor: pointer; transition: border-color .15s, box-shadow .15s; position: relative; }
+    .slot-card:hover { border-color: var(--primary); box-shadow: 0 4px 14px rgba(37,99,235,.12); }
+    .slot-card.selected { border-color: var(--primary); background: var(--primary-lt); }
+    .slot-card.disabled { opacity: .5; cursor: not-allowed; background: var(--surface2); }
+    .slot-date { font-size: .7rem; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
+    .slot-time { font-size: 1rem; font-weight: 700; }
+    .slot-doctor { font-size: .75rem; color: var(--primary); font-weight: 500; margin-top: 3px; }
+    .slot-type  { font-size: .7rem; color: var(--muted); margin-top: 2px; }
+    .slot-status-badge { position: absolute; top: 10px; right: 10px; font-size: .65rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+
+    /* TABLE */
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    thead th { text-align: left; padding: 10px 12px; font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--surface2); border-bottom: 1px solid var(--border); }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: 10px 12px; vertical-align: middle; }
+    .id-cell { font-family: 'DM Mono', monospace; font-size: .75rem; color: var(--muted); }
+
+    .status-badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: .72rem; font-weight: 600; }
+    .status-badge.confirme   { background: var(--green-lt); color: var(--green); }
+    .status-badge.en-attente { background: var(--amber-lt); color: var(--amber); }
+    .status-badge.annule     { background: var(--red-lt);   color: var(--red); }
+
+    .actions { display: flex; gap: 5px; }
+    .action-btn {
+      width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--surface); display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--muted); transition: background .12s, color .12s; font-size: 11px;
+    }
+    .action-btn:hover { background: var(--primary-lt); color: var(--primary); border-color: var(--primary); }
+    .action-btn.cancel:hover { background: var(--red-lt); color: var(--red); border-color: var(--red); }
+
+    /* PAGINATION */
+    .pagination-row { display: flex; align-items: center; gap: 5px; padding: 10px 14px; border-top: 1px solid var(--border); font-size: .78rem; color: var(--muted); }
+    .pagination-row .count { flex: 1; }
+    .page-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .78rem; }
+    .page-number { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .78rem; font-weight: 500; }
+    .page-number.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    /* RIGHT PANEL / FORM */
+    .right-panel { display: flex; flex-direction: column; gap: 14px; }
+    .panel-card  { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+    .panel-title { font-size: .92rem; font-weight: 700; margin-bottom: 12px; }
+    .form-group  { margin-bottom: 10px; }
+    .form-label  { font-size: .72rem; font-weight: 600; color: var(--muted); margin-bottom: 3px; display: block; }
+    .form-label .required { color: var(--red); margin-left: 2px; }
+    .form-control { width: 100%; border: 1.5px solid var(--border); background: var(--bg); border-radius: 7px; padding: 7px 9px; font-family: inherit; font-size: .8rem; color: var(--text); outline: none; transition: border-color .15s, background .15s; }
+    .form-control:focus { border-color: var(--primary); background: var(--surface); }
+    .form-control::placeholder { color: #b0b8cc; }
+    .form-control[readonly] { background: var(--surface2); color: var(--muted); cursor: default; }
+    textarea.form-control { resize: vertical; height: auto; padding: 7px 9px; }
+
+    /* VALIDATION */
+    .form-control.field-valid   { border-color: var(--green); }
+    .form-control.field-invalid { border-color: var(--red); background: #fff8f8; }
+    .field-hint { font-size: .67rem; margin-top: 3px; min-height: 14px; color: var(--muted); }
+    .field-hint.ok  { color: var(--green); }
+    .field-hint.err { color: var(--red); }
+
+    /* INFO BOX */
+    .info-box { background: var(--primary-lt); border: 1px solid #bfdbfe; border-radius: 7px; padding: 9px 11px; font-size: .75rem; color: var(--primary); margin-top: 4px; display: flex; gap: 7px; align-items: flex-start; }
+    .info-box svg { flex-shrink: 0; width: 14px; height: 14px; margin-top: 1px; }
+
+    /* MODAL */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; align-items: center; justify-content: center; z-index: 9999; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: var(--surface); border-radius: 14px; padding: 22px; min-width: 320px; max-width: 400px; width: 92%; box-shadow: 0 8px 32px rgba(0,0,0,.18); }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .modal-header strong { font-size: .95rem; font-weight: 700; }
+    .modal-close { cursor: pointer; color: var(--muted); font-size: 18px; line-height: 1; background: none; border: none; font-family: inherit; }
+    .modal-close:hover { color: var(--red); }
+    .detail-row { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: .82rem; }
+    .detail-row:last-of-type { border: none; }
+    .detail-label { color: var(--muted); min-width: 80px; font-weight: 500; }
+    .btn-cancel-rdv { margin-top: 14px; width: 100%; padding: 8px; background: var(--red-lt); color: var(--red); border: 1px solid #fca5a5; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: .82rem; font-weight: 600; transition: background .12s; }
+    .btn-cancel-rdv:hover { background: #fecaca; }
+
+    /* TOAST */
+    #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 10000; display: flex; flex-direction: column; gap: 8px; }
+    .toast { padding: 10px 18px; border-radius: 8px; font-size: .83rem; font-weight: 500; color: #fff; background: var(--text); box-shadow: var(--shadow); animation: toastIn .25s ease; }
+    .toast.success { background: var(--green); }
+    .toast.error   { background: var(--red); }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .no-data { text-align: center; padding: 30px 20px; color: var(--muted); font-size: .85rem; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 40 40" fill="none">
+      <rect width="40" height="40" rx="10" fill="#2563eb"/>
+      <path d="M10 20h4l3-7 4 14 3-10 3 6 3-3h4" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    JumeauNum
+  </div>
+  <div class="spacer"></div>
+  <div class="role-selector" id="roleSelector">
+    <div class="header-user" onclick="document.getElementById('roleSelector').classList.toggle('open')">
+      <div class="avatar-icon">P</div>
+      Patient
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+    <div class="role-dropdown">
+      <a class="role-option active" href="front.html">
+        <div class="role-avatar patient">P</div>
+        Patient
+      </a>
+      <div class="role-divider"></div>
+      <a class="role-option" href="../backoffice/back_office.html">
+        <div class="role-avatar admin">A</div>
+        Médecin / Secrétaire
+      </a>
+    </div>
+  </div>
+  <div class="header-power" title="Déconnexion">
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v10M4.93 4.93a10 10 0 100 14.14"/></svg>
+  </div>
+</header>
+
+<script>
+  document.addEventListener('click', function(e) {
+    var sel = document.getElementById('roleSelector');
+    if (sel && !sel.contains(e.target)) sel.classList.remove('open');
+  });
+</script>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <a href="#" class="nav-item active">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Accueil
+    </a>
+    <a href="#" class="nav-item">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Mes Rendez-vous
+    </a>
+    <a href="#" class="nav-item">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M12 9v6M9 12h6"/></svg>
+      Réserver
+    </a>
+    <a href="#" class="nav-item">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M2 19c0-3 3-5 7-5s7 2 7 5"/><path d="M17 14c2 0 4 1.5 4 4"/></svg>
+      Médecins
+    </a>
+    <a href="#" class="nav-item">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+      Mes Documents
+    </a>
+    <div class="nav-bottom">
+      <a href="#" class="nav-item">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        Paramètres
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+    <div class="page-title">Espace Patient</div>
+    <div class="page-sub">Prenez rendez-vous avec nos médecins en quelques clics.</div>
+
+    <!-- Welcome Banner -->
+    <div class="welcome-banner">
+      <div>
+        <h2>Bonjour, Patient !</h2>
+        <p>Consultez vos rendez-vous ou réservez un nouveau créneau.</p>
+      </div>
+      <div class="w-icon">
+        <svg width="42" height="42" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402C1 3.518 3.517 1 6.5 1 8.745 1 10.685 2.309 12 4.315 13.315 2.309 15.255 1 17.5 1 20.483 1 23 3.518 23 7.191c0 4.105-5.37 8.863-11 14.402z"/></svg>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <span class="stat-badge badge-green">Confirmé</span>
+        <div class="stat-icon teal">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <div class="stat-label">Rendez-vous confirmés</div>
+        <div class="stat-value">3</div>
+        <div class="stat-sub">Statut confirmé</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-amber">En attente</span>
+        <div class="stat-icon ambr">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        <div class="stat-label">En attente de confirmation</div>
+        <div class="stat-value">1</div>
+        <div class="stat-sub">En cours de traitement</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-blue">Disponible</span>
+        <div class="stat-icon blue">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </div>
+        <div class="stat-label">Créneaux disponibles</div>
+        <div class="stat-value">12</div>
+        <div class="stat-sub">Prêts à réserver</div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 1 : CRÉNEAUX DISPONIBLES ── -->
+    <div class="section-title">Créneaux Disponibles</div>
+
+    <div class="twin-zone">
+      <!-- Left : Calendar + Slots -->
+      <div>
+        <!-- Calendar -->
+        <div class="calendar-card">
+          <div class="calendar-header">
+            <div class="calendar-title">Avril 2024</div>
+            <div class="cal-nav">
+              <button class="cal-btn"><i class="fa-solid fa-chevron-left" style="font-size:9px"></i></button>
+              <button class="cal-btn"><i class="fa-solid fa-chevron-right" style="font-size:9px"></i></button>
+            </div>
+          </div>
+        <div class="cal-grid">
+  <div class="cal-dh">Lun</div><div class="cal-dh">Mar</div><div class="cal-dh">Mer</div>
+  <div class="cal-dh">Jeu</div><div class="cal-dh">Ven</div><div class="cal-dh">Sam</div><div class="cal-dh">Dim</div>
+
+  <div class="cal-day other-month">29</div>
+  <div class="cal-day other-month">30</div>
+  <div class="cal-day other-month">31</div>
+
+  <div class="cal-day" data-date="2024-04-01">1</div>
+  <div class="cal-day" data-date="2024-04-02">2</div>
+  <div class="cal-day" data-date="2024-04-03">3</div>
+  <div class="cal-day" data-date="2024-04-04">4</div>
+
+  <div class="cal-day" data-date="2024-04-05">5</div>
+  <div class="cal-day" data-date="2024-04-06">6</div>
+  <div class="cal-day" data-date="2024-04-07">7</div>
+
+  <div class="cal-day" data-date="2024-04-08">8</div>
+  <div class="cal-day" data-date="2024-04-09">9</div>
+  <div class="cal-day" data-date="2024-04-10">10</div>
+  <div class="cal-day" data-date="2024-04-11">11</div>
+
+  <div class="cal-day" data-date="2024-04-12">12</div>
+  <div class="cal-day today" data-date="2024-04-13">13</div>
+  <div class="cal-day" data-date="2024-04-14">14</div>
+
+  <div class="cal-day has-slots" data-date="2024-04-15">15</div>
+  <div class="cal-day has-slots" data-date="2024-04-16">16</div>
+  <div class="cal-day has-slots" data-date="2024-04-17">17</div>
+  <div class="cal-day" data-date="2024-04-18">18</div>
+
+  <div class="cal-day" data-date="2024-04-19">19</div>
+  <div class="cal-day" data-date="2024-04-20">20</div>
+  <div class="cal-day" data-date="2024-04-21">21</div>
+
+  <div class="cal-day" data-date="2024-04-22">22</div>
+  <div class="cal-day" data-date="2024-04-23">23</div>
+  <div class="cal-day" data-date="2024-04-24">24</div>
+  <div class="cal-day" data-date="2024-04-25">25</div>
+
+  <div class="cal-day" data-date="2024-04-26">26</div>
+  <div class="cal-day" data-date="2024-04-27">27</div>
+  <div class="cal-day" data-date="2024-04-28">28</div>
+
+  <div class="cal-day" data-date="2024-04-29">29</div>
+  <div class="cal-day" data-date="2024-04-30">30</div>
+</div>  
+        </div>
+
+        <!-- Slots -->
+        <div class="slots-grid" id="slotsGrid"></div>
+
+        <!-- Search slots -->
+        <div class="search-row">
+          <div class="search-wrap">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" placeholder="Rechercher un créneau..." id="searchSlot"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right : Reservation form -->
+      <div class="right-panel">
+        <div class="panel-card">
+          <div class="panel-title">Nouvelle Réservation</div>
+
+          <div class="form-group">
+            <label class="form-label" for="patientName">Nom complet <span class="required">*</span></label>
+            <input id="patientName" type="text" class="form-control" placeholder="Votre nom complet"/>
+            <div class="field-hint" id="hintName"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="patientEmail">Email <span class="required">*</span></label>
+            <input id="patientEmail" type="email" class="form-control" placeholder="votre@email.com"/>
+            <div class="field-hint" id="hintEmail"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="patientPhone">Téléphone <span class="required">*</span></label>
+            <input id="patientPhone" type="tel" class="form-control" placeholder="+216 XX XXX XXX"/>
+            <div class="field-hint" id="hintPhone"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="selectedSlot">Créneau sélectionné</label>
+            <input id="selectedSlot" type="text" class="form-control" placeholder="Sélectionnez un créneau ci-dessous" readonly/>
+            <div class="field-hint" id="hintSlot"></div>
+          </div>
+
+          <!-- Créneaux disponibles pour la date sélectionnée -->
+          <div id="slotPickerInForm" style="display:none; margin-bottom:12px;">
+            <div id="slotPickerList" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:280px;overflow-y:auto;padding-right:2px;"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="consultationType">Type de consultation <span class="required">*</span></label>
+            <select id="consultationType" class="form-control">
+              <option value="">— Choisir —</option>
+              <option value="generale">Consultation générale</option>
+              <option value="specialiste">Spécialisée</option>
+              <option value="suivi">Suivi post-opératoire</option>
+              <option value="urgence">Urgence</option>
+            </select>
+            <div class="field-hint" id="hintType"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="notes">Notes (optionnel)</label>
+            <textarea id="notes" class="form-control" rows="3" placeholder="Précisez vos symptômes ou besoins..."></textarea>
+          </div>
+
+          <button onclick="confirmerReservation()" id="btnBook" class="btn btn-primary">
+    <div class="spinner" id="bookSpinner"></div>
+    <svg id="bookIcon" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path d="M5 13l4 4L19 7"/>
+    </svg>
+    <span id="bookText">Confirmer la réservation</span>
+</button>
+
+          <div class="info-box" style="margin-top:10px">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            Vous recevrez un email de confirmation après validation par notre équipe.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 2 : MES RENDEZ-VOUS ── -->
+    <div class="section-title" style="margin-top:32px">Mes Rendez-vous</div>
+
+    <div class="twin-zone">
+      <div>
+        <div class="toolbar">
+          <div class="toolbar-right">
+            <span class="filter-label">Filtrer :</span>
+            <select class="filter-select" id="filterRdv">
+              <option value="">Tous</option>
+              <option value="confirme">Confirmé</option>
+              <option value="en-attente">En attente</option>
+              <option value="annule">Annulé</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="search-row">
+          <div class="search-wrap">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" id="searchRdv" placeholder="Rechercher un rendez-vous..."/>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Heure</th>
+                <th>Médecin</th>
+                <th>Type</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="rdvTableBody">
+              <tr><td colspan="7" class="no-data">Chargement...</td></tr>
+            </tbody>
+          </table>
+          <div class="pagination-row">
+            <div class="count" id="rdvCount">—</div>
+            <div class="page-btn"><i class="fa-solid fa-chevron-left" style="font-size:10px"></i></div>
+            <div class="page-number active">1</div>
+            <div class="page-btn"><i class="fa-solid fa-chevron-right" style="font-size:10px"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: quick info panel -->
+      <div class="right-panel">
+        <div class="panel-card">
+          <div class="panel-title">Informations Utiles</div>
+          <div style="font-size:.78rem; color:var(--muted); line-height:1.6;">
+            <p style="margin-bottom:8px;"><strong style="color:var(--text)">Annulation :</strong> Annulez au moins 24h à l'avance pour libérer le créneau.</p>
+            <p style="margin-bottom:8px;"><strong style="color:var(--text)">Confirmation :</strong> Chaque rendez-vous est validé par notre équipe sous 2h.</p>
+            <p><strong style="color:var(--text)">Contact :</strong> Appelez le <strong style="color:var(--primary)">+216 71 456 871</strong> pour toute urgence.</p>
+          </div>
+          <div class="info-box" style="margin-top:12px">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            En cas de symptômes graves, rendez-vous directement aux urgences.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL DÉTAIL RDV -->
+<div class="modal-overlay" id="rdvModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <strong>Détails du rendez-vous</strong>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="front.js"></script>
+
+</body>
+</html>

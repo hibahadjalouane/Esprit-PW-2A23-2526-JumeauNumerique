@@ -34,7 +34,12 @@ function formatRdvStatus(statut) {
 
 function formatCreneauStatus(statut) {
   const s = String(statut || "").toLowerCase();
+<<<<<<< HEAD
   if (s === "disponible") return { text: "Disponible", cls: "available" };
+=======
+  if (s === "disponible") 
+    return { text: "Disponible", cls: "available" };
+>>>>>>> main
   return { text: "Réservé", cls: "reserved" };
 }
 
@@ -421,4 +426,30 @@ chargerMedecinsDepuisBD().finally(() => {
   chargerRdvDepuisBD();
 });
 
+<<<<<<< HEAD
 bind("idMedecin", "change", chargerCreneauxDepuisBD);
+=======
+bind("idMedecin", "change", chargerCreneauxDepuisBD);
+function redirectUser() {
+    const role = document.getElementById("roleSelect").value;
+
+    if (role === "patient") {
+        window.location.href = "front/index.html"; // Front Office
+    } 
+    else if (role === "medecin" || role === "secretaire") {
+        window.location.href = "back/index.html"; // Back Office
+    }
+}
+function redirectUser() {
+    const role = document.getElementById("roleSelect").value;
+
+    localStorage.setItem("role", role);
+
+    if (role === "patient") {
+        window.location.href = "front/index.html";
+    } 
+    else if (role === "medecin" || role === "secretaire") {
+        window.location.href = "back/index.html";
+    }
+}
+>>>>>>> main
