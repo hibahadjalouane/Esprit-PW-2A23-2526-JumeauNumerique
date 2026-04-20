@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JumeauNum – Mon Profil</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --sidebar-bg:#1a3a8f;--sidebar-hover:#2248b0;--sidebar-active:#3560d4;--sidebar-w:200px;
+  --bg:#f0f4fb;--surface:#ffffff;--surface2:#eef1f8;--border:#dde2ef;
+  --primary:#2563eb;--primary-lt:#eff4ff;--text:#111827;--muted:#6b7280;
+  --green:#16a34a;--green-lt:#dcfce7;--red:#dc2626;--red-lt:#fee2e2;
+  --amber:#d97706;--amber-lt:#fef3c7;--header-h:58px;--radius:10px;
+  --shadow:0 1px 4px rgba(0,0,0,.07),0 4px 14px rgba(0,0,0,.05);
+}
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; }
+header { height:var(--header-h); background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 20px; gap:12px; position:fixed; top:0; left:0; right:0; z-index:200; box-shadow:0 1px 0 var(--border); }
+.logo { display:flex; align-items:center; gap:9px; font-weight:700; font-size:1rem; color:var(--primary); }
+.logo svg { width:32px; height:32px; }
+header .spacer { flex:1; }
+.header-user { display:flex; align-items:center; gap:8px; font-size:.85rem; font-weight:500; background:var(--surface2); border:1px solid var(--border); border-radius:30px; padding:4px 12px 4px 5px; cursor:pointer; }
+.avatar-icon { width:28px; height:28px; border-radius:50%; background:var(--primary); display:flex; align-items:center; justify-content:center; color:#fff; font-size:.75rem; font-weight:700; }
+.header-power { width:34px; height:34px; border-radius:50%; background:var(--surface2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--muted); transition:background .15s; }
+.header-power:hover { background:var(--red-lt); color:var(--red); }
+.layout { display:flex; margin-top:var(--header-h); min-height:calc(100vh - var(--header-h)); }
+aside { width:var(--sidebar-w); background:var(--sidebar-bg); position:fixed; top:var(--header-h); bottom:0; left:0; display:flex; flex-direction:column; padding:14px 8px; gap:2px; overflow-y:auto; z-index:100; }
+.nav-item { display:flex; align-items:center; gap:9px; padding:9px 12px; border-radius:8px; font-size:.84rem; font-weight:500; color:rgba(255,255,255,.7); cursor:pointer; text-decoration:none; white-space:nowrap; transition:background .12s,color .12s; }
+.nav-item:hover { background:var(--sidebar-hover); color:#fff; }
+.nav-item.active { background:var(--sidebar-active); color:#fff; }
+.nav-item svg { flex-shrink:0; width:17px; height:17px; }
+.nav-bottom { margin-top:auto; }
+main { margin-left:var(--sidebar-w); flex:1; padding:22px 20px 40px; min-width:0; }
+
+/* ── PAGE HEADER ── */
+.page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.page-title { font-size:1.45rem; font-weight:700; }
+.page-sub   { color:var(--muted); font-size:.82rem; margin-top:2px; }
+.btn-row { display:flex; gap:8px; }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:8px; font-family:inherit; font-size:.82rem; font-weight:600; cursor:pointer; border:none; transition:opacity .15s; }
+.btn:hover { opacity:.88; }
+.btn-primary { background:var(--primary); color:#fff; box-shadow:0 2px 8px rgba(37,99,235,.22); }
+.btn-outline  { background:var(--surface); color:var(--text); border:1px solid var(--border); }
+
+/* ── PROFIL CARD (en-tête) ── */
+.profil-header-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px 24px; box-shadow:var(--shadow); display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.profil-left { display:flex; align-items:center; gap:18px; }
+.profil-avatar { width:72px; height:72px; border-radius:50%; background:linear-gradient(135deg,var(--primary),#1d4ed8); display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.6rem; font-weight:700; position:relative; }
+.profil-avatar .edit-dot { position:absolute; bottom:2px; right:2px; width:22px; height:22px; background:var(--primary); border:2px solid #fff; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.profil-avatar .edit-dot svg { width:11px; height:11px; color:#fff; }
+.profil-name { font-size:1.2rem; font-weight:700; }
+.role-badge { display:inline-block; background:var(--primary-lt); color:var(--primary); font-size:.7rem; font-weight:600; padding:2px 10px; border-radius:20px; margin-left:8px; }
+.profil-email { font-size:.82rem; color:var(--muted); margin-top:3px; }
+.profil-id    { font-family:'DM Mono',monospace; font-size:.75rem; color:var(--muted); margin-top:2px; }
+.profil-right { text-align:right; }
+.last-login-label { font-size:.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+.last-login-val   { font-size:.9rem; font-weight:600; margin-top:3px; }
+
+/* ── CONTENT GRID ── */
+.content-grid { display:grid; grid-template-columns:1fr 360px; gap:16px; }
+
+/* ── PANEL CARD ── */
+.panel-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px 22px; box-shadow:var(--shadow); margin-bottom:16px; }
+.panel-section-title { font-size:.95rem; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.panel-section-title svg { width:16px; height:16px; color:var(--primary); }
+.form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.form-group { margin-bottom:12px; }
+.form-label { font-size:.72rem; font-weight:600; color:var(--muted); margin-bottom:4px; display:block; text-transform:uppercase; letter-spacing:.06em; }
+.form-control { width:100%; border:1px solid var(--border); background:var(--bg); border-radius:7px; padding:8px 10px; font-family:inherit; font-size:.82rem; color:var(--text); outline:none; transition:border-color .15s; }
+.form-control:focus { border-color:var(--primary); background:var(--surface); }
+.form-control.error { border-color:var(--red); }
+.form-control:disabled { background:var(--surface2); color:var(--muted); cursor:not-allowed; }
+.field-msg { font-size:.68rem; color:var(--red); margin-top:3px; display:none; }
+.field-msg.visible { display:block; }
+.msg-success { font-size:.72rem; color:var(--green); display:none; margin-bottom:6px; }
+.msg-error   { font-size:.72rem; color:var(--red);   display:none; margin-bottom:6px; }
+
+/* ── TOGGLE SWITCH ── */
+.toggle-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); }
+.toggle-row:last-child { border-bottom:none; }
+.toggle-label { font-size:.82rem; font-weight:500; }
+.toggle-sub   { font-size:.72rem; color:var(--muted); }
+.toggle { position:relative; display:inline-block; width:42px; height:22px; }
+.toggle input { opacity:0; width:0; height:0; }
+.toggle-slider { position:absolute; cursor:pointer; inset:0; background:#d1d5db; border-radius:22px; transition:.3s; }
+.toggle-slider::before { content:''; position:absolute; width:16px; height:16px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.3s; }
+.toggle input:checked + .toggle-slider { background:var(--primary); }
+.toggle input:checked + .toggle-slider::before { transform:translateX(20px); }
+
+/* ── DANGER ZONE ── */
+.danger-zone { background:#fff8f8; border:1px solid #fecaca; border-radius:var(--radius); padding:16px 20px; display:flex; align-items:center; justify-content:space-between; margin-top:8px; }
+.danger-icon { width:36px; height:36px; background:var(--red-lt); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-right:14px; }
+.danger-icon svg { width:18px; height:18px; color:var(--red); }
+.danger-text .danger-title { font-size:.88rem; font-weight:700; color:var(--red); margin-bottom:2px; }
+.danger-text .danger-sub   { font-size:.75rem; color:var(--muted); }
+.btn-danger { background:transparent; border:1.5px solid var(--red); color:var(--red); border-radius:8px; padding:8px 16px; font-family:inherit; font-size:.8rem; font-weight:600; cursor:pointer; transition:background .15s; white-space:nowrap; }
+.btn-danger:hover { background:var(--red-lt); }
+
+/* ── TOAST ── */
+.toast { position:fixed; bottom:24px; right:24px; z-index:999; background:var(--text); color:#fff; padding:10px 18px; border-radius:8px; font-size:.83rem; font-weight:500; opacity:0; transform:translateY(10px); transition:opacity .25s,transform .25s; pointer-events:none; }
+.toast.show    { opacity:1; transform:translateY(0); }
+.toast.success { background:var(--green); }
+.toast.error   { background:var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="#2563eb"/><path d="M10 20h4l3-7 4 14 3-10 3 6 3-3h4" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    JumeauNum
+  </div>
+  <div class="spacer"></div>
+  <div class="header-user">
+    <div class="avatar-icon">A</div>
+    Admin
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="header-power">
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v10M4.93 4.93a10 10 0 100 14.14"/></svg>
+  </div>
+</header>
+
+<div class="layout">
+  <aside>
+    <a href="#"       class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Tableau de bord</a>
+    <a href="#"       class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Ressources</a>
+    <a href="#"       class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Les rendez-vous</a>
+    <a href="#"       class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Admissions</a>
+    <a href="#"       class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>Dossiers médicaux</a>
+    <a href="#"       class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 15h2M13 15h3"/></svg>Les factures</a>
+    <a href="#"       class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M2 19c0-3 3-5 7-5s7 2 7 5"/><path d="M17 14c2 0 4 1.5 4 4"/></svg>Les médecins</a>
+    <div class="nav-bottom">
+      <a href="profil.html" class="nav-item active"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Paramètres</a>
+    </div>
+  </aside>
+
+  <main>
+    <div class="page-header">
+      <div>
+        <div class="page-title">Mon Profil</div>
+        <div class="page-sub">Gérez vos informations personnelles et vos paramètres de sécurité.</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-outline" onclick="resetProfil()">Réinitialiser</button>
+        <button class="btn btn-primary" onclick="saveProfil()">Enregistrer les modifications</button>
+      </div>
+    </div>
+
+    <!-- EN-TÊTE PROFIL -->
+    <div class="profil-header-card">
+      <div class="profil-left">
+        <div class="profil-avatar">
+          A
+          <div class="edit-dot"><svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
+        </div>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="profil-name" id="profilNomComplet">Chargement...</span>
+            <span class="role-badge" id="profilRole">—</span>
+          </div>
+          <div class="profil-email" id="profilEmail">—</div>
+          <div class="profil-id" id="profilId">—</div>
+        </div>
+      </div>
+      <div class="profil-right">
+        <div class="last-login-label">Dernière connexion</div>
+        <div class="last-login-val">—</div>
+      </div>
+    </div>
+
+    <div class="content-grid">
+
+      <!-- COLONNE GAUCHE -->
+      <div>
+        <!-- Informations personnelles -->
+        <div class="panel-card">
+          <div class="panel-section-title">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            Informations Personnelles
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="p_nom">Nom</label>
+              <input class="form-control" type="text" id="p_nom"/>
+              <div class="field-msg" id="err_p_nom"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="p_prenom">Prénom</label>
+              <input class="form-control" type="text" id="p_prenom"/>
+              <div class="field-msg" id="err_p_prenom"></div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="p_email">Email Professionnel</label>
+            <input class="form-control" type="email" id="p_email"/>
+            <div class="field-msg" id="err_p_email"></div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="p_cin">Numéro CIN / Identité</label>
+              <input class="form-control" type="text" id="p_cin" maxlength="8"/>
+              <div class="field-msg" id="err_p_cin"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="p_service">Service</label>
+              <input class="form-control" type="text" id="p_service" placeholder="Ex : Cardiologie"/>
+            </div>
+          </div>
+
+          <p class="msg-error"   id="msg_profil_global"></p>
+          <p class="msg-success" id="msg_profil_success"></p>
+        </div>
+
+        <!-- Zone de danger -->
+        <div class="danger-zone">
+          <div class="danger-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"/></svg></div>
+          <div class="danger-text">
+            <div class="danger-title">Zone de Danger</div>
+            <div class="danger-sub">La désactivation de votre compte est une action irréversible.</div>
+          </div>
+          <button class="btn-danger">Désactiver le compte</button>
+        </div>
+      </div>
+
+      <!-- COLONNE DROITE -->
+      <div>
+        <!-- Sécurité -->
+        <div class="panel-card">
+          <div class="panel-section-title">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            Sécurité
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="p_ancien_mdp">Ancien mot de passe</label>
+            <input class="form-control" type="password" id="p_ancien_mdp" placeholder="••••••••••••"/>
+            <div class="field-msg" id="err_p_ancien_mdp"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="p_nouveau_mdp">Nouveau mot de passe</label>
+            <input class="form-control" type="password" id="p_nouveau_mdp" placeholder="Min. 6 caractères"/>
+            <div class="field-msg" id="err_p_nouveau_mdp"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="p_confirm_nouveau">Confirmer le nouveau mot de passe</label>
+            <input class="form-control" type="password" id="p_confirm_nouveau" placeholder="Confirmez"/>
+            <div class="field-msg" id="err_p_confirm_nouveau"></div>
+          </div>
+
+          <p class="msg-error"   id="msg_mdp_global"></p>
+          <p class="msg-success" id="msg_mdp_success"></p>
+
+          <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px" onclick="changeMdp()">
+            Changer le mot de passe
+          </button>
+        </div>
+
+        <!-- Préférences -->
+        <div class="panel-card">
+          <div class="panel-section-title">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+            Préférences
+          </div>
+
+          <div class="form-group" style="margin-bottom:14px">
+            <label class="form-label">Langue du système</label>
+            <select class="form-control">
+              <option>Français (France)</option>
+              <option>English</option>
+              <option>العربية</option>
+            </select>
+          </div>
+
+          <div style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Notifications</div>
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-label">Alertes critiques patients</div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-label">Rapports d'analyse hebdomadaires</div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-label">Nouveaux messages cliniques</div>
+            </div>
+            <label class="toggle"><input type="checkbox"/><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="profil.js" defer></script>
+</body>
+</html>

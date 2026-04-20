@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JumeauNum – Gestion des Utilisateurs</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --sidebar-bg:#1a3a8f;--sidebar-hover:#2248b0;--sidebar-active:#3560d4;--sidebar-w:200px;
+  --bg:#f0f4fb;--surface:#ffffff;--surface2:#eef1f8;--border:#dde2ef;
+  --primary:#2563eb;--primary-lt:#eff4ff;--text:#111827;--muted:#6b7280;
+  --green:#16a34a;--green-lt:#dcfce7;--red:#dc2626;--red-lt:#fee2e2;
+  --amber:#d97706;--amber-lt:#fef3c7;--header-h:58px;--radius:10px;
+  --shadow:0 1px 4px rgba(0,0,0,.07),0 4px 14px rgba(0,0,0,.05);
+}
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; }
+header { height:var(--header-h); background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 20px; gap:12px; position:fixed; top:0; left:0; right:0; z-index:200; box-shadow:0 1px 0 var(--border); }
+.logo { display:flex; align-items:center; gap:9px; font-weight:700; font-size:1rem; color:var(--primary); }
+.logo svg { width:32px; height:32px; }
+header .spacer { flex:1; }
+.header-user { display:flex; align-items:center; gap:8px; font-size:.85rem; font-weight:500; background:var(--surface2); border:1px solid var(--border); border-radius:30px; padding:4px 12px 4px 5px; cursor:pointer; }
+.avatar-icon { width:28px; height:28px; border-radius:50%; background:var(--primary); display:flex; align-items:center; justify-content:center; color:#fff; font-size:.75rem; font-weight:700; }
+.header-power { width:34px; height:34px; border-radius:50%; background:var(--surface2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--muted); transition:background .15s; }
+.header-power:hover { background:var(--red-lt); color:var(--red); }
+.layout { display:flex; margin-top:var(--header-h); min-height:calc(100vh - var(--header-h)); }
+aside { width:var(--sidebar-w); background:var(--sidebar-bg); position:fixed; top:var(--header-h); bottom:0; left:0; display:flex; flex-direction:column; padding:14px 8px; gap:2px; overflow-y:auto; z-index:100; }
+.nav-item { display:flex; align-items:center; gap:9px; padding:9px 12px; border-radius:8px; font-size:.84rem; font-weight:500; color:rgba(255,255,255,.7); cursor:pointer; text-decoration:none; white-space:nowrap; transition:background .12s,color .12s; }
+.nav-item:hover { background:var(--sidebar-hover); color:#fff; }
+.nav-item.active { background:var(--sidebar-active); color:#fff; }
+.nav-item svg { flex-shrink:0; width:17px; height:17px; }
+.nav-bottom { margin-top:auto; }
+main { margin-left:var(--sidebar-w); flex:1; padding:22px 20px 40px; min-width:0; }
+.page-title { font-size:1.45rem; font-weight:700; }
+.page-sub   { color:var(--muted); font-size:.82rem; margin-top:2px; margin-bottom:16px; }
+
+/* ── STATS ── */
+.stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; box-shadow:var(--shadow); position:relative; }
+.stat-badge { position:absolute; top:10px; right:10px; font-size:.7rem; font-weight:600; padding:2px 7px; border-radius:20px; }
+.badge-blue  { background:var(--primary-lt); color:var(--primary); }
+.badge-green { background:var(--green-lt);   color:var(--green); }
+.badge-amber { background:var(--amber-lt);   color:var(--amber); }
+.badge-red   { background:var(--red-lt);     color:var(--red); }
+.stat-icon { width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; margin-bottom:8px; }
+.stat-icon.blue { background:var(--primary-lt); color:var(--primary); }
+.stat-icon.teal { background:#d1faf5; color:#0d9488; }
+.stat-icon.pink { background:#fce7f3; color:#db2777; }
+.stat-icon.ambr { background:var(--amber-lt); color:var(--amber); }
+.stat-label { font-size:.75rem; color:var(--muted); }
+.stat-value { font-size:1.35rem; font-weight:700; margin-top:1px; }
+
+/* ── TABLE PANEL ── */
+.table-panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+.table-toolbar { display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.page-title-sm { font-size:.95rem; font-weight:700; }
+.search-wrap { flex:1; min-width:200px; position:relative; }
+.search-wrap svg { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--muted); width:14px; height:14px; pointer-events:none; }
+.search-wrap input { width:100%; border:1px solid var(--border); background:var(--bg); border-radius:8px; padding:8px 10px 8px 32px; font-family:inherit; font-size:.82rem; outline:none; }
+.search-wrap input:focus { border-color:var(--primary); }
+
+/* ── TABS ── */
+.tabs { display:flex; gap:4px; }
+.tab-btn { padding:6px 14px; border-radius:8px; border:1px solid var(--border); background:var(--surface); font-family:inherit; font-size:.78rem; font-weight:500; color:var(--muted); cursor:pointer; transition:background .12s; }
+.tab-btn:hover  { background:var(--surface2); }
+.tab-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+
+/* ── TABLE ── */
+table { width:100%; border-collapse:collapse; font-size:.8rem; }
+thead th { text-align:left; padding:10px 12px; font-size:.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); background:var(--surface2); border-bottom:1px solid var(--border); }
+tbody tr { border-bottom:1px solid var(--border); transition:background .1s; }
+tbody tr:last-child { border-bottom:none; }
+tbody tr:hover { background:var(--surface2); }
+tbody td { padding:10px 12px; vertical-align:middle; }
+.id-cell { font-family:'DM Mono',monospace; font-size:.75rem; color:var(--muted); }
+
+/* ── USER AVATAR ── */
+.user-avatar { width:32px; height:32px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; flex-shrink:0; }
+
+/* ── ROLE BADGES ── */
+.role-badge { display:inline-flex; padding:2px 9px; border-radius:20px; font-size:.7rem; font-weight:600; }
+.role-patient { background:#d1faf5; color:#0d9488; }
+.role-medecin { background:var(--primary-lt); color:var(--primary); }
+.role-admin   { background:var(--amber-lt); color:var(--amber); }
+.role-super   { background:#fce7f3; color:#db2777; }
+
+/* ── STATUS ── */
+.status-dot { display:inline-flex; align-items:center; gap:5px; font-size:.75rem; font-weight:500; }
+.status-dot::before { content:''; width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.badge-actif  { color:var(--green); }
+.badge-actif::before  { background:var(--green); }
+.badge-bloque { color:var(--red); }
+.badge-bloque::before { background:var(--red); }
+
+/* ── ACTIONS ── */
+.actions-cell { display:flex; gap:5px; align-items:center; }
+.icon-btn { width:28px; height:28px; border-radius:6px; border:1px solid var(--border); background:var(--surface); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--muted); transition:background .12s,color .12s; }
+.icon-btn:hover      { background:var(--primary-lt); color:var(--primary); border-color:var(--primary); }
+.icon-btn.del:hover  { background:var(--red-lt); color:var(--red); border-color:var(--red); }
+.icon-btn.warn:hover { background:var(--amber-lt); color:var(--amber); border-color:var(--amber); }
+.icon-btn.ok:hover   { background:var(--green-lt); color:var(--green); border-color:var(--green); }
+.icon-btn svg { width:12px; height:12px; }
+
+/* ── ROLE SELECT INLINE ── */
+.role-select { border:1px solid var(--border); background:var(--surface2); border-radius:6px; padding:4px 8px; font-family:inherit; font-size:.75rem; color:var(--text); cursor:pointer; outline:none; }
+.role-select:focus { border-color:var(--primary); }
+
+/* ── PAGINATION ── */
+.pagination { display:flex; align-items:center; gap:5px; padding:10px 14px; border-top:1px solid var(--border); font-size:.78rem; color:var(--muted); }
+.pagination .count { flex:1; }
+.page-btn { width:28px; height:28px; border-radius:6px; border:1px solid var(--border); background:var(--surface); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:.78rem; font-weight:500; color:var(--text); }
+
+/* ── TOAST ── */
+.toast { position:fixed; bottom:24px; right:24px; z-index:999; background:var(--text); color:#fff; padding:10px 18px; border-radius:8px; font-size:.83rem; font-weight:500; opacity:0; transform:translateY(10px); transition:opacity .25s,transform .25s; pointer-events:none; }
+.toast.show    { opacity:1; transform:translateY(0); }
+.toast.success { background:var(--green); }
+.toast.error   { background:var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="#2563eb"/><path d="M10 20h4l3-7 4 14 3-10 3 6 3-3h4" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    JumeauNum
+  </div>
+  <div class="spacer"></div>
+  <div class="header-user">
+    <div class="avatar-icon">S</div>
+    Super Admin
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="header-power">
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v10M4.93 4.93a10 10 0 100 14.14"/></svg>
+  </div>
+</header>
+
+<div class="layout">
+  <aside>
+    <a href="#"            class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Tableau de bord</a>
+    <a href="supadmin.html" class="nav-item active">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M2 19c0-3 3-5 7-5s7 2 7 5"/><path d="M17 14c2 0 4 1.5 4 4"/></svg>
+      Gestion Utilisateurs
+    </a>
+    <a href="#"            class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Registre des rôles</a>
+    <a href="#"            class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>Dossiers patients</a>
+    <a href="#"            class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>Audit sécurité</a>
+    <div class="nav-bottom">
+      <a href="profil.html" class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Paramètres</a>
+    </div>
+  </aside>
+
+  <main>
+    <div class="page-title">Gestion des Utilisateurs</div>
+    <div class="page-sub">Gérez les rôles, statuts et accès de tous les utilisateurs de la plateforme.</div>
+
+    <!-- STATS -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <span class="stat-badge badge-blue" id="statTotal">—</span>
+        <div class="stat-icon blue"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M2 19c0-3 3-5 7-5s7 2 7 5"/><path d="M17 14c2 0 4 1.5 4 4"/></svg></div>
+        <div class="stat-label">Total utilisateurs</div>
+        <div class="stat-value" id="statTotal">—</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-green" id="statMedecins">—</span>
+        <div class="stat-icon teal"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+        <div class="stat-label">Médecins</div>
+        <div class="stat-value" id="statMedecins">—</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-blue" id="statPatients">—</span>
+        <div class="stat-icon pink"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+        <div class="stat-label">Patients</div>
+        <div class="stat-value" id="statPatients">—</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-amber" id="statAdmins">—</span>
+        <div class="stat-icon ambr"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div class="stat-label">Admins</div>
+        <div class="stat-value" id="statAdmins">—</div>
+      </div>
+    </div>
+
+    <!-- TABLEAU UTILISATEURS -->
+    <div class="table-panel">
+      <div class="table-toolbar">
+        <div class="page-title-sm">Répertoire des utilisateurs</div>
+
+        <!-- Onglets de filtrage -->
+        <div class="tabs">
+          <button class="tab-btn active" data-role="">Tous</button>
+          <button class="tab-btn" data-role="3">Médecins</button>
+          <button class="tab-btn" data-role="1">Patients</button>
+          <button class="tab-btn" data-role="2">Admins</button>
+        </div>
+
+        <!-- Recherche -->
+        <div class="search-wrap">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input type="text" id="userSearch" placeholder="Rechercher par ID, nom, email..."/>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Identité</th>
+            <th>Rôle d'accès</th>
+            <th>CIN</th>
+            <th>Service</th>
+            <th>Statut</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody">
+          <tr><td colspan="7" style="text-align:center;padding:36px;color:var(--muted)">Chargement...</td></tr>
+        </tbody>
+      </table>
+
+      <div class="pagination">
+        <div class="count" id="userCount">—</div>
+        <button class="page-btn" onclick="prevPage()">‹</button>
+        <span id="pageInfo" style="font-size:.78rem;color:var(--muted);padding:0 4px"></span>
+        <button class="page-btn" onclick="nextPage()">›</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="supadmin.js" defer></script>
+</body>
+</html>
