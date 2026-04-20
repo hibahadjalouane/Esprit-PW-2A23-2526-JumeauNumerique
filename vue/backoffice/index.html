@@ -123,13 +123,26 @@ tbody td { padding: 10px 12px; vertical-align: middle; }
 .field-msg.visible { display: block; }
 .ticket-info { background: var(--primary-lt); border: 1px solid #bfdbfe; border-radius: 7px; padding: 8px 10px; font-size: .75rem; color: var(--primary); margin-top: 4px; display: none; }
 .ticket-info.visible { display: block; }
-.section-title { font-size: 1.05rem; font-weight: 700; color: var(--text); margin: 28px 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--border); display: flex; align-items: center; gap: 8px; }
-.section-title svg { width: 15px; height: 15px; color: var(--primary); }
-.right-panel-salle { display: flex; flex-direction: column; gap: 14px; }
 .toast { position: fixed; bottom: 24px; right: 24px; z-index: 999; background: var(--text); color: #fff; padding: 10px 18px; border-radius: 8px; font-size: .83rem; font-weight: 500; opacity: 0; transform: translateY(10px); transition: opacity .25s, transform .25s; pointer-events: none; }
 .toast.show    { opacity: 1; transform: translateY(0); }
 .toast.success { background: var(--green); }
 .toast.error   { background: var(--red); }
+
+/* ── GESTION DES SALLES ──────────────────────────────────────────────────── */
+.salle-zone { margin-top: 24px; }
+.salle-zone .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+.salle-zone .section-header h2 { font-size: 1.1rem; font-weight: 700; }
+.salle-twin { display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: start; }
+.badge-disponible { background: var(--green-lt); color: var(--green); }
+.badge-occupee    { background: var(--red-lt);   color: var(--red); }
+.badge-maintenance { background: var(--amber-lt); color: var(--amber); }
+/* Modal overlay */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 500; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box { background: var(--surface); border-radius: 14px; padding: 24px; width: 100%; max-width: 400px; box-shadow: 0 8px 40px rgba(0,0,0,.18); transform: translateY(16px); transition: transform .2s; }
+.modal-overlay.open .modal-box { transform: translateY(0); }
+.modal-title { font-size: 1rem; font-weight: 700; margin-bottom: 16px; }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 </style>
 </head>
 <body>
@@ -177,7 +190,7 @@ tbody td { padding: 10px 12px; vertical-align: middle; }
       <span id="connMsg">Vérification de la connexion...</span>
     </div>
 
-    <!-- STATS ADMISSIONS -->
+    <!-- STATS -->
     <div class="stat-grid">
       <div class="stat-card">
         <span class="stat-badge badge-blue" id="stat-badge-total">0</span>
@@ -301,6 +314,14 @@ tbody td { padding: 10px 12px; vertical-align: middle; }
             </div>
           </div>
 
+          <div class="form-group">
+            <label class="form-label" for="a_salle">Salle *</label>
+            <select class="form-control" id="a_salle">
+              <option value="">-- Sélectionner une salle --</option>
+            </select>
+            <div class="field-msg" id="msg_a_salle"></div>
+          </div>
+
           <p id="msg_form_global"  style="font-size:.72rem;color:var(--red);  display:none;margin-bottom:6px"></p>
           <p id="msg_form_success" style="font-size:.72rem;color:var(--green);display:none;margin-bottom:6px"></p>
 
@@ -329,147 +350,144 @@ tbody td { padding: 10px 12px; vertical-align: middle; }
       </div>
     </div>
 
-    <!-- ════════════════════════════════════════════
-         SECTION SALLES
-    ════════════════════════════════════════════ -->
-    <div class="section-title">
-      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      Gestion des Salles
-    </div>
-
-    <!-- Stats salles -->
-    <div class="stat-grid" style="margin-top:0;margin-bottom:18px">
-      <div class="stat-card">
-        <span class="stat-badge badge-blue" id="stat-badge-salles">0</span>
-        <div class="stat-icon blue"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></div>
-        <div class="stat-label">Total salles</div>
-        <div class="stat-value" id="stat-total-salles">0</div>
-        <div class="stat-sub">Enregistrées</div>
-      </div>
-      <div class="stat-card">
-        <span class="stat-badge badge-green">—</span>
-        <div class="stat-icon teal"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
-        <div class="stat-label">Disponibles</div>
-        <div class="stat-value" id="stat-dispo-salles">0</div>
-        <div class="stat-sub">Prêtes à l'usage</div>
-      </div>
-      <div class="stat-card">
-        <span class="stat-badge badge-red">—</span>
-        <div class="stat-icon pink"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg></div>
-        <div class="stat-label">Non disponibles</div>
-        <div class="stat-value" id="stat-indispo-salles">0</div>
-        <div class="stat-sub">Occupées / fermées</div>
-      </div>
-      <div class="stat-card">
-        <span class="stat-badge badge-amber">—</span>
-        <div class="stat-icon ambr"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M2 19c0-3 3-5 7-5s7 2 7 5"/></svg></div>
-        <div class="stat-label">Avec médecin assigné</div>
-        <div class="stat-value">—</div>
-        <div class="stat-sub">Médecin référent</div>
-      </div>
-    </div>
-
-    <!-- Tableau + formulaire salles -->
-    <div class="twin-zone">
-
-      <!-- Tableau salles -->
-      <div class="table-section">
-        <div class="toolbar">
-          <button class="btn btn-outline" onclick="exportSalleCSV()">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 10v6M9 13l3 3 3-3M5 17a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2"/></svg>
-            Exporter CSV
-          </button>
-          <div class="toolbar-right">
-            <span class="filter-label">Statut</span>
-            <select class="filter-select" id="filterSalleStatut" onchange="renderSalleTable()">
-              <option value="">Tous</option>
-              <option value="disponible">Disponible</option>
-              <option value="non disponible">Non disponible</option>
-            </select>
-          </div>
-        </div>
-        <div class="search-row">
-          <div class="search-wrap">
+    <!-- ═══════════════════════════════════════════════════════
+         GESTION DES SALLES
+    ════════════════════════════════════════════════════════ -->
+    <div class="salle-zone">
+      <div class="section-header">
+        <h2>Gestion des Salles</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div class="search-wrap" style="min-width:200px">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-            <input type="text" id="salleSearch" placeholder="Rechercher par ID, numéro, médecin..." oninput="renderSalleTable()"/>
+            <input type="text" id="salleSearch" placeholder="Rechercher une salle..." oninput="renderSalles()"/>
           </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>ID Salle</th>
-                <th>Numéro</th>
-                <th>Statut</th>
-                <th>Médecin assigné</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="salleTableBody">
-              <tr><td colspan="5" class="no-data">Chargement...</td></tr>
-            </tbody>
-          </table>
-          <div class="pagination">
-            <div class="count" id="sallePaginCount">—</div>
-            <button class="page-btn" onclick="prevPageS()">‹</button>
-            <span id="sallePageInfo" style="font-size:.78rem;color:var(--muted);padding:0 4px"></span>
-            <button class="page-btn" onclick="nextPageS()">›</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Formulaire salle -->
-      <div class="right-panel-salle">
-        <div class="panel-card">
-          <div class="panel-title" id="salleFormTitle">Nouvelle Salle</div>
-
-          <!-- ID Salle (entier, max 8 chiffres) -->
-          <div class="form-group">
-            <label class="form-label" for="s_id">ID Salle * (entier, max 8 chiffres)</label>
-            <input class="form-control" type="number" id="s_id" placeholder="Ex: 101" min="1" max="99999999" step="1"/>
-            <div class="field-msg" id="msg_s_id"></div>
-          </div>
-
-          <!-- Numéro (lettres + chiffres, pas de symboles) -->
-          <div class="form-group">
-            <label class="form-label" for="s_numero">Numéro de salle *</label>
-            <input class="form-control" type="text" id="s_numero" placeholder="Ex: A12 ou Salle 3"/>
-            <div class="field-msg" id="msg_s_numero"></div>
-          </div>
-
-          <!-- Statut -->
-          <div class="form-group">
-            <label class="form-label" for="s_statut">Statut *</label>
-            <select class="form-control" id="s_statut">
-              <option value="">Sélectionner...</option>
-              <option value="disponible">Disponible</option>
-              <option value="non disponible">Non disponible</option>
-            </select>
-            <div class="field-msg" id="msg_s_statut"></div>
-          </div>
-
-          <!-- Médecin assigné (id_role = 3) -->
-          <div class="form-group">
-            <label class="form-label" for="s_medecin">Médecin assigné (optionnel)</label>
-            <select class="form-control" id="s_medecin">
-              <option value="">Chargement des médecins...</option>
-            </select>
-          </div>
-
-          <p id="msg_salle_global"  style="font-size:.72rem;color:var(--red);  display:none;margin-bottom:6px"></p>
-          <p id="msg_salle_success" style="font-size:.72rem;color:var(--green);display:none;margin-bottom:6px"></p>
-
-          <button class="btn btn-primary btn-block" onclick="submitSalle()">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-            <span id="salleBtnLabel">Ajouter Salle</span>
+          <select class="filter-select" id="salleFilterStatut" onchange="renderSalles()">
+            <option value="">Tous les statuts</option>
+            <option value="disponible">Disponible</option>
+            <option value="occupée">Occupée</option>
+            <option value="maintenance">Maintenance</option>
+          </select>
+          <button class="btn btn-outline" onclick="exportSallesCSV()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 10v6M9 13l3 3 3-3M5 17a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2"/></svg>
+            CSV
           </button>
-          <button class="btn btn-ghost btn-block" style="margin-top:5px" onclick="resetSalleForm()">Réinitialiser</button>
         </div>
       </div>
 
-    </div><!-- /twin-zone salles -->
+      <div class="salle-twin">
+        <!-- TABLE SALLES -->
+        <div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID Salle</th>
+                  <th>Numéro</th>
+                  <th>Statut</th>
+                  <th>Médecin</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="salleTableBody">
+                <tr><td colspan="4" class="no-data">Chargement...</td></tr>
+              </tbody>
+            </table>
+            <div class="pagination">
+              <div class="count" id="sallePaginCount">&#8212;</div>
+              <button class="page-btn" onclick="sallePrevPage()">&#8249;</button>
+              <span id="sallePageInfo" style="font-size:.78rem;color:var(--muted);padding:0 4px"></span>
+              <button class="page-btn" onclick="salleNextPage()">&#8250;</button>
+            </div>
+          </div>
+        </div>
 
+        <!-- FORMULAIRE SALLE -->
+        <div class="right-panel">
+          <div class="panel-card">
+            <div class="panel-title" id="salleFormTitle">Nouvelle Salle</div>
+
+            <div class="form-group">
+              <label class="form-label" for="s_id">ID Salle (PK) * &#8212; max 10 car.</label>
+              <input class="form-control" type="text" id="s_id" placeholder="#XXX" maxlength="10"/>
+              <div class="field-msg" id="msg_s_id"></div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="s_numero">Numéro *</label>
+              <input class="form-control" type="text" id="s_numero" placeholder="Ex: A01" maxlength="20"/>
+              <div class="field-msg" id="msg_s_numero"></div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="s_statut">Statut *</label>
+              <select class="form-control" id="s_statut">
+                <option value="">Sélectionner...</option>
+                <option value="disponible">Disponible</option>
+                <option value="occupée">Occupée</option>
+                <option value="maintenance">Maintenance</option>
+              </select>
+              <div class="field-msg" id="msg_s_statut"></div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="s_medecin">Médecin assigné *</label>
+              <select class="form-control" id="s_medecin">
+                <option value="">-- Sélectionner un médecin --</option>
+              </select>
+              <div class="field-msg" id="msg_s_medecin"></div>
+            </div>
+
+            <p id="msg_salle_global"  style="font-size:.72rem;color:var(--red);display:none;margin-bottom:6px"></p>
+            <p id="msg_salle_success" style="font-size:.72rem;color:var(--green);display:none;margin-bottom:6px"></p>
+
+            <button class="btn btn-primary btn-block" onclick="submitSalle()">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              <span id="btnSalleLabel">+ Ajouter Salle</span>
+            </button>
+            <button class="btn btn-ghost btn-block" style="margin-top:5px" onclick="resetSalleForm()">Réinitialiser</button>
+          </div>
+
+          <!-- STATS SALLES -->
+          <div class="panel-card">
+            <div class="panel-title">Aperçu des salles</div>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:.8rem;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="color:var(--muted)">Total salles</span>
+                <span id="salle-stat-total" style="font-weight:700">0</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="color:var(--green)">&#10003; Disponibles</span>
+                <span id="salle-stat-dispo" style="font-weight:700;color:var(--green)">0</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="color:var(--red)">&#10007; Occupées</span>
+                <span id="salle-stat-occupee" style="font-weight:700;color:var(--red)">0</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="color:var(--amber)">&#9881; Maintenance</span>
+                <span id="salle-stat-maint" style="font-weight:700;color:var(--amber)">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
+</div>
+
+<!-- MODAL SUPPRESSION SALLE -->
+<div class="modal-overlay" id="salleDeleteModal">
+  <div class="modal-box">
+    <div class="modal-title">Confirmer la suppression</div>
+    <p style="font-size:.85rem;color:var(--muted)">
+      Voulez-vous vraiment supprimer la salle <strong id="modalSalleId"></strong> ?<br/>
+      Cette action est irr&#233;versible.
+    </p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeSalleDeleteModal()">Annuler</button>
+      <button class="btn btn-primary" style="background:var(--red)" onclick="confirmDeleteSalle()">Supprimer</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>

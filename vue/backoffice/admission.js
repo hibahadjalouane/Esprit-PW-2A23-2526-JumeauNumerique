@@ -1,20 +1,5 @@
-// ═══════════════════════════════════════════════════════════════════════════
-//  admission.js  —  Logique JavaScript de la page Gestion des Admissions
-//
-//  Ce fichier est chargé par index.html via :
-//      <script src="admission.js"></script>
-//
-//  Il communique avec le serveur PHP via des requêtes fetch() vers :
-//      ../../controleur/backoffice/admission_crud.php
-// ═══════════════════════════════════════════════════════════════════════════
 
-
-// ── CHEMIN VERS LE CONTRÔLEUR PHP ────────────────────────────────────────────
-// On pointe vers le fichier PHP qui gère toutes les opérations base de données.
-// Le chemin est relatif à l'emplacement de index.html.
 const CRUD_ADMISSION = '../../controleur/backoffice/admission_crud.php';
-// Chemin vers le contrôleur PHP pour les salles
-const CRUD_SALLE     = '../../controleur/backoffice/salle_crud.php';
 
 
 // ── VARIABLES D'ÉTAT (STATE) ─────────────────────────────────────────────────
@@ -27,20 +12,19 @@ const PAGE_SIZE   = 8;    // Nombre de lignes affichées par page dans le tablea
 
 
 // ── INITIALISATION ────────────────────────────────────────────────────────────
-// DOMContentLoaded se déclenche quand la page HTML est entièrement chargée.
-// C'est le point de départ : on met la date du jour et on teste la connexion.
+
 document.addEventListener('DOMContentLoaded', () => {
   // Pré-remplir le champ date avec la date d'aujourd'hui (format YYYY-MM-DD)
   document.getElementById('a_date').value = new Date().toISOString().split('T')[0];
 
-  // Lancer le test de connexion à la base de données
+  
   testConnection();
+  loadSallesDropdown();
 });
 
 
-// ── TEST DE CONNEXION ─────────────────────────────────────────────────────────
-// Envoie un ping au serveur PHP pour vérifier que Apache + MySQL tournent.
-// Si ça marche → on charge les données. Sinon → on affiche une bannière rouge.
+
+
 async function testConnection() {
   const banner = document.getElementById('connBanner');
   try {
@@ -55,8 +39,6 @@ async function testConnection() {
         <span>Connecté à la base <strong>jumeaunum</strong> avec succès ✓</span>`;
       loadAdmissions(); // Charger le tableau des admissions
       loadTickets();    // Charger le dropdown des tickets disponibles
-      loadSalles();     // Charger le tableau des salles
-      loadMedecins();   // Charger le dropdown des médecins pour le formulaire salle
     } else {
       showConnError(r.error);
     }
@@ -65,11 +47,11 @@ async function testConnection() {
     showConnError('Impossible de joindre le serveur PHP. Vérifiez que :<br>'
       + '<strong>1.</strong> XAMPP est démarré (Apache + MySQL)<br>'
       + '<strong>2.</strong> Vous ouvrez la page via <code>localhost</code> et non depuis le système de fichiers<br>'
-      + '<strong>3.</strong> Le fichier est bien dans <code>htdocs/projetweb/gestion_des_admission/</code>');
+      + '<strong>3.</strong> Le fichier est bien dans <code>htdocs/gestion_des_admission/</code>');
   }
 }
 
-// Affiche la bannière d'erreur de connexion avec le message passé en paramètre
+// Aff l'erreur de connexion avec le message passé en paramètre
 function showConnError(msg) {
   const banner = document.getElementById('connBanner');
   banner.className = 'conn-banner error';
@@ -90,29 +72,22 @@ function showToast(msg, type = 'success') {
   setTimeout(() => { t.className = 'toast'; }, 3200); // Après 3,2s : retire la classe → disparaît
 }
 
-
-// ── HELPER : ENVOYER DES DONNÉES EN POST ─────────────────────────────────────
-// Cette fonction mutualisée est utilisée par toutes les opérations CRUD.
-// Elle transforme un objet JS en FormData et l'envoie en POST vers l'URL donnée.
-// Retourne directement la réponse JSON parsée (objet JS).
 async function postData(url, data) {
-  const fd = new FormData(); // FormData = équivalent d'un formulaire HTML envoyé en POST
-  for (const [k, v] of Object.entries(data)) fd.append(k, v ?? ''); // Ajoute chaque champ
+  const fd = new FormData(); 
+  for (const [k, v] of Object.entries(data)) fd.append(k, v ?? ''); 
   const res = await fetch(url, { method: 'POST', body: fd });
-  return res.json(); // Parse et retourne la réponse JSON
+  return res.json(); 
 }
 
 
-// ── CHARGER LES ADMISSIONS DEPUIS LA BDD ─────────────────────────────────────
-// Appelle le PHP avec action=getAll, récupère le tableau d'admissions,
-// le stocke dans allAdmissions, puis met à jour les stats et le tableau HTML.
+
 async function loadAdmissions() {
   try {
     const r = await postData(CRUD_ADMISSION, { action: 'getAll' });
     if (r.success) {
-      allAdmissions = r.data; // On mémorise toutes les admissions dans la variable globale
-      updateStats();          // Mettre à jour les 4 cartes de statistiques
-      renderTable();          // Afficher les lignes dans le tableau HTML
+      allAdmissions = r.data; 
+      updateStats();          
+      renderTable();          
     } else {
       document.getElementById('tableBody').innerHTML =
         `<tr><td colspan="5" class="no-data" style="color:var(--red)">Erreur : ${r.error}</td></tr>`;
@@ -124,22 +99,20 @@ async function loadAdmissions() {
 }
 
 
-// ── METTRE À JOUR LES STATISTIQUES ───────────────────────────────────────────
-// Parcourt allAdmissions pour compter par mode_entree,
-// puis injecte les chiffres dans les 4 cartes stat en haut de page.
+
 function updateStats() {
   const total      = allAdmissions.length;
   const urgences   = allAdmissions.filter(a => a.mode_entree === 'urgence').length;
   const normales   = allAdmissions.filter(a => a.mode_entree === 'normal').length;
   const transferts = allAdmissions.filter(a => a.mode_entree === 'transfert').length;
 
-  // On met à jour le texte des éléments HTML par leur id
+ 
   document.getElementById('stat-total').textContent      = total;
   document.getElementById('stat-urgence').textContent    = urgences;
   document.getElementById('stat-normal').textContent     = normales;
   document.getElementById('stat-transfert').textContent  = transferts;
 
-  // Les badges (petits cercles en haut à droite des cartes) affichent aussi les chiffres
+ 
   document.getElementById('stat-badge-total').textContent      = total;
   document.getElementById('stat-badge-urgence').textContent    = urgences;
   document.getElementById('stat-badge-normal').textContent     = normales;
@@ -147,9 +120,9 @@ function updateStats() {
 }
 
 
-// ── AFFICHER LE TABLEAU (RENDER) ──────────────────────────────────────────────
+
 // Filtre allAdmissions selon la recherche + le filtre de mode,
-// applique la pagination, puis génère le HTML des lignes du tableau.
+
 function renderTable() {
   const search = document.getElementById('searchInput').value.toLowerCase();
   const fMode  = document.getElementById('filterMode').value;
@@ -165,10 +138,10 @@ function renderTable() {
 
   // Calcul de la pagination
   const total = filtered.length;
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE)); // Nombre de pages total
-  if (currentPage > pages) currentPage = pages;            // Sécurité : si on dépasse, on revient
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE)); 
+  if (currentPage > pages) currentPage = pages;            
 
-  // slice() : découpe le tableau pour n'afficher que la page courante
+ 
   const slice = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   // Mise à jour du texte de pagination
@@ -183,7 +156,7 @@ function renderTable() {
     return;
   }
 
-  // Correspondance mode_entree → classe CSS du badge + texte affiché
+  
   const modeMap = {
     'urgence':   ['badge-urgence',   'Urgence'],
     'normal':    ['badge-normal',    'Normal'],
@@ -191,8 +164,7 @@ function renderTable() {
     'autre':     ['badge-autre',     'Autre']
   };
 
-  // map() : pour chaque admission, on génère une ligne <tr> en HTML
-  // join('') : on colle tous les <tr> ensemble en une seule chaîne
+  
   tbody.innerHTML = slice.map(a => {
     const date = a.date_arrive_relle ? String(a.date_arrive_relle).split(' ')[0] : '—';
     const [mCls, mLabel] = modeMap[a.mode_entree] || ['badge-autre', a.mode_entree || '—'];
@@ -216,7 +188,7 @@ function renderTable() {
   }).join('');
 }
 
-// Boutons de navigation entre les pages du tableau
+
 function prevPage() {
   if (currentPage > 1) { currentPage--; renderTable(); }
 }
@@ -234,9 +206,7 @@ function nextPage() {
 
 
 // ── CHARGER LES TICKETS DISPONIBLES ──────────────────────────────────────────
-// Appelle le PHP avec action=getTickets.
-// Le PHP renvoie UNIQUEMENT les tickets dont statut = 'non utilisé'.
-// On peuple le <select id="a_ticket"> avec ces résultats.
+
 async function loadTickets() {
   try {
     const r   = await postData(CRUD_ADMISSION, { action: 'getTickets' });
@@ -257,6 +227,24 @@ async function loadTickets() {
   }
 }
 
+// ── CHARGER LES SALLES DISPONIBLES pour le formulaire admission ───────────────
+async function loadSallesDropdown() {
+  try {
+    const r = await postData(CRUD_SALLE, { action: 'getAll' });
+    const sel = document.getElementById('a_salle');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">-- Sélectionner une salle --</option>';
+    if (r.success && r.data.length > 0) {
+      r.data.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id_salle;
+        opt.textContent = s.numero + ' — ' + s.statut;
+        sel.appendChild(opt);
+      });
+    }
+  } catch (e) { console.error('Erreur chargement salles:', e); }
+}
+
 // Affiche ou cache la boîte d'info bleue quand un ticket est sélectionné dans le dropdown
 function showTicketInfo() {
   const sel  = document.getElementById('a_ticket');
@@ -266,23 +254,22 @@ function showTicketInfo() {
 
 
 // ── VALIDATION DU FORMULAIRE ──────────────────────────────────────────────────
-// Vérifie que tous les champs obligatoires sont bien remplis et valides.
-// Retourne true si tout est OK, false sinon (et affiche les messages d'erreur).
+
 function validateAdmission() {
   let ok = true;
 
-  // Récupération des éléments du formulaire via leur id HTML
+  // Récupération des éléments du formulaire via leur id 
   const inputId   = document.getElementById('a_id');
   const inputDate = document.getElementById('a_date');
   const inputMode = document.getElementById('a_mode');
   const inputTick = document.getElementById('a_ticket');
 
   // On efface les éventuelles erreurs précédentes avant de revalider
-  clearErrors(['a_id', 'a_date', 'a_mode', 'a_ticket']);
+  clearErrors(['a_id', 'a_date', 'a_mode', 'a_ticket', 'a_salle']);
   hide('msg_form_global');
   hide('msg_form_success');
 
-  // --- Validation de l'ID admission ---
+ 
   if (inputId.value.trim() === '') {
     showFieldError('a_id', "L'ID admission est obligatoire !"); ok = false;
   } else if (inputId.value.trim().length > 8) {
@@ -292,7 +279,7 @@ function validateAdmission() {
     showFieldError('a_id', "Pas de symboles spéciaux (lettres, chiffres, - ou _ uniquement) !"); ok = false;
   }
 
-  // --- Validation de la date ---
+  
   if (!inputDate.value) {
     showFieldError('a_date', "La date d'arrivée est obligatoire !"); ok = false;
   } else {
@@ -314,15 +301,21 @@ function validateAdmission() {
     showFieldError('a_ticket', "Veuillez sélectionner un ticket !"); ok = false;
   }
 
-  return ok; // true = tout est valide, false = au moins une erreur
+  // --- Validation de la salle ---
+  const inputSalle = document.getElementById('a_salle');
+  if (inputSalle && inputSalle.selectedIndex <= 0) {
+    showFieldError('a_salle', "Veuillez sélectionner une salle !"); ok = false;
+  }
+
+  return ok; 
 }
 
 
-// ── SOUMETTRE LE FORMULAIRE (AJOUTER OU MODIFIER) ────────────────────────────
+
 // Appelée par le bouton "Ajouter Admission" / "Enregistrer" dans index.html.
 // Si editingId est null → on fait un INSERT (add). Sinon → UPDATE (update).
 async function submitAdmission() {
-  // On stoppe immédiatement si la validation échoue
+  // On stopp immédiatement si la validation échoue
   if (!validateAdmission()) return;
 
   const data = {
@@ -360,16 +353,13 @@ async function submitAdmission() {
 
 
 // ── PRÉREMPLIR LE FORMULAIRE POUR MODIFICATION ───────────────────────────────
-// Appelée quand on clique sur le crayon d'une ligne du tableau.
-// Cherche l'admission dans allAdmissions (pas besoin de requête PHP),
-// remplit tous les champs, et passe en mode "édition".
+
 async function editAdmission(id) {
   const a = allAdmissions.find(x => x.id_admission === id); // Cherche dans le tableau local
   if (!a) return;
 
-  editingId = id; // On mémorise l'id en cours d'édition
+  editingId = id; 
 
-  // Changer le titre et le label du bouton pour indiquer le mode modification
   document.getElementById('formTitle').textContent      = 'Modifier Admission';
   document.getElementById('btnSubmitLabel').textContent = 'Enregistrer';
 
@@ -379,6 +369,8 @@ async function editAdmission(id) {
   document.getElementById('a_date').value = a.date_arrive_relle
     ? String(a.date_arrive_relle).split(' ')[0] : '';
   document.getElementById('a_mode').value = a.mode_entree || '';
+  const selSalle = document.getElementById('a_salle');
+  if (selSalle && a.id_salle) selSalle.value = a.id_salle;
 
   // Le ticket actuel est "utilisé" donc absent du dropdown → on l'ajoute manuellement
   const sel = document.getElementById('a_ticket');
@@ -401,8 +393,7 @@ async function editAdmission(id) {
 
 
 // ── SUPPRIMER UNE ADMISSION ───────────────────────────────────────────────────
-// Demande confirmation, puis envoie action=delete au PHP.
-// Le PHP supprime l'admission ET remet le ticket à "non utilisé" automatiquement.
+
 async function deleteAdmission(id) {
   // confirm() affiche une boîte de dialogue native du navigateur
   if (!confirm(`Supprimer l'admission "${id}" ? Le ticket associé sera remis à disponible.`)) return;
@@ -423,8 +414,7 @@ async function deleteAdmission(id) {
 
 
 // ── RÉINITIALISER LE FORMULAIRE ───────────────────────────────────────────────
-// Vide tous les champs, retire le mode édition, efface tous les messages d'erreur.
-// Appelée après un ajout/modification réussi, ou par le bouton "Réinitialiser".
+
 function resetForm() {
   editingId = null; // On quitte le mode édition
 
@@ -436,9 +426,11 @@ function resetForm() {
   document.getElementById('a_date').value    = new Date().toISOString().split('T')[0]; // Date du jour
   document.getElementById('a_mode').value    = '';
   document.getElementById('a_ticket').value  = '';
+  const selSalle2 = document.getElementById('a_salle');
+  if (selSalle2) selSalle2.value = '';
   document.getElementById('ticketInfo').className = 'ticket-info'; // Cacher la boîte info bleue
 
-  clearErrors(['a_id', 'a_date', 'a_mode', 'a_ticket']);
+  clearErrors(['a_id', 'a_date', 'a_mode', 'a_ticket', 'a_salle']);
   hide('msg_form_global');
   hide('msg_form_success');
 }
@@ -474,8 +466,6 @@ function exportCSV() {
 
 // ── FONCTIONS UTILITAIRES (HELPERS) ──────────────────────────────────────────
 
-// esc() : échappe les caractères HTML dangereux pour éviter les injections XSS
-// Ex : si un ID contient "<script>", il sera affiché comme texte et non exécuté
 function esc(s) {
   return String(s || '')
     .replace(/&/g, '&amp;')
@@ -509,130 +499,113 @@ function hide(id) {
 }
 
 
-// ════════════════════════════════════════════════════════════════════════════
-//  SECTION SALLES
-// ════════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════
+// GESTION DES SALLES — CRUD COMPLET
+// ══════════════════════════════════════════════════════════════════════════════
 
-// État salle
+const CRUD_SALLE = '../../controleur/backoffice/salle_crud.php';
+
 let allSalles      = [];
-let editingSalleId = null;
-let currentPageS   = 1;
-const PAGE_SIZE_S  = 8;
+let salleEditingId = null;
+let salleDeleteId  = null;
+let sallePage      = 1;
+const SALLE_PAGE_SIZE = 8;
 
-// ── CHARGER LES MÉDECINS pour le dropdown salle ───────────────────────────────
-async function loadMedecins() {
-  try {
-    const r   = await fetch(CRUD_SALLE + '?action=getMedecins');
-    const j   = await r.json();
-    const sel = document.getElementById('s_medecin');
-    if (!sel) return;
-    if (j.success && j.data.length > 0) {
-      sel.innerHTML = '<option value="">Sélectionner un médecin (optionnel)...</option>';
-      j.data.forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m.id_user;
-        const label = [m.nom, m.prenom].filter(Boolean).join(' ');
-        opt.textContent = label ? `${label} (${m.id_user})` : m.id_user;
-        sel.appendChild(opt);
-      });
-    } else {
-      sel.innerHTML = '<option value="">Aucun médecin trouvé</option>';
-    }
-  } catch (e) {
-    const sel = document.getElementById('s_medecin');
-    if (sel) sel.innerHTML = '<option value="">Erreur chargement médecins</option>';
-  }
-}
+// ── Chargement initial des salles ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadSalles();
+  loadMedecinsForSalle();
+});
 
-// ── CHARGER LES SALLES depuis la BDD ─────────────────────────────────────────
 async function loadSalles() {
   try {
-    const fd = new FormData();
-    fd.append('action', 'getAll');
-    const res = await fetch(CRUD_SALLE, { method: 'POST', body: fd });
-    const r   = await res.json();
+    const r = await postData(CRUD_SALLE, { action: 'getAll' });
     if (r.success) {
       allSalles = r.data;
-      updateStatsSalles();
-      renderSalleTable();
+      updateSalleStats();
+      renderSalles();
     } else {
-      const tb = document.getElementById('salleTableBody');
-      if (tb) tb.innerHTML = `<tr><td colspan="5" class="no-data" style="color:var(--red)">Erreur : ${r.error}</td></tr>`;
+      document.getElementById('salleTableBody').innerHTML =
+        `<tr><td colspan="4" class="no-data" style="color:var(--red)">Erreur : ${r.error}</td></tr>`;
     }
   } catch (e) {
-    const tb = document.getElementById('salleTableBody');
-    if (tb) tb.innerHTML = `<tr><td colspan="5" class="no-data" style="color:var(--red)">Erreur réseau.</td></tr>`;
+    document.getElementById('salleTableBody').innerHTML =
+      `<tr><td colspan="4" class="no-data" style="color:var(--red)">Erreur réseau.</td></tr>`;
   }
 }
 
-// ── STATS SALLES ──────────────────────────────────────────────────────────────
-function updateStatsSalles() {
-  const total  = allSalles.length;
-  const dispo  = allSalles.filter(s => s.statut === 'disponible').length;
-  const indispo = allSalles.filter(s => s.statut !== 'disponible').length;
-
-  const elTotal  = document.getElementById('stat-total-salles');
-  const elDispo  = document.getElementById('stat-dispo-salles');
-  const elIndispo = document.getElementById('stat-indispo-salles');
-  const badgeT   = document.getElementById('stat-badge-salles');
-
-  if (elTotal)   elTotal.textContent   = total;
-  if (elDispo)   elDispo.textContent   = dispo;
-  if (elIndispo) elIndispo.textContent = indispo;
-  if (badgeT)    badgeT.textContent    = total;
+// ── Stats salles ──────────────────────────────────────────────────────────────
+function updateSalleStats() {
+  document.getElementById('salle-stat-total').textContent =
+    allSalles.length;
+  document.getElementById('salle-stat-dispo').textContent =
+    allSalles.filter(s => s.statut === 'disponible').length;
+  document.getElementById('salle-stat-occupee').textContent =
+    allSalles.filter(s => s.statut === 'occupée').length;
+  document.getElementById('salle-stat-maint').textContent =
+    allSalles.filter(s => s.statut === 'maintenance').length;
 }
 
-// ── RENDER TABLE SALLES ───────────────────────────────────────────────────────
-function renderSalleTable() {
+// ── Rendu du tableau des salles ───────────────────────────────────────────────
+function renderSalles() {
   const search = (document.getElementById('salleSearch')?.value || '').toLowerCase();
-  const fStat  = document.getElementById('filterSalleStatut')?.value || '';
+  const fStat  = document.getElementById('salleFilterStatut')?.value || '';
 
   const filtered = allSalles.filter(s => {
     const ms = !search ||
-      String(s.id_salle).includes(search) ||
-      (s.numero               || '').toLowerCase().includes(search) ||
-      (s.medecin_nom_complet  || '').toLowerCase().includes(search);
+      (s.id_salle || '').toLowerCase().includes(search) ||
+      (s.numero     || '').toLowerCase().includes(search) ||
+      (s.statut     || '').toLowerCase().includes(search);
     return ms && (!fStat || s.statut === fStat);
   });
 
   const total = filtered.length;
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE_S));
-  if (currentPageS > pages) currentPageS = pages;
-  const slice = filtered.slice((currentPageS - 1) * PAGE_SIZE_S, currentPageS * PAGE_SIZE_S);
+  const pages = Math.max(1, Math.ceil(total / SALLE_PAGE_SIZE));
+  if (sallePage > pages) sallePage = pages;
 
-  const countEl = document.getElementById('sallePaginCount');
-  const pageEl  = document.getElementById('sallePageInfo');
-  if (countEl) countEl.textContent = `Affichage de ${slice.length} sur ${total} salle(s)`;
-  if (pageEl)  pageEl.textContent  = `${currentPageS} / ${pages}`;
+  const slice = filtered.slice((sallePage - 1) * SALLE_PAGE_SIZE, sallePage * SALLE_PAGE_SIZE);
+
+  document.getElementById('sallePaginCount').textContent =
+    `Affichage de ${slice.length} sur ${total} salle(s)`;
+  document.getElementById('sallePageInfo').textContent = `${sallePage} / ${pages}`;
 
   const tbody = document.getElementById('salleTableBody');
-  if (!tbody) return;
 
   if (!slice.length) {
     tbody.innerHTML = '<tr><td colspan="5" class="no-data">Aucune salle trouvée.</td></tr>';
     return;
   }
 
-  const statusMap = {
-    'disponible':     ['badge-normal',   'Disponible'],
-    'non disponible': ['badge-urgence',  'Non disponible'],
+  const statutMap = {
+    'disponible':  ['badge-disponible',  'Disponible'],
+    'occupée':     ['badge-occupee',     'Occupée'],
+    'maintenance': ['badge-maintenance', 'Maintenance']
   };
 
   tbody.innerHTML = slice.map(s => {
-    const med = s.medecin_nom_complet || '—';
-    const [sCls, sLabel] = statusMap[s.statut] || ['badge-autre', s.statut || '—'];
+    const [sCls, sLabel] = statutMap[s.statut] || ['badge-autre', s.statut || '—'];
     return `<tr>
       <td class="id-cell">${esc(s.id_salle)}</td>
-      <td>${esc(s.numero)}</td>
+      <td><strong>${esc(s.numero)}</strong></td>
       <td><span class="badge ${sCls}">${esc(sLabel)}</span></td>
-      <td>${esc(med)}</td>
+      <td style="font-size:.78rem">${esc(s.nom_medecin || '—')}</td>
       <td>
         <div class="actions-cell">
-          <button class="icon-btn" onclick="editSalle(${s.id_salle})" title="Modifier">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          <button class="icon-btn" onclick="editSalle('${esc(s.id_salle)}')" title="Modifier">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
           </button>
-          <button class="icon-btn del" onclick="deleteSalle(${s.id_salle})" title="Supprimer">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+          <button class="icon-btn del" onclick="openSalleDeleteModal('${esc(s.id_salle)}')" title="Supprimer">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
+            </svg>
+          </button>
+          <button class="icon-btn" onclick="toggleSalleStatut('${esc(s.id_salle)}')" title="Changer statut" style="font-size:11px;font-weight:600;width:auto;padding:0 7px">
+            ⇄
           </button>
         </div>
       </td>
@@ -640,149 +613,224 @@ function renderSalleTable() {
   }).join('');
 }
 
-function prevPageS() { if (currentPageS > 1) { currentPageS--; renderSalleTable(); } }
-function nextPageS() {
-  const s = (document.getElementById('salleSearch')?.value || '').toLowerCase();
-  const f = document.getElementById('filterSalleStatut')?.value || '';
-  const total = allSalles.filter(x =>
-    (!s || String(x.id_salle).includes(s) || (x.numero||'').toLowerCase().includes(s))
-    && (!f || x.statut === f)
-  ).length;
-  if (currentPageS < Math.ceil(total / PAGE_SIZE_S)) { currentPageS++; renderSalleTable(); }
+function sallePrevPage() {
+  if (sallePage > 1) { sallePage--; renderSalles(); }
+}
+function salleNextPage() {
+  const total = allSalles.length;
+  if (sallePage < Math.ceil(total / SALLE_PAGE_SIZE)) { sallePage++; renderSalles(); }
 }
 
-// ── VALIDATION SALLE ──────────────────────────────────────────────────────────
-async function validateSalle() {
+// ── Validation formulaire salle ───────────────────────────────────────────────
+function validateSalle() {
   let ok = true;
-  clearErrors(['s_id', 's_numero', 's_statut']);
-  hide('msg_salle_global'); hide('msg_salle_success');
+  clearErrors(['s_id', 's_numero', 's_statut', 's_medecin']);
+  hideSalleMsg();
 
   const inputId     = document.getElementById('s_id');
   const inputNumero = document.getElementById('s_numero');
   const inputStatut = document.getElementById('s_statut');
-  const val         = inputId.value.trim();
 
-  // ── Validation ID salle (int, max 8 chiffres, unique) ──
-  if (val === '') {
-    showFieldError('s_id', "L'ID salle est obligatoire !"); ok = false;
-  } else if (!/^\d+$/.test(val)) {
-    showFieldError('s_id', "L'ID doit contenir uniquement des chiffres (entier) !"); ok = false;
-  } else if (val.length > 8) {
-    showFieldError('s_id', "Maximum 8 chiffres !"); ok = false;
-  } else if (parseInt(val) <= 0) {
-    showFieldError('s_id', "L'ID doit être supérieur à 0 !"); ok = false;
-  } else if (!editingSalleId) {
-    // Vérifier en BDD uniquement en mode ajout
-    try {
-      const r = await fetch(CRUD_SALLE + `?action=checkId&id=${encodeURIComponent(val)}`);
-      const j = await r.json();
-      if (j.success && j.exists) {
-        showFieldError('s_id', `L'ID ${val} existe déjà dans la base !`); ok = false;
-      }
-    } catch (e) { /* le PHP double-vérifie de toute façon */ }
+  if (!salleEditingId) {
+    if (!inputId.value.trim()) {
+      showFieldError('s_id', "L'ID chambre est obligatoire !"); ok = false;
+    } else if (inputId.value.trim().length > 10) {
+      showFieldError('s_id', "Maximum 10 caractères !"); ok = false;
+    } else if (/[^a-zA-Z0-9\-_]/.test(inputId.value.trim())) {
+      showFieldError('s_id', "Lettres, chiffres, - ou _ uniquement !"); ok = false;
+    }
   }
 
-  // ── Validation numéro (lettres et chiffres, pas de symboles) ──
   if (!inputNumero.value.trim()) {
     showFieldError('s_numero', "Le numéro est obligatoire !"); ok = false;
-  } else if (/[^a-zA-Z0-9À-ÿ\s]/.test(inputNumero.value.trim())) {
-    showFieldError('s_numero', "Le numéro ne doit pas contenir de caractères spéciaux !"); ok = false;
+  } else if (inputNumero.value.trim().length > 20) {
+    showFieldError('s_numero', "Maximum 20 caractères !"); ok = false;
   }
 
-  // ── Validation statut ──
   if (!inputStatut.value) {
     showFieldError('s_statut', "Veuillez sélectionner un statut !"); ok = false;
+  }
+
+  const inputMed = document.getElementById('s_medecin');
+  if (inputMed && inputMed.selectedIndex <= 0) {
+    showFieldError('s_medecin', "Veuillez sélectionner un médecin !"); ok = false;
   }
 
   return ok;
 }
 
-// ── SUBMIT SALLE ──────────────────────────────────────────────────────────────
+// ── Soumettre (add / update) ──────────────────────────────────────────────────
 async function submitSalle() {
-  if (!(await validateSalle())) return;
+  if (!validateSalle()) return;
 
-  const fd = new FormData();
-  fd.append('action',     editingSalleId ? 'update' : 'add');
-  fd.append('id_salle',   document.getElementById('s_id').value.trim());
-  fd.append('numero',     document.getElementById('s_numero').value.trim());
-  fd.append('statut',     document.getElementById('s_statut').value);
-  fd.append('id_medecin', document.getElementById('s_medecin').value);
+  const data = {
+    action:     salleEditingId ? 'update' : 'add',
+    id_salle: document.getElementById('s_id').value.trim(),
+    numero:     document.getElementById('s_numero').value.trim(),
+    statut:     document.getElementById('s_statut').value
+  };
 
   try {
-    const res = await fetch(CRUD_SALLE, { method: 'POST', body: fd });
-    const r   = await res.json();
+    const r = await postData(CRUD_SALLE, data);
     if (r.success) {
-      const s = document.getElementById('msg_salle_success');
-      if (s) { s.textContent = r.message; s.style.display = 'block'; }
+      showSalleSuccess(r.message);
       showToast(r.message, 'success');
       resetSalleForm();
       loadSalles();
+      loadMedecinsForSalle();
     } else {
-      const g = document.getElementById('msg_salle_global');
-      if (g) { g.textContent = r.error || 'Erreur.'; g.style.display = 'block'; }
+      showSalleError(r.error || "Erreur lors de l'enregistrement.");
     }
   } catch (e) {
-    const g = document.getElementById('msg_salle_global');
-    if (g) { g.textContent = 'Erreur réseau.'; g.style.display = 'block'; }
+    showSalleError('Erreur réseau.');
   }
 }
 
-// ── EDIT SALLE ────────────────────────────────────────────────────────────────
+// ── Préremplir pour modification ──────────────────────────────────────────────
 function editSalle(id) {
-  const s = allSalles.find(x => x.id_salle == id);
+  const s = allSalles.find(x => x.id_salle === id);
   if (!s) return;
-  editingSalleId = id;
 
-  document.getElementById('salleFormTitle').textContent = 'Modifier Salle';
-  document.getElementById('salleBtnLabel').textContent  = 'Enregistrer';
-  document.getElementById('s_id').value       = s.id_salle;
-  document.getElementById('s_id').disabled    = true;
-  document.getElementById('s_numero').value   = s.numero    || '';
-  document.getElementById('s_statut').value   = s.statut    || '';
-  document.getElementById('s_medecin').value  = s.id_medecin || '';
+  salleEditingId = id;
+  document.getElementById('salleFormTitle').textContent  = 'Modifier Salle';
+  document.getElementById('btnSalleLabel').textContent   = 'Enregistrer';
 
-  document.querySelector('.right-panel-salle')?.scrollIntoView({ behavior: 'smooth' });
+  const inputId = document.getElementById('s_id');
+  inputId.value    = s.id_salle;
+  inputId.disabled = true;
+
+  document.getElementById('s_numero').value = s.numero;
+  document.getElementById('s_statut').value = s.statut;
+  // Ajouter l'admission actuelle dans le select si elle n'y est pas
+  const selMed = document.getElementById('s_medecin');
+  if (selMed && s.id_medecin) {
+    selMed.value = s.id_medecin;
+  }
+
+  hideSalleMsg();
+  document.querySelector('.salle-zone .right-panel').scrollIntoView({ behavior: 'smooth' });
 }
 
-// ── DELETE SALLE ──────────────────────────────────────────────────────────────
-async function deleteSalle(id) {
-  if (!confirm(`Supprimer la salle #${id} ? Cette action est irréversible.`)) return;
-  const fd = new FormData();
-  fd.append('action',   'delete');
-  fd.append('id_salle', id);
+// ── Basculer rapidement le statut ─────────────────────────────────────────────
+async function toggleSalleStatut(id) {
+  const s = allSalles.find(x => x.id_salle === id);
+  if (!s) return;
+
+  const cycle = { 'disponible': 'occupée', 'occupée': 'maintenance', 'maintenance': 'disponible' };
+  const next  = cycle[s.statut] || 'disponible';
+
   try {
-    const res = await fetch(CRUD_SALLE, { method: 'POST', body: fd });
-    const r   = await res.json();
-    if (r.success) { showToast(r.message, 'success'); loadSalles(); }
-    else showToast(r.error || 'Erreur suppression', 'error');
-  } catch (e) { showToast('Erreur réseau', 'error'); }
+    const r = await postData(CRUD_SALLE, {
+      action: 'update', id_salle: id, numero: s.numero, statut: next
+    });
+    if (r.success) {
+      showToast(`Statut → ${next}`, 'success');
+      loadSalles();
+    } else {
+      showToast(r.error || 'Erreur', 'error');
+    }
+  } catch (e) {
+    showToast('Erreur réseau', 'error');
+  }
 }
 
-// ── RESET SALLE FORM ──────────────────────────────────────────────────────────
+// ── Modal suppression ─────────────────────────────────────────────────────────
+function openSalleDeleteModal(id) {
+  salleDeleteId = id;
+  document.getElementById('modalSalleId').textContent = id;
+  document.getElementById('salleDeleteModal').classList.add('open');
+}
+function closeSalleDeleteModal() {
+  salleDeleteId = null;
+  document.getElementById('salleDeleteModal').classList.remove('open');
+}
+async function confirmDeleteSalle() {
+  if (!salleDeleteId) return;
+  closeSalleDeleteModal();
+  try {
+    const r = await postData(CRUD_SALLE, { action: 'delete', id_salle: salleDeleteId });
+    if (r.success) {
+      showToast(r.message, 'success');
+      loadSalles();
+    } else {
+      showToast(r.error || 'Erreur suppression', 'error');
+    }
+  } catch (e) {
+    showToast('Erreur réseau', 'error');
+  }
+}
+
+// ── Réinitialiser le formulaire ───────────────────────────────────────────────
 function resetSalleForm() {
-  editingSalleId = null;
+  salleEditingId = null;
   document.getElementById('salleFormTitle').textContent = 'Nouvelle Salle';
-  document.getElementById('salleBtnLabel').textContent  = 'Ajouter Salle';
+  document.getElementById('btnSalleLabel').textContent  = '+ Ajouter Salle';
   document.getElementById('s_id').value      = '';
   document.getElementById('s_id').disabled   = false;
   document.getElementById('s_numero').value  = '';
   document.getElementById('s_statut').value  = '';
-  document.getElementById('s_medecin').value = '';
-  clearErrors(['s_id', 's_numero', 's_statut']);
-  hide('msg_salle_global'); hide('msg_salle_success');
+  const selMed2 = document.getElementById('s_medecin');
+  if (selMed2) selMed2.value = '';
+  clearErrors(['s_id', 's_numero', 's_statut', 's_medecin']);
+  hideSalleMsg();
 }
 
-// ── EXPORT CSV SALLE ──────────────────────────────────────────────────────────
-function exportSalleCSV() {
-  const headers = ['ID Salle', 'Numéro', 'Statut', 'Médecin'];
-  const rows = allSalles.map(s => [
-    s.id_salle,
-    s.numero,
-    s.statut,
-    s.medecin_nom_complet || s.id_medecin || ''
-  ]);
-  const csv  = [headers, ...rows].map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+// ── Export CSV salles ─────────────────────────────────────────────────────────
+function exportSallesCSV() {
+  const headers = ['ID Chambre', 'Numéro', 'Statut'];
+  const rows    = allSalles.map(s => [s.id_salle, s.numero, s.statut]);
+  const csv = [headers, ...rows]
+    .map(r => r.map(c => `"${String(c || '').replace(/"/g, '""')}"`).join(','))
+    .join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const a    = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = 'salles.csv'; a.click();
+  a.href     = URL.createObjectURL(blob);
+  a.download = 'salles.csv';
+  a.click();
 }
+
+// ── Helpers messages salle ────────────────────────────────────────────────────
+function hideSalleMsg() {
+  const g = document.getElementById('msg_salle_global');
+  const s = document.getElementById('msg_salle_success');
+  if (g) g.style.display = 'none';
+  if (s) s.style.display = 'none';
+}
+function showSalleError(msg) {
+  const el = document.getElementById('msg_salle_global');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+function showSalleSuccess(msg) {
+  const el = document.getElementById('msg_salle_success');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+// Fermer le modal en cliquant sur le fond
+document.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('salleDeleteModal');
+  if (modal) {
+    modal.addEventListener('click', e => {
+      if (e.target === modal) closeSalleDeleteModal();
+    });
+  }
+});
+async function loadMedecinsForSalle(keepValue = '') {
+  try {
+    const r = await postData(CRUD_SALLE, { action: 'getMedecins' });
+    const sel = document.getElementById('s_medecin');
+    if (!sel) return;
+    const prev = keepValue || sel.value;
+    sel.innerHTML = '<option value="">-- Sélectionner un médecin --</option>';
+    if (r.success && r.data.length > 0) {
+      r.data.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id_user;
+        opt.textContent = m.nom_complet;
+        sel.appendChild(opt);
+      });
+    }
+    if (prev) sel.value = prev;
+  } catch (e) { console.error('Erreur chargement médecins:', e); }
+}
+
+

@@ -9,7 +9,7 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 switch ($action) {
 
-    // ── DEBUG: test la connexion ─────────────────────────────────────────────
+   
     case 'ping':
         try {
             $db = config::getConnexion();
@@ -24,7 +24,7 @@ switch ($action) {
         }
         break;
 
-    // ── READ: toutes les admissions ──────────────────────────────────────────
+   //aff des admissions 
     case 'getAll':
         try {
             $db  = config::getConnexion();
@@ -45,7 +45,7 @@ switch ($action) {
         }
         break;
 
-    // ── GET TICKETS NON UTILISÉS (pour le dropdown) ──────────────────────────
+    // ── GET TICKETS NON UTILISÉS  ──────────────────────────
     case 'getTickets':
         try {
             $db    = config::getConnexion();
@@ -88,14 +88,15 @@ switch ($action) {
             );
 
             // Insérer l'admission
-            $sql = "INSERT INTO admission (id_admission, date_arrive_relle, mode_entree, id_ticket)
-                    VALUES (:id_admission, :date_arrive_relle, :mode_entree, :id_ticket)";
+            $sql = "INSERT INTO admission (id_admission, date_arrive_relle, mode_entree, id_ticket, id_salle)
+                    VALUES (:id_admission, :date_arrive_relle, :mode_entree, :id_ticket, :id_salle)";
             $query = $db->prepare($sql);
             $query->execute([
                 'id_admission'      => $admission->getIdAdmission(),
                 'date_arrive_relle' => $admission->getDateArriveRelle(),
                 'mode_entree'       => $admission->getModeEntree(),
-                'id_ticket'         => $admission->getIdTicket()
+                'id_ticket'         => $admission->getIdTicket(),
+                'id_salle'          => $_POST['id_salle'] ?? null
             ]);
 
             // Marquer le ticket comme "utilisé"
@@ -123,7 +124,7 @@ switch ($action) {
 
             $newTicket = $_POST['id_ticket'];
 
-            // Si le ticket a changé, vérifier que le nouveau est "non utilisé"
+            //  vérifier que le nouveau est "non utilisé"
             if ($oldTicket !== $newTicket) {
                 $check = $db->prepare("SELECT statut FROM ticket_num WHERE id_ticket = :id_ticket");
                 $check->execute(['id_ticket' => $newTicket]);
@@ -152,7 +153,8 @@ switch ($action) {
             $sql = "UPDATE admission SET
                         date_arrive_relle = :date_arrive_relle,
                         mode_entree       = :mode_entree,
-                        id_ticket         = :id_ticket
+                        id_ticket         = :id_ticket,
+                        id_salle          = :id_salle
                     WHERE id_admission = :id_admission";
 
             $query = $db->prepare($sql);
@@ -160,7 +162,8 @@ switch ($action) {
                 'id_admission'      => $_POST['id_admission'],
                 'date_arrive_relle' => $_POST['date_arrive_relle'],
                 'mode_entree'       => $_POST['mode_entree'],
-                'id_ticket'         => $newTicket
+                'id_ticket'         => $newTicket,
+                'id_salle'          => $_POST['id_salle'] ?? null
             ]);
             echo json_encode(['success' => true, 'message' => $query->rowCount() . ' admission(s) mise(s) à jour']);
         } catch (Exception $e) {

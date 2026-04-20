@@ -12,13 +12,11 @@ class Salle {
         $this->id_medecin = $id_medecin;
     }
 
-    // ── Getters ──
     public function getIdSalle()   { return $this->id_salle; }
     public function getNumero()    { return $this->numero; }
     public function getStatut()    { return $this->statut; }
     public function getIdMedecin() { return $this->id_medecin; }
 
-    // ── Setters ──
     public function setIdSalle($v)   { $this->id_salle = $v; }
     public function setNumero($v)    { $this->numero = $v; }
     public function setStatut($v)    { $this->statut = $v; }
