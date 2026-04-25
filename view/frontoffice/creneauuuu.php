@@ -3,28 +3,35 @@ require '../../config.php';
 header('Content-Type: application/json; charset=utf-8');
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
-$db = config::getConnexion();
+$db     = config::getConnexion();
 
+/* ─────────────────────────────────────────────────────────
+   FORMATTERS
+   ───────────────────────────────────────────────────────── */
 function formatCreneauForFront(array $row): array
 {
     $heureDebut = substr($row['heure_debut'], 0, 5);
     $heureFin   = substr($row['heure_fin'], 0, 5);
 
     return [
-        'id' => $row['id_creneau'],
-        'date' => $row['date'],
+        'id'          => $row['id_creneau'],
+        'date'        => $row['date'],
         'heure_debut' => $row['heure_debut'],
-        'heure_fin' => $row['heure_fin'],
-        'time' => $heureDebut . ' - ' . $heureFin,
-        'statut' => $row['statut'],
-        'available' => strtolower($row['statut']) === 'disponible',
-        'id_medecin' => $row['id_medecin'],
-        'doctor' => trim($row['nom_medecin'] ?? ''),
+        'heure_fin'   => $row['heure_fin'],
+        'time'        => $heureDebut . ' - ' . $heureFin,
+        'statut'      => $row['statut'],
+        'available'   => strtolower($row['statut']) === 'disponible',
+        'id_medecin'  => $row['id_medecin'],
+        'doctor'      => trim($row['nom_medecin'] ?? ''),
         'nom_medecin' => trim($row['nom_medecin'] ?? ''),
-        'type' => $row['Service'] ?? '',
-        'service' => $row['Service'] ?? ''
+        'type'        => $row['Service'] ?? '',
+        'service'     => $row['Service'] ?? ''
     ];
 }
+
+/* ─────────────────────────────────────────────────────────
+   ACTIONS
+   ───────────────────────────────────────────────────────── */
 
 if ($action === 'medecins') {
     try {
@@ -32,13 +39,15 @@ if ($action === 'medecins') {
                        CONCAT(COALESCE(Prenom,''), ' ', COALESCE(Nom,'')) AS nom_complet,
                        Service
                 FROM user
-WHERE id_role = 'ROLE-MED'                ORDER BY Prenom, Nom";
+                WHERE id_role = 'ROLE-MED'
+                ORDER BY Prenom, Nom";
+
         $query = $db->prepare($sql);
         $query->execute();
 
         echo json_encode([
             "success" => true,
-            "data" => $query->fetchAll(PDO::FETCH_ASSOC)
+            "data"    => $query->fetchAll(PDO::FETCH_ASSOC)
         ]);
     } catch (Exception $e) {
         http_response_code(500);
@@ -50,19 +59,20 @@ WHERE id_role = 'ROLE-MED'                ORDER BY Prenom, Nom";
 
 } elseif ($action === 'charger') {
     try {
-       $sql = "SELECT c.id_creneau,
-               c.date_creneau AS date,
-               c.heure_debut,
-               c.heure_fin,
-               c.statut,
-               c.id_medecin,
-               CONCAT(COALESCE(u.Prenom,''), ' ', COALESCE(u.Nom,'')) AS nom_medecin,
-               u.Service
-        FROM creneau c
-        INNER JOIN user u ON u.id_user = c.id_medecin
-        WHERE LOWER(c.statut) = 'disponible'
-          AND u.id_role = 'ROLE-MED'
-        ORDER BY c.date_creneau ASC, c.heure_debut ASC";
+        $sql = "SELECT c.id_creneau,
+                       c.date_creneau AS date,
+                       c.heure_debut,
+                       c.heure_fin,
+                       c.statut,
+                       c.id_medecin,
+                       CONCAT(COALESCE(u.Prenom,''), ' ', COALESCE(u.Nom,'')) AS nom_medecin,
+                       u.Service
+                FROM creneau c
+                INNER JOIN user u ON u.id_user = c.id_medecin
+                WHERE LOWER(c.statut) = 'disponible'
+                  AND u.id_role = 'ROLE-MED'
+                  AND c.date_creneau >= CURDATE()
+                ORDER BY c.date_creneau ASC, c.heure_debut ASC";
 
         $query = $db->prepare($sql);
         $query->execute();
@@ -72,7 +82,7 @@ WHERE id_role = 'ROLE-MED'                ORDER BY Prenom, Nom";
 
         echo json_encode([
             "success" => true,
-            "data" => $data
+            "data"    => $data
         ]);
     } catch (Exception $e) {
         http_response_code(500);
@@ -111,7 +121,7 @@ WHERE id_role = 'ROLE-MED'                ORDER BY Prenom, Nom";
         $data = array_map('formatCreneauForFront', $rows);
 
         echo json_encode([
-            "success" => true,
+            "success"  => true,
             "creneaux" => $data
         ]);
     } catch (Exception $e) {
@@ -156,7 +166,7 @@ WHERE id_role = 'ROLE-MED'                ORDER BY Prenom, Nom";
         $data = array_map('formatCreneauForFront', $rows);
 
         echo json_encode([
-            "success" => true,
+            "success"  => true,
             "creneaux" => $data
         ]);
     } catch (Exception $e) {
@@ -169,7 +179,7 @@ WHERE id_role = 'ROLE-MED'                ORDER BY Prenom, Nom";
 
 } elseif ($action === 'charger_filtre') {
     $id_medecin = trim($_GET['medecin'] ?? '');
-    $date = trim($_GET['date'] ?? '');
+    $date       = trim($_GET['date'] ?? '');
 
     if ($id_medecin === '' && $date === '') {
         echo json_encode([
@@ -181,15 +191,15 @@ WHERE id_role = 'ROLE-MED'                ORDER BY Prenom, Nom";
 
     try {
         $conditions = ["1=1"];
-        $params = [];
+        $params     = [];
 
         if ($id_medecin !== '') {
-            $conditions[] = "c.id_medecin = :medecin";
+            $conditions[]       = "c.id_medecin = :medecin";
             $params[':medecin'] = $id_medecin;
         }
 
         if ($date !== '') {
-            $conditions[] = "c.date_creneau = :date";
+            $conditions[]    = "c.date_creneau = :date";
             $params[':date'] = $date;
         }
 
@@ -215,7 +225,7 @@ WHERE id_role = 'ROLE-MED'                ORDER BY Prenom, Nom";
         $data = array_map('formatCreneauForFront', $rows);
 
         echo json_encode([
-            "success" => true,
+            "success"  => true,
             "creneaux" => $data
         ]);
     } catch (Exception $e) {
@@ -258,7 +268,7 @@ WHERE id_role = 'ROLE-MED'                ORDER BY Prenom, Nom";
 
         echo json_encode([
             "success" => true,
-            "data" => formatCreneauForFront($row)
+            "data"    => formatCreneauForFront($row)
         ]);
     } catch (Exception $e) {
         http_response_code(500);
@@ -273,12 +283,12 @@ WHERE id_role = 'ROLE-MED'                ORDER BY Prenom, Nom";
         $q = $db->prepare("SELECT COUNT(*) AS disponibles
                            FROM creneau
                            WHERE statut = 'disponible'
-                             ");
+                             AND date_creneau >= CURDATE()");
         $q->execute();
 
         echo json_encode([
             "success" => true,
-            "data" => $q->fetch(PDO::FETCH_ASSOC)
+            "data"    => $q->fetch(PDO::FETCH_ASSOC)
         ]);
     } catch (Exception $e) {
         http_response_code(500);

@@ -3,7 +3,7 @@
 
 ## 📌 Description
 
-JumeauNum est une application web de gestion hospitalière conçue pour digitaliser et structurer le parcours patient, depuis la prise de rendez-vous jusqu’à l’admission.
+jumeaunum2est une application web de gestion hospitalière conçue pour digitaliser et structurer le parcours patient, depuis la prise de rendez-vous jusqu’à l’admission.
 
 Elle s’inscrit dans une logique de transformation numérique des services de santé en remplaçant les processus traditionnels (papier, gestion manuelle) par un système centralisé, intelligent et automatisé.
 

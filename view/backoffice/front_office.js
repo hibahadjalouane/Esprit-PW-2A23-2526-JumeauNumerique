@@ -414,7 +414,7 @@ function activerPagination() {
 
 activerPagination();
 
-document.getElementById("dateDemande").value = todayStr();
+document.getElementById("dateDemande").min = todayStr();
 document.getElementById("dateCreneau").min = todayStr();
 
 chargerMedecinsDepuisBD().finally(() => {
