@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>MediTwin OS | Architecture des ressources</title>
+
+  <!-- Bootstrap 5 (lightweight grid + utilities) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Google Fonts : Plus Jakarta Sans & Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet"/>
+  
+  <!-- Material Symbols -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet"/>
+
+  <style>
+    /* ----- DESIGN SYSTEM TOKENS (M3 élevé, accessible, professionnel) ----- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --md-primary: #1A5CFF;
+      --md-primary-dark: #0042c7;
+      --md-primary-container: #E0EBFF;
+      --md-secondary: #00796B;
+      --md-tertiary: #6C3BCF;
+      --md-error: #BA1A1A;
+      --md-error-container: #FFDAD6;
+      --md-surface: #F9FAFF;
+      --md-surface-dim: #E1E4F2;
+      --md-surface-bright: #FBF8FF;
+      --md-surface-container: #F3F4FC;
+      --md-surface-container-high: #EDEFF9;
+      --md-surface-container-highest: #E5E8F4;
+      --md-surface-container-low: #F9FAFF;
+      --md-on-surface: #12172E;
+      --md-on-surface-variant: #454A5E;
+      --md-outline: #787D92;
+      --md-outline-variant: #C8CBE0;
+      --md-on-primary: #FFFFFF;
+      --md-on-secondary: #FFFFFF;
+      --md-on-tertiary: #FFFFFF;
+      --md-on-primary-container: #001F5E;
+      --md-inverse-surface: #292E45;
+      --md-inverse-on-surface: #F0EFFD;
+      --shadow-sm: 0 8px 20px rgba(0, 0, 0, 0.02), 0 2px 6px rgba(0, 0, 0, 0.03);
+      --shadow-md: 0 12px 28px -8px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.02);
+      --shadow-lg: 0 20px 35px -12px rgba(0, 0, 0, 0.12);
+      --radius-xl: 1rem;
+      --radius-2xl: 1.25rem;
+      --radius-full: 999px;
+      --transition-default: all 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    }
+
+    body {
+      background: var(--md-surface);
+      color: var(--md-on-surface);
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* typographie headlines */
+    h1, h2, h3, h4, .headline, .brand-text, .nav-link-custom, .resource-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 450, 'GRAD' 0, 'opsz' 24;
+      vertical-align: middle;
+    }
+
+    /* Navbar glassmorph premium */
+    .top-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1050;
+      background: rgba(249, 250, 255, 0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(120, 125, 146, 0.12);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+    }
+
+    .nav-shell {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      height: 80px;
+    }
+
+    .search-box {
+      height: 44px;
+      background: var(--md-surface-container-low);
+      border: 1px solid transparent;
+      border-radius: 44px;
+      padding-left: 2.75rem;
+      font-size: 0.9rem;
+      transition: var(--transition-default);
+    }
+
+    .search-box:focus {
+      background: white;
+      border-color: var(--md-outline-variant);
+      box-shadow: 0 0 0 3px rgba(26, 92, 255, 0.15);
+    }
+
+    .brand-link {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 800;
+      font-size: 1.35rem;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #1A5CFF 0%, #0142B3 100%);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .brand-icon {
+      background: linear-gradient(145deg, #1A5CFF, #0042c7);
+      border-radius: 12px;
+      padding: 5px;
+      color: white;
+    }
+
+    .center-nav a {
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0.5rem 0;
+      color: var(--md-on-surface-variant);
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      transition: var(--transition-default);
+    }
+
+    .center-nav a.active, .center-nav a:hover {
+      color: var(--md-primary);
+      border-bottom-color: var(--md-primary);
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      color: var(--md-on-surface-variant);
+      transition: var(--transition-default);
+    }
+
+    .icon-btn:hover {
+      background: rgba(26, 92, 255, 0.08);
+      color: var(--md-primary);
+    }
+
+    .avatar-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 42px;
+      overflow: hidden;
+      border: 2px solid white;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s ease;
+    }
+
+    /* main content */
+    main.page {
+      padding-top: 108px;
+      padding-bottom: 4rem;
+      flex: 1 0 auto;
+      max-width: 1440px;
+      margin: 0 auto;
+      width: 100%;
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+
+    /* hero modern */
+    .hero-modern {
+      background: linear-gradient(135deg, var(--md-surface-container-high) 0%, var(--md-surface-container) 100%);
+      border-radius: var(--radius-2xl);
+      padding: 2rem 2rem;
+      border: 1px solid rgba(200, 203, 224, 0.4);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stat-card-glass {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(8px);
+      border-radius: 1rem;
+      padding: 0.9rem 1.2rem;
+      text-align: center;
+      border: 1px solid rgba(200, 203, 224, 0.5);
+      transition: transform 0.2s;
+    }
+
+    .stat-number {
+      font-size: 2.2rem;
+      font-weight: 800;
+      line-height: 1.2;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    /* filter pills */
+    .filter-pill {
+      background: transparent;
+      border: none;
+      padding: 0.6rem 1.4rem;
+      border-radius: 2rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--md-on-surface-variant);
+      transition: all 0.2s;
+    }
+
+    .filter-pill.active {
+      background: var(--md-primary);
+      color: white;
+      box-shadow: 0 6px 14px rgba(26, 92, 255, 0.25);
+    }
+
+    .btn-primary-solid {
+      background: var(--md-primary);
+      border: none;
+      padding: 0.6rem 1.5rem;
+      border-radius: 2rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: white;
+      transition: var(--transition-default);
+      box-shadow: 0 6px 12px -6px rgba(26, 92, 255, 0.3);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary-solid:hover {
+      background: var(--md-primary-dark);
+      transform: translateY(-1px);
+    }
+
+    /* Resource cards professionnelles */
+    .resource-card-pro {
+      background: white;
+      border-radius: var(--radius-xl);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.25s ease;
+      border: 1px solid rgba(200, 203, 224, 0.3);
+      height: 100%;
+    }
+
+    .resource-card-pro:hover {
+      box-shadow: var(--shadow-md);
+      border-color: rgba(26, 92, 255, 0.2);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.7rem;
+      border-radius: 30px;
+      background: var(--md-surface-container-high);
+      color: var(--md-on-surface-variant);
+    }
+
+    .status-available {
+      background: #E0F7F2;
+      color: #00796B;
+    }
+
+    .status-occupied {
+      background: #EDEFF9;
+      color: #2c3e66;
+    }
+
+    .status-maintenance {
+      background: #FFDAD6;
+      color: #BA1A1A;
+    }
+
+    .qr-hover {
+      width: 34px;
+      height: 34px;
+      border-radius: 34px;
+      background: var(--md-surface-container-high);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .qr-hover:hover {
+      background: var(--md-primary);
+      color: white;
+    }
+
+    /* failure sidebar refined */
+    .failure-sidebar-modern {
+      background: var(--md-surface-container-low);
+      border-radius: var(--radius-xl);
+      padding: 1.5rem;
+      border: 1px solid rgba(200, 203, 224, 0.5);
+      backdrop-filter: blur(2px);
+    }
+
+    .failure-item-enhanced {
+      background: white;
+      border-radius: 1rem;
+      padding: 1rem;
+      border-left: 4px solid var(--md-error);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+      transition: all 0.2s;
+    }
+
+    .failure-item-enhanced.tertiary {
+      border-left-color: var(--md-tertiary);
+    }
+
+    .failure-item-enhanced.secondary {
+      border-left-color: var(--md-secondary);
+    }
+
+    /* footer pro */
+    .site-footer-modern {
+      background: var(--md-surface-dim);
+      border-top: 1px solid var(--md-outline-variant);
+      padding: 2.5rem 0;
+      margin-top: 3rem;
+    }
+
+    /* responsive */
+    @media (max-width: 992px) {
+      .center-nav { display: none !important; }
+    }
+    @media (max-width: 768px) {
+      main.page { padding-left: 1rem; padding-right: 1rem; padding-top: 96px; }
+      .nav-shell { padding: 0 1rem; height: 70px; }
+      .hero-modern { padding: 1.5rem; }
+      .stat-number { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation (professional, accessible) -->
+  <nav class="top-nav" aria-label="Navigation principale">
+    <div class="nav-shell d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center flex-grow-1" style="max-width: 300px;">
+        <div class="position-relative w-100 d-none d-md-block">
+          <span class="material-symbols-outlined position-absolute start-0 top-50 translate-middle-y ms-3" style="font-size: 1.2rem; color: var(--md-outline);">search</span>
+          <input type="text" class="form-control search-box w-100 ps-5" placeholder="Rechercher ressource, ID, localisation...">
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-center align-items-center gap-4">
+        <a class="brand-link" href="#">
+          <span class="material-symbols-outlined brand-icon p-1 rounded-3" style="background: var(--md-primary); color: white; font-size: 28px;">account_tree</span>
+          <span>MediTwin OS</span>
+        </a>
+        <div class="center-nav d-none d-xl-flex gap-4">
+          <a href="#" class="active">Ressources</a>
+          <a href="#">Maintenance</a>
+          <a href="#">Tableau de bord</a>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center justify-content-end gap-2 flex-grow-1">
+        <button class="icon-btn" aria-label="Notifications">
+          <span class="material-symbols-outlined">notifications</span>
+        </button>
+        <button class="icon-btn" aria-label="Paramètres">
+          <span class="material-symbols-outlined">settings</span>
+        </button>
+        <button class="avatar-btn p-0 border-0 bg-transparent">
+          <img alt="Profil gestionnaire" src="https://randomuser.me/api/portraits/women/68.jpg" style="width: 100%; height: 100%; object-fit: cover;">
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="page">
+    <!-- Hero section avec métriques -->
+    <section class="hero-modern mb-4">
+      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-center gap-4">
+        <div>
+          <h1 class="display-6 fw-bold" style="font-family: 'Plus Jakarta Sans'; letter-spacing: -0.02em;">Architecture des ressources</h1>
+          <p class="text-secondary mt-2 mb-0" style="color: var(--md-on-surface-variant); max-width: 560px;">Suivi en temps réel des actifs critiques, allocation dynamique et conformité opérationnelle.</p>
+        </div>
+        <div class="d-flex gap-3 flex-wrap">
+          <div class="stat-card-glass">
+            <div class="stat-number" style="color: var(--md-primary);">482</div>
+            <div class="small text-uppercase fw-semibold text-secondary">Actifs actifs</div>
+          </div>
+          <div class="stat-card-glass">
+            <div class="stat-number" style="color: var(--md-secondary);">35</div>
+            <div class="small text-uppercase fw-semibold text-secondary">Disponibles</div>
+          </div>
+          <div class="stat-card-glass">
+            <div class="stat-number" style="color: var(--md-error);">12</div>
+            <div class="small text-uppercase fw-semibold text-secondary">Maintenance</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filter bar + actions -->
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 mb-4">
+      <div class="d-flex gap-2 overflow-auto flex-nowrap pb-1 hide-scrollbar">
+        <button class="filter-pill active">Toutes les ressources</button>
+        <button class="filter-pill">Flotte ambulance</button>
+        <button class="filter-pill">Salles cliniques</button>
+        <button class="filter-pill">Diagnostic & imagerie</button>
+        <button class="filter-pill">Lits & hospitalisation</button>
+      </div>
+      <button class="btn-primary-solid">
+        <span class="material-symbols-outlined" style="font-size: 18px;">add</span>
+        Nouvelle ressource
+      </button>
+    </div>
+
+    <!-- Main grid : asset directory + sidebar failures -->
+    <div class="row g-4 g-xl-5">
+      <!-- Colonne gauche : cartes ressources -->
+      <div class="col-12 col-xl-8">
+        <div class="d-flex justify-content-between align-items-center mb-3 px-1">
+          <h2 class="h4 fw-bold m-0">Répertoire des actifs</h2>
+          <a href="#" class="text-decoration-none small fw-semibold" style="color: var(--md-primary);">Vue cartographique <span class="material-symbols-outlined" style="font-size: 14px;">arrow_forward</span></a>
+        </div>
+        <div class="row g-4">
+          <!-- Carte 1 : Ambulance -->
+          <div class="col-md-6">
+            <div class="resource-card-pro">
+              <div class="d-flex justify-content-between">
+                <div class="d-flex gap-3 align-items-center">
+                  <div class="rounded-3 p-2" style="background: var(--md-primary-container); color: var(--md-primary-dark);">
+                    <span class="material-symbols-outlined" style="font-size: 32px;">airport_shuttle</span>
+                  </div>
+                  <div>
+                    <span class="text-secondary small fw-mono">ID: RES-AMB-042</span>
+                    <h3 class="resource-title fs-5 mb-0">Alpha-1 Ambulance</h3>
+                  </div>
+                </div>
+                <button class="qr-hover border-0 bg-transparent">
+                  <span class="material-symbols-outlined">qr_code_scanner</span>
+                </button>
+              </div>
+              <div class="row mt-4 g-2">
+                <div class="col-6"><span class="text-secondary text-uppercase fw-semibold small">Type</span><br><span>Urgence transport</span></div>
+                <div class="col-6"><span class="text-secondary text-uppercase fw-semibold small">Statut</span><br><span class="status-badge status-available"><span class="material-symbols-outlined" style="font-size: 12px;">check_circle</span> Disponible</span></div>
+                <div class="col-6"><span class="text-secondary text-uppercase fw-semibold small">Localisation</span><br><span><span class="material-symbols-outlined" style="font-size: 12px;">location_on</span> North Bay</span></div>
+                <div class="col-6"><span class="text-secondary text-uppercase fw-semibold small">Dernière maintenance</span><br><span>12 oct. 2023</span></div>
+              </div>
+              <hr class="my-3 opacity-25">
+              <div class="d-flex justify-content-between"><a href="#" class="small text-secondary text-decoration-none">Modifier</a><a href="#" class="small fw-semibold" style="color: var(--md-primary);">Allouer →</a></div>
+            </div>
+          </div>
+          <!-- Carte 2 : IRM -->
+          <div class="col-md-6">
+            <div class="resource-card-pro">
+              <div class="d-flex justify-content-between">
+                <div class="d-flex gap-3">
+                  <div class="rounded-3 p-2" style="background: #EDE4FF; color: var(--md-tertiary);"><span class="material-symbols-outlined" style="font-size: 32px;">biotech</span></div>
+                  <div><span class="text-secondary small">ID: RES-IRM-108</span><h3 class="fs-5 fw-bold mb-0">IRM Scanner 3T</h3></div>
+                </div>
+                <button class="qr-hover border-0 bg-transparent"><span class="material-symbols-outlined">qr_code_scanner</span></button>
+              </div>
+              <div class="row mt-4 g-2">
+                <div class="col-6"><span class="text-secondary text-uppercase fw-semibold small">Type</span><br>Imagerie diagn.</div>
+                <div class="col-6"><span class="text-secondary text-uppercase fw-semibold small">Statut</span><br><span class="status-badge status-occupied"><span class="material-symbols-outlined" style="font-size: 12px;">schedule</span> Occupé</span></div>
+                <div class="col-6"><span class="text-secondary text-uppercase fw-semibold small">Localisation</span><br>Radiologie Nord</div>
+                <div class="col-6"><span class="text-secondary text-uppercase fw-semibold small">Dernière maintenance</span><br>5 sept. 2023</div>
+              </div>
+              <hr class="my-3"><div class="d-flex justify-content-between"><a href="#" class="small text-secondary">Détails</a><a href="#" class="small fw-semibold text-secondary">Planifier</a></div>
+            </div>
+          </div>
+          <!-- Carte 3 : Bloc opératoire B -->
+          <div class="col-md-6">
+            <div class="resource-card-pro">
+              <div class="d-flex justify-content-between">
+                <div class="d-flex gap-3"><div class="rounded-3 p-2 bg-danger bg-opacity-10" style="color: var(--md-error);"><span class="material-symbols-outlined">bed</span></div><div><span class="text-secondary small">ID: RES-OT-002</span><h3 class="fs-5 fw-bold mb-0">Bloc opératoire B</h3></div></div>
+                <button class="qr-hover"><span class="material-symbols-outlined">qr_code_scanner</span></button>
+              </div>
+              <div class="row mt-4 g-2">
+                <div class="col-6"><span class="text-secondary text-uppercase fw-semibold small">Type</span><br>Suite chirurgicale</div>
+                <div class="col-6"><span class="text-secondary text-uppercase fw-semibold small">Statut</span><br><span class="status-badge status-maintenance"><span class="material-symbols-outlined">build</span> Maintenance</span></div>
+                <div class="col-6"><span class="text-secondary text-uppercase fw-semibold small">Localisation</span><br>Étage 3, Aile Ouest</div>
+                <div class="col-6"><span class="text-secondary text-uppercase fw-semibold small">Dernière maintenance</span><br>Aujourd'hui</div>
+              </div>
+              <hr class="my-3"><div class="d-flex justify-content-between"><a href="#" class="small text-secondary">Modifier</a><a href="#" class="small fw-semibold" style="color: var(--md-error);">Rapport →</a></div>
+            </div>
+          </div>
+          <!-- Carte 4 : Chambre patient 405 -->
+          <div class="col-md-6">
+            <div class="resource-card-pro">
+              <div class="d-flex justify-content-between">
+                <div class="d-flex gap-3"><div class="rounded-3 p-2" style="background: var(--md-surface-container-high);"><span class="material-symbols-outlined">hotel</span></div><div><span class="text-secondary small">ID: RES-RM-405</span><h3 class="fs-5 fw-bold mb-0">Chambre 405</h3></div></div>
+                <button class="qr-hover"><span class="material-symbols-outlined">qr_code_scanner</span></button>
+              </div>
+              <div class="row mt-4 g-2">
+                <div class="col-6"><span class="text-secondary text-uppercase fw-semibold small">Type</span><br>Service standard</div>
+                <div class="col-6"><span class="text-secondary text-uppercase fw-semibold small">Statut</span><br><span class="status-badge status-available">Disponible</span></div>
+                <div class="col-6"><span class="text-secondary text-uppercase fw-semibold small">Localisation</span><br>Étage 4, Aile Est</div>
+                <div class="col-6"><span class="text-secondary text-uppercase fw-semibold small">Dernière maintenance</span><br>1 nov. 2023</div>
+              </div>
+              <hr class="my-3"><div class="d-flex justify-content-between"><a href="#" class="small text-secondary">Modifier</a><a href="#" class="small fw-semibold" style="color: var(--md-primary);">Allouer →</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar failures (défaillances actives) -->
+      <aside class="col-12 col-xl-4">
+        <div class="failure-sidebar-modern">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="h6 fw-bold text-uppercase m-0 d-flex gap-2"><span class="material-symbols-outlined text-danger">warning</span> Incidents actifs</h3>
+            <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-1 rounded-pill">3 signalés</span>
+          </div>
+          <div class="d-flex flex-column gap-3">
+            <div class="failure-item-enhanced">
+              <div class="d-flex justify-content-between"><span class="fw-mono small">PAN-089</span><span class="small text-secondary">Aujourd'hui, 09:15</span></div>
+              <h4 class="fw-bold fs-6 mt-1 mb-1">Bloc opératoire B</h4>
+              <p class="small text-secondary mb-2">Pression différentielle HVAC anormale, intervention requise.</p>
+              <div class="d-flex justify-content-between"><span class="small fw-semibold text-danger"><span class="material-symbols-outlined" style="font-size: 12px;">build</span> Rapporté</span><a href="#" class="small fw-semibold text-primary">Mettre à jour</a></div>
+            </div>
+            <div class="failure-item-enhanced tertiary">
+              <div class="d-flex justify-content-between"><span class="fw-mono small">PAN-088</span><span class="small text-secondary">Hier</span></div>
+              <h4 class="fw-bold fs-6 mt-1">Ventilateur V-12</h4>
+              <p class="small text-secondary mb-2">Erreur d’étalonnage capteur oxygène, diagnostic en cours.</p>
+              <div class="d-flex justify-content-between"><span class="small fw-semibold" style="color: var(--md-tertiary);"><span class="material-symbols-outlined" style="font-size: 12px;">sync</span> En cours</span><a href="#" class="small fw-semibold text-primary">Suivi</a></div>
+            </div>
+            <div class="failure-item-enhanced secondary">
+              <div class="d-flex justify-content-between"><span class="fw-mono small">PAN-085</span><span class="small text-secondary">28 oct.</span></div>
+              <h4 class="fw-bold fs-6 mt-1">Ambulance Alpha-3</h4>
+              <p class="small text-secondary mb-2">Sirène intermittente, faisceau remplacé, sous surveillance.</p>
+              <div class="d-flex justify-content-between"><span class="small fw-semibold" style="color: var(--md-secondary);"><span class="material-symbols-outlined" style="font-size: 12px;">check_circle</span> Résolu</span><a href="#" class="small text-secondary">Historique</a></div>
+            </div>
+          </div>
+          <a href="#" class="btn w-100 mt-4 d-flex align-items-center justify-content-center gap-2 rounded-3 py-2" style="background: white; border: 1px solid var(--md-outline-variant); font-weight: 600;"><span class="material-symbols-outlined">history</span> Tous les logs de maintenance</a>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="site-footer-modern">
+    <div class="container-xl">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 text-center text-md-start">
+        <div class="d-flex align-items-center gap-2"><span class="material-symbols-outlined" style="color: var(--md-primary);">account_tree</span><span class="fw-bold">MediTwin OS</span></div>
+        <div class="d-flex gap-4 flex-wrap"><a href="#" class="text-decoration-none small text-secondary">Confidentialité</a><a href="#" class="text-decoration-none small text-secondary">Statut système</a><a href="#" class="text-decoration-none small text-secondary">Support technique</a><a href="#" class="text-decoration-none small text-secondary">Conformité</a></div>
+        <div class="small text-secondary">© 2025 Clinical Architect Hospital Management — solution de jumeau numérique haute résilience</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- tiny interactive hover improvement (just to enhance pill active simulation) -->
+  <script>
+    // Optional: demo interactive, filter pills simple active toggle (non-intrusive)
+    document.querySelectorAll('.filter-pill').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        // you could extend with dynamic filtering but kept UI static for demo perfection
+      });
+    });
+  </script>
+</body>
+</html>
