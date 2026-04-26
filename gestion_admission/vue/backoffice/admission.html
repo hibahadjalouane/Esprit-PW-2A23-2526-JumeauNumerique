@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JumeauNum – Gestion des Admissions</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --sidebar-bg:     #1a3a8f;
+  --sidebar-hover:  #2248b0;
+  --sidebar-active: #3560d4;
+  --sidebar-w:      200px;
+  --bg:       #f0f4fb;
+  --surface:  #ffffff;
+  --surface2: #eef1f8;
+  --border:   #dde2ef;
+  --primary:    #2563eb;
+  --primary-lt: #eff4ff;
+  --text:       #111827;
+  --muted:      #6b7280;
+  --green:    #16a34a;
+  --green-lt: #dcfce7;
+  --red:      #dc2626;
+  --red-lt:   #fee2e2;
+  --amber:    #d97706;
+  --amber-lt: #fef3c7;
+  --header-h: 58px;
+  --radius:   10px;
+  --shadow:   0 1px 4px rgba(0,0,0,.07), 0 4px 14px rgba(0,0,0,.05);
+}
+
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+header { height: var(--header-h); background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 12px; position: fixed; top: 0; left: 0; right: 0; z-index: 200; box-shadow: 0 1px 0 var(--border); }
+.logo { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 1rem; color: var(--primary); }
+.logo svg { width: 32px; height: 32px; }
+header .spacer { flex: 1; }
+.header-user { display: flex; align-items: center; gap: 8px; font-size: .85rem; font-weight: 500; background: var(--surface2); border: 1px solid var(--border); border-radius: 30px; padding: 4px 12px 4px 5px; cursor: pointer; }
+.avatar-icon { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; color: #fff; font-size: .75rem; font-weight: 700; }
+.header-power { width: 34px; height: 34px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: background .15s; }
+.header-power:hover { background: var(--red-lt); color: var(--red); }
+.layout { display: flex; margin-top: var(--header-h); min-height: calc(100vh - var(--header-h)); }
+aside { width: var(--sidebar-w); background: var(--sidebar-bg); position: fixed; top: var(--header-h); bottom: 0; left: 0; display: flex; flex-direction: column; padding: 14px 8px; gap: 2px; overflow-y: auto; z-index: 100; }
+.nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-radius: 8px; font-size: .84rem; font-weight: 500; color: rgba(255,255,255,.7); cursor: pointer; user-select: none; white-space: nowrap; transition: background .12s, color .12s; }
+.nav-item:hover { background: var(--sidebar-hover); color: #fff; }
+.nav-item.active { background: var(--sidebar-active); color: #fff; }
+.nav-item svg { flex-shrink: 0; width: 17px; height: 17px; }
+.nav-bottom { margin-top: auto; }
+main { margin-left: var(--sidebar-w); flex: 1; padding: 22px 20px 40px; min-width: 0; overflow-x: hidden; }
+.page-title { font-size: 1.45rem; font-weight: 700; }
+.page-sub { color: var(--muted); font-size: .82rem; margin-top: 2px; }
+.conn-banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; font-size: .82rem; font-weight: 500; margin-top: 14px; border: 1px solid var(--border); background: var(--surface2); }
+.conn-banner.ok    { background: var(--green-lt); border-color: #86efac; color: var(--green); }
+.conn-banner.error { background: var(--red-lt);   border-color: #fca5a5; color: var(--red); }
+.conn-banner svg { width: 16px; height: 16px; flex-shrink: 0; }
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+.stat-badge { position: absolute; top: 10px; right: 10px; font-size: .7rem; font-weight: 600; padding: 2px 7px; border-radius: 20px; }
+.badge-green { background: var(--green-lt); color: var(--green); }
+.badge-red   { background: var(--red-lt);   color: var(--red); }
+.badge-amber { background: var(--amber-lt); color: var(--amber); }
+.badge-blue  { background: var(--primary-lt); color: var(--primary); }
+.stat-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+.stat-icon.blue { background: var(--primary-lt); color: var(--primary); }
+.stat-icon.pink { background: #fce7f3; color: #db2777; }
+.stat-icon.teal { background: #d1faf5; color: #0d9488; }
+.stat-icon.ambr { background: var(--amber-lt); color: var(--amber); }
+.stat-label { font-size: .75rem; color: var(--muted); }
+.stat-value { font-size: 1.35rem; font-weight: 700; margin-top: 1px; }
+.stat-sub { font-size: .7rem; color: var(--muted); margin-top: 2px; }
+.twin-zone { display: grid; grid-template-columns: 1fr 300px; gap: 16px; margin-top: 18px; align-items: start; }
+.toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-family: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; border: none; transition: opacity .15s; }
+.btn:hover { opacity: .88; }
+.btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.22); }
+.btn-outline  { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn-ghost    { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-block    { width: 100%; justify-content: center; margin-top: 3px; }
+.toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.filter-label  { font-size: .8rem; color: var(--muted); }
+.filter-select { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px 10px; font-family: inherit; font-size: .82rem; color: var(--text); cursor: pointer; }
+.search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.search-wrap { flex: 1; position: relative; }
+.search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); width: 14px; height: 14px; pointer-events: none; }
+.search-wrap input { width: 100%; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 8px 10px 8px 32px; font-family: inherit; font-size: .82rem; color: var(--text); outline: none; }
+.search-wrap input:focus { border-color: var(--primary); }
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+thead th { text-align: left; padding: 10px 12px; font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--surface2); border-bottom: 1px solid var(--border); }
+tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+tbody td { padding: 10px 12px; vertical-align: middle; }
+.id-cell { font-family: 'DM Mono', monospace; font-size: .75rem; color: var(--muted); }
+.badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: .72rem; font-weight: 600; }
+.badge-urgence   { background: var(--red-lt);     color: var(--red); }
+.badge-normal    { background: var(--green-lt);   color: var(--green); }
+.badge-transfert { background: var(--amber-lt);   color: var(--amber); }
+.badge-autre     { background: var(--primary-lt); color: var(--primary); }
+.actions-cell { display: flex; gap: 5px; }
+.icon-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: background .12s, color .12s; }
+.icon-btn:hover     { background: var(--primary-lt); color: var(--primary); border-color: var(--primary); }
+.icon-btn.del:hover { background: var(--red-lt); color: var(--red); border-color: var(--red); }
+.icon-btn svg { width: 12px; height: 12px; }
+.no-data { text-align: center; padding: 40px 20px; color: var(--muted); font-size: .85rem; }
+.pagination { display: flex; align-items: center; gap: 5px; padding: 10px 14px; border-top: 1px solid var(--border); font-size: .78rem; color: var(--muted); }
+.pagination .count { flex: 1; }
+.page-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .78rem; font-weight: 500; color: var(--text); }
+.page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.right-panel { display: flex; flex-direction: column; gap: 14px; }
+.panel-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+.panel-title { font-size: .92rem; font-weight: 700; margin-bottom: 12px; }
+.form-group { margin-bottom: 10px; }
+.form-label { font-size: .72rem; font-weight: 600; color: var(--muted); margin-bottom: 3px; display: block; }
+.form-control { width: 100%; border: 1px solid var(--border); background: var(--bg); border-radius: 7px; padding: 7px 9px; font-family: inherit; font-size: .8rem; color: var(--text); outline: none; transition: border-color .15s; }
+.form-control:focus    { border-color: var(--primary); background: var(--surface); }
+.form-control::placeholder { color: #b0b8cc; }
+.form-control:disabled { background: var(--surface2); color: var(--muted); cursor: not-allowed; }
+.form-control.error    { border-color: var(--red); }
+.field-msg { font-size: .68rem; color: var(--red); margin-top: 2px; display: none; }
+.field-msg.visible { display: block; }
+.ticket-info { background: var(--primary-lt); border: 1px solid #bfdbfe; border-radius: 7px; padding: 8px 10px; font-size: .75rem; color: var(--primary); margin-top: 4px; display: none; }
+.ticket-info.visible { display: block; }
+.section-title { font-size: 1.05rem; font-weight: 700; color: var(--text); margin: 28px 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--border); display: flex; align-items: center; gap: 8px; }
+.section-title svg { width: 15px; height: 15px; color: var(--primary); }
+.right-panel-salle { display: flex; flex-direction: column; gap: 14px; }
+.toast { position: fixed; bottom: 24px; right: 24px; z-index: 999; background: var(--text); color: #fff; padding: 10px 18px; border-radius: 8px; font-size: .83rem; font-weight: 500; opacity: 0; transform: translateY(10px); transition: opacity .25s, transform .25s; pointer-events: none; }
+.toast.show    { opacity: 1; transform: translateY(0); }
+.toast.success { background: var(--green); }
+.toast.error   { background: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="#2563eb"/><path d="M10 20h4l3-7 4 14 3-10 3 6 3-3h4" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    JumeauNum
+  </div>
+  <div class="spacer"></div>
+  <div class="header-user">
+    <div class="avatar-icon">A</div>
+    Admin
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="header-power">
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v10M4.93 4.93a10 10 0 100 14.14"/></svg>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside>
+    <div class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Tableau de bord</div>
+    <div class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Ressources</div>
+    <div class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Les rendez-vous</div>
+    <div class="nav-item active"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Admissions</div>
+    <div class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>Dossiers médicaux</div>
+    <div class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 15h2M13 15h3"/></svg>Les factures</div>
+    <div class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M2 19c0-3 3-5 7-5s7 2 7 5"/><path d="M17 14c2 0 4 1.5 4 4"/></svg>Les médecins</div>
+    <div class="nav-bottom">
+      <div class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Paramètres</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+    <div class="page-title">Gestion des Admissions</div>
+    <div class="page-sub">Consultez, gérez et suivez toutes les admissions de l'hôpital.</div>
+
+    <!-- CONNECTION BANNER -->
+    <div class="conn-banner" id="connBanner">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      <span id="connMsg">Vérification de la connexion...</span>
+    </div>
+
+    <!-- STATS ADMISSIONS -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <span class="stat-badge badge-blue" id="stat-badge-total">0</span>
+        <div class="stat-icon blue"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></div>
+        <div class="stat-label">Total admissions</div>
+        <div class="stat-value" id="stat-total">0</div>
+        <div class="stat-sub">Toutes entrées</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-red" id="stat-badge-urgence">0</span>
+        <div class="stat-icon pink"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg></div>
+        <div class="stat-label">Urgences</div>
+        <div class="stat-value" id="stat-urgence">0</div>
+        <div class="stat-sub">Mode urgence</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-green" id="stat-badge-normal">0</span>
+        <div class="stat-icon teal"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div class="stat-label">Normales</div>
+        <div class="stat-value" id="stat-normal">0</div>
+        <div class="stat-sub">Mode normal</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-amber" id="stat-badge-transfert">0</span>
+        <div class="stat-icon ambr"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="stat-label">Transferts</div>
+        <div class="stat-value" id="stat-transfert">0</div>
+        <div class="stat-sub">Mode transfert</div>
+      </div>
+    </div>
+
+    <!-- TWIN ZONE -->
+    <div class="twin-zone">
+
+      <!-- LEFT: TABLE -->
+      <div class="table-section">
+        <div class="toolbar">
+          <button class="btn btn-outline" onclick="exportCSV()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 10v6M9 13l3 3 3-3M5 17a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2"/></svg>
+            Exporter CSV
+          </button>
+          <div class="toolbar-right">
+            <span class="filter-label">Mode d'entrée</span>
+            <select class="filter-select" id="filterMode" onchange="renderTable()">
+              <option value="">Tous</option>
+              <option value="urgence">Urgence</option>
+              <option value="normal">Normal</option>
+              <option value="transfert">Transfert</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
+        </div>
+        <div class="search-row">
+          <div class="search-wrap">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" id="searchInput" placeholder="Rechercher par ID, ticket, mode..." oninput="renderTable()"/>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID Admission</th>
+                <th>Date d'arrivee</th>
+                <th>Mode d'entree</th>
+                <th>ID Ticket</th>
+                <th>Salle</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr><td colspan="6" class="no-data">Chargement...</td></tr>
+            </tbody>
+          </table>
+          <div class="pagination">
+            <div class="count" id="paginCount">—</div>
+            <button class="page-btn" onclick="prevPage()">‹</button>
+            <span id="pageInfo" style="font-size:.78rem;color:var(--muted);padding:0 4px"></span>
+            <button class="page-btn" onclick="nextPage()">›</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: FORM -->
+      <div class="right-panel">
+        <div class="panel-card">
+          <div class="panel-title" id="formTitle">Nouvelle Admission</div>
+
+          <div class="form-group">
+            <label class="form-label" for="a_id">ID Admission *</label>
+            <div style="display:flex;gap:6px;align-items:flex-start">
+              <input class="form-control" type="number" id="a_id" placeholder="Ex: 1001" min="1" max="99999999" step="1" style="flex:1"/>
+              <button type="button" style="width:34px;height:34px;flex-shrink:0;border-radius:7px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:background .15s" onclick="rollDiceAdmission()" title="Generer un ID aleatoire disponible" onmouseover="this.style.background='var(--primary-lt)'" onmouseout="this.style.background='var(--surface2)'">&#127922;</button>
+            </div>
+            <div style="font-size:.65rem;color:var(--muted);margin-top:3px">&#127922; = ID aleatoire unique garanti</div>
+            <div class="field-msg" id="msg_a_id"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="a_date">Date d'arrivée réelle *</label>
+            <input class="form-control" type="date" id="a_date"/>
+            <div class="field-msg" id="msg_a_date"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="a_mode">Mode d'entrée *</label>
+            <select class="form-control" id="a_mode">
+              <option value="">Sélectionner...</option>
+              <option value="urgence">Urgence</option>
+              <option value="normal">Normal</option>
+              <option value="transfert">Transfert</option>
+              <option value="autre">Autre</option>
+            </select>
+            <div class="field-msg" id="msg_a_mode"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="a_ticket">Ticket (optionnel)</label>
+            <select class="form-control" id="a_ticket" onchange="showTicketInfo()">
+              <option value="">Chargement des tickets...</option>
+            </select>
+            <div class="field-msg" id="msg_a_ticket"></div>
+            <div class="ticket-info" id="ticketInfo">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;margin-right:4px"><path d="M5 13l4 4L19 7"/></svg>
+              Ticket selectionne. Il sera marque comme <strong>utilise</strong> a la validation.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="a_salle">Salle (optionnel)</label>
+            <select class="form-control" id="a_salle">
+              <option value="">Chargement des salles...</option>
+            </select>
+          </div>
+
+          <p id="msg_form_global"  style="font-size:.72rem;color:var(--red);  display:none;margin-bottom:6px"></p>
+          <p id="msg_form_success" style="font-size:.72rem;color:var(--green);display:none;margin-bottom:6px"></p>
+
+          <button class="btn btn-primary btn-block" onclick="submitAdmission()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            <span id="btnSubmitLabel">Ajouter Admission</span>
+          </button>
+          <button class="btn btn-ghost btn-block" style="margin-top:5px" onclick="resetForm()">Réinitialiser</button>
+        </div>
+
+        <!-- INFO PANEL -->
+        <div class="panel-card">
+          <div class="panel-title">À propos des tickets</div>
+          <div style="font-size:.78rem;color:var(--muted);line-height:1.6">
+            <p>Le dropdown affiche uniquement les tickets avec le statut <strong style="color:var(--green)">non utilisé</strong>.</p>
+            <br/>
+            <p>Lors de l'ajout d'une admission, le ticket sélectionné est automatiquement marqué comme <strong style="color:var(--primary)">utilisé</strong>.</p>
+            <br/>
+            <p>En cas de suppression d'une admission, le ticket associé est remis à <strong style="color:var(--green)">non utilisé</strong>.</p>
+          </div>
+          <div onclick="loadTickets()" style="font-size:.75rem;color:var(--primary);cursor:pointer;margin-top:10px;display:inline-flex;align-items:center;gap:3px">
+            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+            Actualiser les tickets
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════
+         SECTION SALLES
+    ════════════════════════════════════════════ -->
+    <div class="section-title">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Gestion des Salles
+    </div>
+
+    <!-- Stats salles -->
+    <div class="stat-grid" style="margin-top:0;margin-bottom:18px">
+      <div class="stat-card">
+        <span class="stat-badge badge-blue" id="stat-badge-salles">0</span>
+        <div class="stat-icon blue"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></div>
+        <div class="stat-label">Total salles</div>
+        <div class="stat-value" id="stat-total-salles">0</div>
+        <div class="stat-sub">Enregistrées</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-green">—</span>
+        <div class="stat-icon teal"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div class="stat-label">Disponibles</div>
+        <div class="stat-value" id="stat-dispo-salles">0</div>
+        <div class="stat-sub">Prêtes à l'usage</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-red">—</span>
+        <div class="stat-icon pink"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg></div>
+        <div class="stat-label">Non disponibles</div>
+        <div class="stat-value" id="stat-indispo-salles">0</div>
+        <div class="stat-sub">Occupées / fermées</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-amber">—</span>
+        <div class="stat-icon ambr"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M2 19c0-3 3-5 7-5s7 2 7 5"/></svg></div>
+        <div class="stat-label">Avec médecin assigné</div>
+        <div class="stat-value">—</div>
+        <div class="stat-sub">Médecin référent</div>
+      </div>
+    </div>
+
+    <!-- Tableau + formulaire salles -->
+    <div class="twin-zone">
+
+      <!-- Tableau salles -->
+      <div class="table-section">
+        <div class="toolbar">
+          <button class="btn btn-outline" onclick="exportSalleCSV()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 10v6M9 13l3 3 3-3M5 17a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2"/></svg>
+            Exporter CSV
+          </button>
+          <div class="toolbar-right">
+            <span class="filter-label">Statut</span>
+            <select class="filter-select" id="filterSalleStatut" onchange="renderSalleTable()">
+              <option value="">Tous</option>
+              <option value="disponible">Disponible</option>
+              <option value="non disponible">Non disponible</option>
+            </select>
+          </div>
+        </div>
+        <div class="search-row">
+          <div class="search-wrap">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" id="salleSearch" placeholder="Rechercher par ID, numéro, médecin..." oninput="renderSalleTable()"/>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID Salle</th>
+                <th>Numéro</th>
+                <th>Statut</th>
+                <th>Médecin assigné</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="salleTableBody">
+              <tr><td colspan="5" class="no-data">Chargement...</td></tr>
+            </tbody>
+          </table>
+          <div class="pagination">
+            <div class="count" id="sallePaginCount">—</div>
+            <button class="page-btn" onclick="prevPageS()">‹</button>
+            <span id="sallePageInfo" style="font-size:.78rem;color:var(--muted);padding:0 4px"></span>
+            <button class="page-btn" onclick="nextPageS()">›</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formulaire salle -->
+      <div class="right-panel-salle">
+        <div class="panel-card">
+          <div class="panel-title" id="salleFormTitle">Nouvelle Salle</div>
+
+          <!-- ID Salle avec de aleatoire -->
+          <div class="form-group">
+            <label class="form-label" for="s_id">ID Salle *</label>
+            <div style="display:flex;gap:6px;align-items:flex-start">
+              <input class="form-control" type="number" id="s_id" placeholder="Ex: 101" min="1" max="99999999" step="1" style="flex:1"/>
+              <button type="button" style="width:34px;height:34px;flex-shrink:0;border-radius:7px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:background .15s" onclick="rollDiceSalle()" title="Generer un ID aleatoire disponible" onmouseover="this.style.background='var(--primary-lt)'" onmouseout="this.style.background='var(--surface2)'">&#127922;</button>
+            </div>
+            <div style="font-size:.65rem;color:var(--muted);margin-top:3px">&#127922; = ID aleatoire unique garanti</div>
+            <div class="field-msg" id="msg_s_id"></div>
+          </div>
+
+          <!-- Numero (INT : chiffres uniquement) -->
+          <div class="form-group">
+            <label class="form-label" for="s_numero">Numero de salle *</label>
+            <input class="form-control" type="number" id="s_numero" placeholder="Ex: 101" min="1" step="1"/>
+            <div class="field-msg" id="msg_s_numero"></div>
+          </div>
+
+          <!-- Statut -->
+          <div class="form-group">
+            <label class="form-label" for="s_statut">Statut *</label>
+            <select class="form-control" id="s_statut">
+              <option value="">Selectionner...</option>
+              <option value="disponible">Disponible</option>
+              <option value="non disponible">Non disponible</option>
+            </select>
+            <div class="field-msg" id="msg_s_statut"></div>
+          </div>
+
+          <!-- Medecin (id_role = 3) -->
+          <div class="form-group">
+            <label class="form-label" for="s_medecin">Medecin assigne (optionnel)</label>
+            <select class="form-control" id="s_medecin">
+              <option value="">Chargement des medecins...</option>
+            </select>
+          </div>
+
+          <p id="msg_salle_global"  style="font-size:.72rem;color:var(--red);  display:none;margin-bottom:6px"></p>
+          <p id="msg_salle_success" style="font-size:.72rem;color:var(--green);display:none;margin-bottom:6px"></p>
+
+          <button class="btn btn-primary btn-block" onclick="submitSalle()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            <span id="salleBtnLabel">Ajouter Salle</span>
+          </button>
+          <button class="btn btn-ghost btn-block" style="margin-top:5px" onclick="resetSalleForm()">Réinitialiser</button>
+        </div>
+      </div>
+
+    </div><!-- /twin-zone salles -->
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!--
+  ════════════════════════════════════════════════════════════
+  CHARGEMENT DU FICHIER JAVASCRIPT EXTERNE
+  Les deux fichiers sont dans le même dossier :
+      vue/backoffice/index.html
+      vue/backoffice/admission.js
+  Donc src="admission.js" suffit (chemin relatif).
+  L'attribut "defer" garantit que le script s'exécute
+  seulement après que tout le HTML soit chargé.
+  ════════════════════════════════════════════════════════════
+-->
+<script src="admission.js" defer></script>
+
+</body>
+</html>

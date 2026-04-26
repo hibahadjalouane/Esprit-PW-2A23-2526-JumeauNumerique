@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JumeauNum — Tableau de Bord</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --sidebar-bg:     #1a3a8f;
+  --sidebar-hover:  #2248b0;
+  --sidebar-active: #3560d4;
+  --sidebar-w:      200px;
+  --bg:       #f0f4fb;
+  --surface:  #ffffff;
+  --surface2: #eef1f8;
+  --border:   #dde2ef;
+  --primary:    #2563eb;
+  --primary-lt: #eff4ff;
+  --text:       #111827;
+  --muted:      #6b7280;
+  --green:    #16a34a;
+  --green-lt: #dcfce7;
+  --red:      #dc2626;
+  --red-lt:   #fee2e2;
+  --amber:    #d97706;
+  --amber-lt: #fef3c7;
+  --header-h: 58px;
+  --radius:   10px;
+  --shadow:   0 1px 4px rgba(0,0,0,.07), 0 4px 14px rgba(0,0,0,.05);
+}
+
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+/* ── HEADER ─────────────────────────────────────────────────────────────── */
+header {
+  height: var(--header-h); background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 20px; gap: 12px;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  box-shadow: 0 1px 0 var(--border);
+}
+.logo { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 1rem; color: var(--primary); text-decoration: none; }
+.logo svg { width: 32px; height: 32px; }
+header .spacer { flex: 1; }
+
+.header-user {
+  display: flex; align-items: center; gap: 8px; font-size: .85rem; font-weight: 500;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 30px;
+  padding: 4px 12px 4px 5px; cursor: pointer; text-decoration: none; color: var(--text);
+  transition: background .15s;
+}
+.header-user:hover { background: var(--primary-lt); border-color: var(--primary); }
+.avatar-icon {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: .75rem; font-weight: 700;
+}
+
+/* Bouton Déconnexion */
+.header-logout {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  cursor: pointer; font-family: inherit; font-size: .8rem; font-weight: 600;
+  color: var(--muted); transition: background .15s, color .15s, border-color .15s;
+  text-decoration: none;
+}
+.header-logout:hover { background: var(--red-lt); color: var(--red); border-color: #fca5a5; }
+.header-logout svg { width: 14px; height: 14px; }
+
+/* ── LAYOUT ─────────────────────────────────────────────────────────────── */
+.layout { display: flex; margin-top: var(--header-h); min-height: calc(100vh - var(--header-h)); }
+
+/* ── SIDEBAR ────────────────────────────────────────────────────────────── */
+aside {
+  width: var(--sidebar-w); background: var(--sidebar-bg);
+  position: fixed; top: var(--header-h); bottom: 0; left: 0;
+  display: flex; flex-direction: column; padding: 14px 8px; gap: 2px;
+  overflow-y: auto; z-index: 100;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 9px; padding: 9px 12px;
+  border-radius: 8px; font-size: .84rem; font-weight: 500;
+  color: rgba(255,255,255,.7); cursor: pointer; user-select: none;
+  white-space: nowrap; transition: background .12s, color .12s;
+  text-decoration: none;
+}
+.nav-item:hover  { background: var(--sidebar-hover); color: #fff; }
+.nav-item.active { background: var(--sidebar-active); color: #fff; }
+.nav-item svg { flex-shrink: 0; width: 17px; height: 17px; }
+.nav-bottom { margin-top: auto; }
+
+/* ── MAIN ───────────────────────────────────────────────────────────────── */
+main { margin-left: var(--sidebar-w); flex: 1; padding: 22px 20px 40px; min-width: 0; overflow-x: hidden; }
+.page-title { font-size: 1.45rem; font-weight: 700; }
+.page-sub   { color: var(--muted); font-size: .82rem; margin-top: 2px; }
+
+/* ── WELCOME BANNER ─────────────────────────────────────────────────────── */
+.welcome-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(135deg, #1a3a8f 0%, #2563eb 100%);
+  border-radius: var(--radius); padding: 20px 24px; margin-top: 16px;
+  color: #fff; box-shadow: 0 4px 18px rgba(37,99,235,.25);
+}
+.welcome-text h2 { font-size: 1.1rem; font-weight: 700; }
+.welcome-text p  { font-size: .82rem; opacity: .8; margin-top: 3px; }
+.welcome-right   { display: flex; align-items: center; gap: 16px; }
+.welcome-date    { font-size: .78rem; opacity: .75; text-align: right; font-family: 'DM Mono', monospace; line-height: 1.6; }
+.welcome-icon    { width: 48px; height: 48px; background: rgba(255,255,255,.15); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+
+/* ── STATUS BAR ─────────────────────────────────────────────────────────── */
+.status-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+.status-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 12px; font-size: .75rem; font-weight: 500;
+}
+.status-dot { width: 7px; height: 7px; border-radius: 50%; }
+.status-clock {
+  margin-left: auto; font-size: .75rem; font-family: 'DM Mono', monospace;
+  color: var(--muted); background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 12px;
+}
+
+/* ── KPI STATS ──────────────────────────────────────────────────────────── */
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px; box-shadow: var(--shadow);
+  cursor: pointer; transition: transform .15s, box-shadow .15s, border-color .15s;
+  text-decoration: none; display: block; color: inherit;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,.1); border-color: var(--primary); }
+
+.stat-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+.stat-icon.blue  { background: var(--primary-lt); color: var(--primary); }
+.stat-icon.pink  { background: #fce7f3; color: #db2777; }
+.stat-icon.teal  { background: #d1faf5; color: #0d9488; }
+.stat-icon.ambr  { background: var(--amber-lt); color: var(--amber); }
+
+.stat-label { font-size: .75rem; color: var(--muted); }
+.stat-value { font-size: 1.35rem; font-weight: 400; margin-top: 1px; font-family: 'DM Mono', monospace; }
+.stat-sub   { font-size: .7rem;  color: var(--muted); margin-top: 3px; }
+.stat-link  {
+  font-size: .72rem; color: var(--primary); margin-top: 8px;
+  display: inline-flex; align-items: center; gap: 3px; font-weight: 600;
+}
+.stat-link svg { width: 10px; height: 10px; }
+
+/* Skeleton loading */
+.skeleton { background: linear-gradient(90deg,#eef1f8 25%,#dde2ef 50%,#eef1f8 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 4px; display: inline-block; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.skel-val { width: 60px; height: 28px; margin-top: 1px; }
+.skel-sub { width: 90px; height: 14px; margin-top: 4px; }
+
+/* ── SECTION TITLE ──────────────────────────────────────────────────────── */
+.section-title {
+  font-size: .8rem; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .07em; margin: 24px 0 10px;
+}
+
+/* ── MODULE GRID ────────────────────────────────────────────────────────── */
+.module-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+.module-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px; box-shadow: var(--shadow);
+  cursor: pointer; transition: transform .15s, box-shadow .15s, border-color .15s;
+  text-decoration: none; display: flex; flex-direction: column; gap: 10px; color: inherit;
+}
+.module-card:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,.1); border-color: var(--primary); }
+.module-card-icon  { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.module-card-title { font-size: .95rem; font-weight: 700; }
+.module-card-desc  { font-size: .78rem; color: var(--muted); line-height: 1.45; }
+.module-card-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 8px; border-top: 1px solid var(--border); margin-top: auto;
+}
+.mod-count { font-size: .72rem; font-weight: 600; padding: 2px 9px; border-radius: 20px; font-family: 'DM Mono', monospace; }
+.mod-arrow svg { width: 14px; height: 14px; color: var(--muted); }
+
+/* ── BOTTOM GRID ────────────────────────────────────────────────────────── */
+.bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.panel-card  { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+.panel-title { font-size: .92rem; font-weight: 700; margin-bottom: 12px; }
+
+/* ── ACTIVITÉ RÉCENTE ───────────────────────────────────────────────────── */
+.activity-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.activity-item:last-child { border-bottom: none; }
+.act-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.act-dot.blue   { background: var(--primary); }
+.act-dot.green  { background: var(--green); }
+.act-dot.amber  { background: var(--amber); }
+.act-dot.red    { background: var(--red); }
+.act-dot.teal   { background: #0d9488; }
+.act-body       { flex: 1; }
+.act-text       { font-size: .8rem; font-weight: 500; line-height: 1.4; }
+.act-time       { font-size: .72rem; color: var(--muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+.no-activity    { font-size: .82rem; color: var(--muted); text-align: center; padding: 20px 0; }
+
+/* ── STAT RÉSUMÉ (panneau droit) ────────────────────────────────────────── */
+.resume-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 0; border-bottom: 1px solid var(--border); font-size: .82rem;
+}
+.resume-row:last-child { border-bottom: none; }
+.resume-label { color: var(--muted); font-weight: 500; display: flex; align-items: center; gap: 7px; }
+.resume-label span.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.resume-val   { font-weight: 500; font-family: 'DM Mono', monospace; font-size: .85rem; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════ HEADER ════════════════ -->
+<header>
+  <a class="logo" href="bord.html">
+    <svg viewBox="0 0 40 40" fill="none">
+      <rect width="40" height="40" rx="10" fill="#2563eb"/>
+      <path d="M10 20h4l3-7 4 14 3-10 3 6 3-3h4" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    JumeauNum
+  </a>
+
+  <div class="spacer"></div>
+
+  <!-- Profil -->
+  <a class="header-user" href="gestion_user/vue/backoffice/profile.html">
+    <div class="avatar-icon">A</div>
+    Admin
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+  </a>
+
+  <!-- Déconnexion -->
+  <a class="header-logout" href="#">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+      <polyline points="16 17 21 12 16 7"/>
+      <line x1="21" y1="12" x2="9" y2="12"/>
+    </svg>
+    Déconnexion
+  </a>
+</header>
+
+<!-- ════════════════ LAYOUT ════════════════ -->
+<div class="layout">
+
+  <!-- ── SIDEBAR ── -->
+  <aside>
+    <a class="nav-item active" href="bord.html">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Tableau de bord
+    </a>
+    <a class="nav-item" href="gestion_ressource/vue/backoffice/ressource.html">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/><path d="M12 12v5M9 14.5h6"/></svg>
+      Ressources
+    </a>
+    <a class="nav-item" href="gestion_rdv/vue/backoffice/rdv.html">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Les rendez-vous
+    </a>
+    <a class="nav-item" href="gestion_admission/vue/backoffice/admission.html">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+      Admissions
+    </a>
+    <a class="nav-item" href="gestion_dossier/vue/backoffice/dossier.html">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+      Dossiers médicaux
+    </a>
+    <a class="nav-item" href="gestion_paiement/vue/backoffice/facture.html">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 15h2M13 15h3"/></svg>
+      Les factures
+    </a>
+    <a class="nav-item" href="gestion_user/vue/backoffice/medecin.html">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M2 19c0-3 3-5 7-5s7 2 7 5"/><path d="M17 14c2 0 4 1.5 4 4"/></svg>
+      Les médecins
+    </a>
+    <div class="nav-bottom">
+      <a class="nav-item" href="#">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        Paramètres
+      </a>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main>
+    <div class="page-title">Tableau de Bord</div>
+    <div class="page-sub">Vue d'ensemble du système hospitalier — JumeauNum Backoffice.</div>
+
+    <!-- WELCOME -->
+    <div class="welcome-banner">
+      <div class="welcome-text">
+        <h2>Bienvenue, Admin 👋</h2>
+        <p>Voici le résumé de l'activité hospitalière en temps réel.</p>
+      </div>
+      <div class="welcome-right">
+        <div class="welcome-date" id="currentDate">—</div>
+        <div class="welcome-icon">
+          <svg width="24" height="24" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATUS BAR -->
+    <div class="status-bar">
+      <div class="status-pill"><div class="status-dot" style="background:var(--green)"></div>Système opérationnel</div>
+      <div class="status-pill" id="dbStatusPill"><div class="status-dot" style="background:var(--amber)"></div>Connexion DB…</div>
+      <div class="status-clock" id="liveTime">--:--:--</div>
+    </div>
+
+    <!-- ── KPI CARDS ── -->
+    <div class="stat-grid">
+
+      <!-- Factures -->
+      <a class="stat-card" href="gestion_paiement/vue/backoffice/facture.html">
+        <div class="stat-icon blue">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 15h2M13 15h3"/></svg>
+        </div>
+        <div class="stat-label">Factures ce mois</div>
+        <div class="stat-value" id="kpi-fac-mois"><span class="skeleton skel-val"></span></div>
+        <div class="stat-sub"  id="kpi-fac-attente"><span class="skeleton skel-sub"></span></div>
+        <div class="stat-link">Voir les factures <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+      </a>
+
+      <!-- Rendez-vous -->
+      <a class="stat-card" href="gestion_rdv/vue/backoffice/rdv.html">
+        <div class="stat-icon pink">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </div>
+        <div class="stat-label">Rendez-vous aujourd'hui</div>
+        <div class="stat-value" id="kpi-rdv-today"><span class="skeleton skel-val"></span></div>
+        <div class="stat-sub"  id="kpi-rdv-avenir"><span class="skeleton skel-sub"></span></div>
+        <div class="stat-link">Voir les RDV <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+      </a>
+
+      <!-- Admissions -->
+      <a class="stat-card" href="gestion_admission/vue/backoffice/admission.html">
+        <div class="stat-icon teal">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+        </div>
+        <div class="stat-label">Admissions totales</div>
+        <div class="stat-value" id="kpi-adm-total"><span class="skeleton skel-val"></span></div>
+        <div class="stat-sub"  id="kpi-adm-today"><span class="skeleton skel-sub"></span></div>
+        <div class="stat-link">Voir admissions <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+      </a>
+
+      <!-- Ressources -->
+      <a class="stat-card" href="gestion_ressource/vue/backoffice/ressource.html">
+        <div class="stat-icon ambr">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>
+        </div>
+        <div class="stat-label">Ressources en service</div>
+        <div class="stat-value" id="kpi-res-service"><span class="skeleton skel-val"></span></div>
+        <div class="stat-sub"  id="kpi-res-panne"><span class="skeleton skel-sub"></span></div>
+        <div class="stat-link">Voir ressources <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+      </a>
+
+    </div>
+
+    <!-- ── MODULES DE GESTION ── -->
+    <div class="section-title">Gestions à gérer</div>
+    <div class="module-grid">
+
+      <!-- Factures -->
+      <a class="module-card" href="gestion_paiement/vue/backoffice/facture.html">
+        <div class="module-card-icon" style="background:var(--primary-lt)">
+          <svg width="20" height="20" fill="none" stroke="var(--primary)" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 15h2M13 15h3"/></svg>
+        </div>
+        <div>
+          <div class="module-card-title">Les Factures</div>
+          <div class="module-card-desc">Gérez et suivez toutes les factures patients. Consultez les paiements et relancez les impayés.</div>
+        </div>
+        <div class="module-card-footer">
+          <span class="mod-count" style="background:var(--red-lt);color:var(--red)" id="mod-fac">—</span>
+          <div class="mod-arrow"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        </div>
+      </a>
+
+      <!-- RDV -->
+      <a class="module-card" href="gestion_rdv/vue/backoffice/rdv.html">
+        <div class="module-card-icon" style="background:#fce7f3">
+          <svg width="20" height="20" fill="none" stroke="#db2777" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </div>
+        <div>
+          <div class="module-card-title">Les Rendez-vous</div>
+          <div class="module-card-desc">Planifiez et gérez les consultations. Vue calendrier et liste des rendez-vous du jour.</div>
+        </div>
+        <div class="module-card-footer">
+          <span class="mod-count" style="background:#fce7f3;color:#db2777" id="mod-rdv">—</span>
+          <div class="mod-arrow"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        </div>
+      </a>
+
+      <!-- Admissions -->
+      <a class="module-card" href="gestion_admission/vue/backoffice/admission.html">
+        <div class="module-card-icon" style="background:#d1faf5">
+          <svg width="20" height="20" fill="none" stroke="#0d9488" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+        </div>
+        <div>
+          <div class="module-card-title">Admissions</div>
+          <div class="module-card-desc">Suivez les entrées et sorties des patients. Gérez les lits et l'occupation des salles.</div>
+        </div>
+        <div class="module-card-footer">
+          <span class="mod-count" style="background:#d1faf5;color:#0d9488" id="mod-adm">—</span>
+          <div class="mod-arrow"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        </div>
+      </a>
+
+      <!-- Dossiers -->
+      <a class="module-card" href="gestion_dossier/vue/backoffice/dossier.html">
+        <div class="module-card-icon" style="background:#ede9fe">
+          <svg width="20" height="20" fill="none" stroke="#7c3aed" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+        </div>
+        <div>
+          <div class="module-card-title">Dossiers Médicaux</div>
+          <div class="module-card-desc">Accédez aux dossiers patients, consultez l'historique médical et les prescriptions.</div>
+        </div>
+        <div class="module-card-footer">
+          <span class="mod-count" style="background:#ede9fe;color:#7c3aed" id="mod-dos">—</span>
+          <div class="mod-arrow"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        </div>
+      </a>
+
+      <!-- Ressources -->
+      <a class="module-card" href="gestion_ressource/vue/backoffice/ressource.html">
+        <div class="module-card-icon" style="background:var(--amber-lt)">
+          <svg width="20" height="20" fill="none" stroke="var(--amber)" stroke-width="1.8" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>
+        </div>
+        <div>
+          <div class="module-card-title">Ressources</div>
+          <div class="module-card-desc">Gérez les équipements, les salles et le matériel de l'établissement.</div>
+        </div>
+        <div class="module-card-footer">
+          <span class="mod-count" style="background:var(--amber-lt);color:var(--amber)" id="mod-res">—</span>
+          <div class="mod-arrow"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        </div>
+      </a>
+
+      <!-- Médecins -->
+      <a class="module-card" href="gestion_user/vue/backoffice/medecin.html">
+        <div class="module-card-icon" style="background:var(--green-lt)">
+          <svg width="20" height="20" fill="none" stroke="var(--green)" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M2 19c0-3 3-5 7-5s7 2 7 5"/><path d="M17 14c2 0 4 1.5 4 4"/></svg>
+        </div>
+        <div>
+          <div class="module-card-title">Les Médecins</div>
+          <div class="module-card-desc">Consultez la liste des praticiens, leurs spécialités et leurs plannings de garde.</div>
+        </div>
+        <div class="module-card-footer">
+          <span class="mod-count" style="background:var(--green-lt);color:var(--green)" id="mod-med">—</span>
+          <div class="mod-arrow"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- ── BOTTOM ── -->
+    <div class="bottom-grid">
+
+      <!-- Activité récente -->
+      <div class="panel-card">
+        <div class="panel-title">Activité Récente</div>
+        <div id="activityList">
+          <!-- rempli par JS -->
+          <div class="no-activity">Chargement…</div>
+        </div>
+      </div>
+
+      <!-- Résumé rapide -->
+      <div class="panel-card">
+        <div class="panel-title">Résumé Rapide</div>
+        <div class="resume-row">
+          <span class="resume-label"><span class="dot" style="background:var(--primary)"></span>Factures impayées</span>
+          <span class="resume-val" id="res-fac-np">—</span>
+        </div>
+        <div class="resume-row">
+          <span class="resume-label"><span class="dot" style="background:#db2777"></span>RDV aujourd'hui</span>
+          <span class="resume-val" id="res-rdv">—</span>
+        </div>
+        <div class="resume-row">
+          <span class="resume-label"><span class="dot" style="background:#0d9488"></span>Admissions totales</span>
+          <span class="resume-val" id="res-adm">—</span>
+        </div>
+        <div class="resume-row">
+          <span class="resume-label"><span class="dot" style="background:#7c3aed"></span>Dossiers médicaux</span>
+          <span class="resume-val" id="res-dos">—</span>
+        </div>
+        <div class="resume-row">
+          <span class="resume-label"><span class="dot" style="background:var(--amber)"></span>Ressources en service</span>
+          <span class="resume-val" id="res-res">—</span>
+        </div>
+        <div class="resume-row">
+          <span class="resume-label"><span class="dot" style="background:var(--red)"></span>Ressources en panne</span>
+          <span class="resume-val" id="res-panne">—</span>
+        </div>
+        <div class="resume-row">
+          <span class="resume-label"><span class="dot" style="background:var(--green)"></span>Médecins actifs</span>
+          <span class="resume-val" id="res-med">—</span>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ════════════════ JAVASCRIPT ════════════════ -->
+<script>
+// ── Horloge ──────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('liveTime').textContent = now.toLocaleTimeString('fr-FR');
+  document.getElementById('currentDate').innerHTML =
+    now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) +
+    '<br>' + now.toLocaleTimeString('fr-FR');
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ── Calcul "il y a X" ────────────────────────────────────────────────────────
+function timeAgo(dateStr) {
+  // dateStr : "YYYY-MM-DD" ou "YYYY-MM-DD HH:MM:SS"
+  const d    = new Date(dateStr.replace(' ', 'T'));
+  const diff = Math.floor((Date.now() - d) / 1000); // secondes
+  if (diff < 60)   return `Il y a ${diff} seconde${diff > 1 ? 's' : ''}`;
+  if (diff < 3600) return `Il y a ${Math.floor(diff/60)} minute${Math.floor(diff/60)>1?'s':''}`;
+  if (diff < 86400)return `Il y a ${Math.floor(diff/3600)} heure${Math.floor(diff/3600)>1?'s':''}`;
+  return `Il y a ${Math.floor(diff/86400)} jour${Math.floor(diff/86400)>1?'s':''}`;
+}
+
+// ── Couleur du point par type ─────────────────────────────────────────────────
+function dotColor(type) {
+  return { facture:'blue', rdv:'pink', admission:'teal', panne:'red' }[type] ?? 'blue';
+}
+// "pink" n'est pas une classe CSS définie dans act-dot, on le gère :
+function dotStyle(type) {
+  const map = { facture:'var(--primary)', rdv:'#db2777', admission:'#0d9488', panne:'var(--red)' };
+  return map[type] ?? 'var(--primary)';
+}
+
+// ── Chargement des données depuis l'API PHP ───────────────────────────────────
+async function loadDashboard() {
+  try {
+    const resp = await fetch('tableau_bord/dashboard_api.php');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+
+    // Marquer DB connectée
+    document.getElementById('dbStatusPill').innerHTML =
+      '<div class="status-dot" style="background:var(--green)"></div>Base de données connectée';
+
+    const k = data.kpi;
+    const m = data.modules;
+
+    // ── KPI ──
+    document.getElementById('kpi-fac-mois').textContent    = k.factures_mois;
+    document.getElementById('kpi-fac-attente').textContent = k.factures_attente + ' en attente (non payées)';
+
+    document.getElementById('kpi-rdv-today').textContent   = k.rdv_aujourd_hui;
+    document.getElementById('kpi-rdv-avenir').textContent  = k.rdv_avenir + ' à venir';
+
+    document.getElementById('kpi-adm-total').textContent   = k.admissions_total;
+    document.getElementById('kpi-adm-today').textContent   = k.admissions_aujourd_hui + ' aujourd\'hui';
+
+    document.getElementById('kpi-res-service').textContent = k.ressources_en_service;
+    document.getElementById('kpi-res-panne').textContent   = k.ressources_en_panne + ' en panne';
+
+    // ── Modules ──
+    document.getElementById('mod-fac').textContent = m.factures   + ' en attente';
+    document.getElementById('mod-rdv').textContent = m.rdv        + ' aujourd\'hui';
+    document.getElementById('mod-adm').textContent = m.admissions + ' au total';
+    document.getElementById('mod-dos').textContent = m.dossiers   + ' dossiers';
+    document.getElementById('mod-res').textContent = m.ressources + ' en service';
+    document.getElementById('mod-med').textContent = m.medecins   + ' médecins';
+
+    // ── Résumé rapide ──
+    document.getElementById('res-fac-np').textContent  = m.factures;
+    document.getElementById('res-rdv').textContent     = m.rdv;
+    document.getElementById('res-adm').textContent     = m.admissions;
+    document.getElementById('res-dos').textContent     = m.dossiers;
+    document.getElementById('res-res').textContent     = k.ressources_en_service;
+    document.getElementById('res-panne').textContent   = k.ressources_en_panne;
+    document.getElementById('res-med').textContent     = m.medecins;
+
+    // ── Activité récente ──
+    const list = document.getElementById('activityList');
+    if (!data.activites || data.activites.length === 0) {
+      list.innerHTML = '<div class="no-activity">Aucune activité récente.</div>';
+      return;
+    }
+    list.innerHTML = data.activites.map(a => `
+      <div class="activity-item">
+        <div class="act-dot" style="background:${dotStyle(a.type)}"></div>
+        <div class="act-body">
+          <div class="act-text">${a.label}</div>
+          <div class="act-time">${timeAgo(a.date)}</div>
+        </div>
+      </div>`).join('');
+
+  } catch (err) {
+    // Erreur connexion DB
+    document.getElementById('dbStatusPill').innerHTML =
+      '<div class="status-dot" style="background:var(--red)"></div>Erreur de connexion DB';
+
+    // Mettre des tirets partout
+    ['kpi-fac-mois','kpi-fac-attente','kpi-rdv-today','kpi-rdv-avenir',
+     'kpi-adm-total','kpi-adm-today','kpi-res-service','kpi-res-panne'].forEach(id => {
+      document.getElementById(id).textContent = '—';
+    });
+    ['mod-fac','mod-rdv','mod-adm','mod-dos','mod-res','mod-med',
+     'res-fac-np','res-rdv','res-adm','res-dos','res-res','res-panne','res-med'].forEach(id => {
+      document.getElementById(id).textContent = '—';
+    });
+    document.getElementById('activityList').innerHTML =
+      '<div class="no-activity" style="color:var(--red)">Impossible de charger les données. Vérifiez la connexion à la base de données.</div>';
+
+    console.error('Erreur dashboard_api.php :', err);
+  }
+}
+
+loadDashboard();
+// Rafraîchir toutes les 60 secondes
+setInterval(loadDashboard, 60000);
+</script>
+
+</body>
+</html>
