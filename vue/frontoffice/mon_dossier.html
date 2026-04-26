@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>JumeauNum – Mon Dossier Médical</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <style>
+    :root {
+      --blue:        #1a4fcc;
+      --blue-soft:   #e8eeff;
+      --blue-mid:    #3b6ef0;
+      --teal:        #0e7f6e;
+      --teal-soft:   #d6f5f0;
+      --surface:     #f5f7ff;
+      --card:        #ffffff;
+      --border:      #e2e8f5;
+      --border-dark: #c8d3ec;
+      --text:        #0d1526;
+      --muted:       #5c6785;
+      --faint:       #9aa3c0;
+      --radius:      14px;
+      --radius-sm:   8px;
+      --shadow:      0 2px 12px rgba(15,22,55,.07);
+      --shadow-md:   0 6px 28px rgba(15,22,55,.1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 0 var(--border);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: -.02em;
+      color: var(--blue);
+    }
+    .brand-dot {
+      width: 28px; height: 28px;
+      background: var(--blue);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .brand-dot svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: .8rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .user-chip {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 4px 12px 4px 6px;
+    }
+    .user-avatar {
+      width: 26px; height: 26px;
+      background: var(--blue);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-size: .68rem;
+      font-weight: 700;
+    }
+
+    /* ── PAGE WRAPPER ── */
+    .page {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 5rem;
+    }
+
+    /* ── PAGE TITLE ── */
+    .page-eyebrow {
+      font-size: .68rem;
+      font-weight: 600;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: .4rem;
+    }
+    .page-title {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(2rem, 5vw, 2.6rem);
+      font-weight: 400;
+      letter-spacing: -.02em;
+      color: var(--text);
+      line-height: 1.1;
+      margin-bottom: .5rem;
+    }
+    .page-sub {
+      font-size: .9rem;
+      color: var(--muted);
+      line-height: 1.65;
+      margin-bottom: 2.5rem;
+    }
+
+    /* ── LOADING / ERROR ── */
+    .state-box {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── DOSSIER CARD ── */
+    .dossier-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 2rem;
+      overflow: hidden;
+    }
+    .dossier-card-top {
+      background: linear-gradient(135deg, var(--blue) 0%, #2b63e8 100%);
+      padding: 1.75rem 2rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .dossier-num {
+      font-family: 'DM Mono', monospace;
+      font-size: .72rem;
+      color: rgba(255,255,255,.65);
+      letter-spacing: .1em;
+      margin-bottom: .3rem;
+    }
+    .dossier-desc {
+      font-family: 'Instrument Serif', serif;
+      font-size: 1.4rem;
+      color: #fff;
+      font-weight: 400;
+      letter-spacing: -.01em;
+      line-height: 1.2;
+    }
+    .dossier-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,255,255,.18);
+      color: #fff;
+      border-radius: 99px;
+      padding: 4px 12px;
+      font-size: .72rem;
+      font-weight: 600;
+      white-space: nowrap;
+      border: 1px solid rgba(255,255,255,.25);
+    }
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #6effd8;
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .dossier-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0;
+      border-top: 1px solid var(--border);
+    }
+    .dossier-field {
+      padding: 1.25rem 1.75rem;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .dossier-field:last-child { border-right: none; }
+    .field-label {
+      font-size: .65rem;
+      font-weight: 600;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--faint);
+      margin-bottom: .3rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .field-label svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+    .field-value {
+      font-size: .925rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* ── SECTION HEADER ── */
+    .section-hdr {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 1.25rem;
+    }
+    .section-hdr-line {
+      width: 3px; height: 20px;
+      background: var(--blue);
+      border-radius: 2px;
+    }
+    .section-hdr-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -.02em;
+    }
+    .section-hdr-count {
+      margin-left: auto;
+      font-size: .72rem;
+      font-weight: 600;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 2px 10px;
+    }
+
+    /* ── CONSULTATION LIST ── */
+    .consult-list {
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+    }
+
+    .consult-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1rem;
+      align-items: start;
+      box-shadow: var(--shadow);
+      transition: box-shadow .2s, border-color .2s, transform .2s;
+      animation: fadeUp .4s ease both;
+    }
+    .consult-item:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-dark);
+      transform: translateY(-1px);
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .consult-icon {
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      background: var(--blue-soft);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .consult-icon svg {
+      width: 18px; height: 18px;
+      stroke: var(--blue); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+    .consult-icon.teal { background: var(--teal-soft); }
+    .consult-icon.teal svg { stroke: var(--teal); }
+
+    .consult-body { min-width: 0; }
+    .consult-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: .5rem;
+    }
+    .consult-motif {
+      font-size: .9rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -.01em;
+    }
+    .consult-date-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: .7rem;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2px 8px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .consult-fields {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem .75rem;
+      margin-top: .5rem;
+    }
+    .consult-tag {
+      font-size: .75rem;
+      font-weight: 500;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .consult-tag svg {
+      width: 11px; height: 11px;
+      stroke: var(--faint); fill: none; stroke-width: 2; stroke-linecap: round;
+    }
+    .consult-diag {
+      margin-top: .625rem;
+      padding: .5rem .75rem;
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      border-left: 2px solid var(--blue);
+      font-size: .8rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .consult-diag strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+    .consult-notes {
+      margin-top: .5rem;
+      font-size: .78rem;
+      color: var(--faint);
+      font-style: italic;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      color: var(--muted);
+      background: var(--card);
+      border: 1px dashed var(--border-dark);
+      border-radius: var(--radius);
+    }
+    .empty svg {
+      width: 40px; height: 40px;
+      stroke: var(--faint); fill: none; stroke-width: 1.5; stroke-linecap: round;
+      margin-bottom: 1rem;
+    }
+    .empty p { font-size: .875rem; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .dossier-card-top { flex-direction: column; }
+      .dossier-field    { border-right: none; }
+      .consult-item     { grid-template-columns: 1fr; }
+      .consult-icon     { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="brand">
+    <div class="brand-dot">
+      <svg viewBox="0 0 24 24"><path d="M3 12h4l3-7 4 14 3-10 3 6 3-3h1"/></svg>
+    </div>
+    JumeauNum
+  </div>
+  <div class="header-right">
+    <div class="user-chip">
+      <div class="user-avatar" id="userInitials">—</div>
+      <span id="userName">Chargement...</span>
+    </div>
+  </div>
+</header>
+
+<!-- PAGE -->
+<div class="page">
+  <div class="page-eyebrow">Espace patient</div>
+  <h1 class="page-title">Mon Dossier Médical</h1>
+  <p class="page-sub">Retrouvez ci-dessous les informations de votre dossier ainsi que votre historique de consultations.</p>
+
+  <!-- DOSSIER -->
+  <div id="dossierSection">
+    <div class="state-box">
+      <div class="spinner"></div>
+      Chargement du dossier...
+    </div>
+  </div>
+
+  <!-- CONSULTATIONS -->
+  <div id="consultSection" style="display:none;">
+    <div class="section-hdr">
+      <div class="section-hdr-line"></div>
+      <span class="section-hdr-title">Historique des consultations</span>
+      <span class="section-hdr-count" id="consultCount">0 consultation(s)</span>
+    </div>
+    <div class="consult-list" id="consultList"></div>
+  </div>
+</div>
+
+<script>
+  // ── CONFIG ──────────────────────────────────────────────────────────────────
+  // Adapt these paths to your project structure
+  const CRUD_DOSSIER      = '../../controleur/backoffice/dossier_crud.php';
+  const CRUD_CONSULTATION = '../../controleur/backoffice/consultation_crud.php';
+
+  // Simulated logged-in patient ID — replace with your session variable
+  // e.g. in PHP: const PATIENT_ID = <?= $_SESSION['id_user'] ?>;
+  const PATIENT_ID = 776; // Ali Ben Ahmed (id_role = 1)
+
+  // ── HELPERS ─────────────────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s ?? '—')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;');
+  }
+
+  function fmtDate(d) {
+    if (!d) return '—';
+    const dt = new Date(d);
+    if (isNaN(dt)) return d;
+    return dt.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+  }
+
+  async function post(url, data) {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(data)) params.append(k, v ?? '');
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    });
+    return r.json();
+  }
+
+  // ── INIT ─────────────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', async () => {
+    await loadDossier();
+  });
+
+  // ── LOAD DOSSIER ─────────────────────────────────────────────────────────────
+  async function loadDossier() {
+    const sec = document.getElementById('dossierSection');
+    try {
+      const r = await post(CRUD_DOSSIER, { action: 'getAll' });
+      if (!r.success) throw new Error(r.error);
+
+      // Find this patient's dossier
+      const dossier = r.data.find(d => String(d.id_patient) === String(PATIENT_ID));
+
+      if (!dossier) {
+        sec.innerHTML = `
+          <div class="empty" style="margin-bottom:2rem;">
+            <svg viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+            <p>Aucun dossier médical trouvé pour ce patient.</p>
+          </div>`;
+        return;
+      }
+
+      renderDossier(dossier);
+      updateUserChip(dossier.patient_nom_complet);
+      await loadConsultations(dossier.id_dossier);
+
+    } catch (e) {
+      sec.innerHTML = `<div class="state-box" style="color:#be1b2f;">Erreur : ${esc(e.message)}</div>`;
+    }
+  }
+
+  // ── RENDER DOSSIER CARD ───────────────────────────────────────────────────────
+  function renderDossier(d) {
+    const sec  = document.getElementById('dossierSection');
+    const date = fmtDate(d.date_creation);
+    const medecin = esc(d.medecin_nom_complet || d.id_medecin || '—');
+    const patient = esc(d.patient_nom_complet || d.id_patient || '—');
+    const desc    = esc(d.description || 'Dossier médical');
+
+    sec.innerHTML = `
+      <div class="dossier-card" style="margin-bottom:2.25rem;animation:fadeUp .45s ease both;">
+        <div class="dossier-card-top">
+          <div>
+            <div class="dossier-num">DOSSIER N° ${esc(d.id_dossier)}</div>
+            <div class="dossier-desc">${desc}</div>
+          </div>
+          <div class="dossier-status">
+            <div class="status-dot"></div>
+            Actif
+          </div>
+        </div>
+        <div class="dossier-grid">
+          <div class="dossier-field">
+            <div class="field-label">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              Patient
+            </div>
+            <div class="field-value">${patient}</div>
+          </div>
+          <div class="dossier-field">
+            <div class="field-label">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              Médecin référent
+            </div>
+            <div class="field-value">${medecin}</div>
+          </div>
+          <div class="dossier-field">
+            <div class="field-label">
+              <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              Date de création
+            </div>
+            <div class="field-value">${date}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── LOAD CONSULTATIONS ────────────────────────────────────────────────────────
+  async function loadConsultations(dossierId) {
+    const sec  = document.getElementById('consultSection');
+    const list = document.getElementById('consultList');
+    sec.style.display = 'block';
+
+    try {
+      const r = await post(CRUD_CONSULTATION, { action: 'getAll' });
+      if (!r.success) throw new Error(r.error);
+
+      const consults = r.data
+        .filter(c => String(c.id_dossier) === String(dossierId))
+        .sort((a, b) => new Date(b.date_consultation) - new Date(a.date_consultation));
+
+      document.getElementById('consultCount').textContent =
+        `${consults.length} consultation${consults.length !== 1 ? 's' : ''}`;
+
+      if (!consults.length) {
+        list.innerHTML = `
+          <div class="empty">
+            <svg viewBox="0 0 24 24"><path d="M8 7V3m8 4V3M3 11h18M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            <p>Aucune consultation enregistrée pour ce dossier.</p>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = consults.map((c, i) => {
+        const isEven = i % 2 === 0;
+        const motif  = esc(c.motif       || 'Consultation');
+        const diag   = esc(c.diagnostic  || '');
+        const notes  = esc(c.notes       || '');
+        const date   = fmtDate(c.date_consultation);
+
+        return `
+          <div class="consult-item" style="animation-delay:${i * .06}s;">
+            <div class="consult-icon ${isEven ? '' : 'teal'}">
+              <svg viewBox="0 0 24 24">
+                ${isEven
+                  ? '<path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 16h4"/>'
+                  : '<path d="M12 2a9 9 0 100 18A9 9 0 0012 2zM12 8v4M12 15h.01"/>'}
+              </svg>
+            </div>
+            <div class="consult-body">
+              <div class="consult-top">
+                <div class="consult-motif">${motif}</div>
+                <span class="consult-date-badge">${date}</span>
+              </div>
+              <div class="consult-fields">
+                <span class="consult-tag">
+                  <svg viewBox="0 0 24 24"><path d="M8 7V3m8 4V3M3 11h18M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                  Dossier #${esc(c.id_dossier)}
+                </span>
+                <span class="consult-tag">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                  Consultation #${esc(c.id_consultation)}
+                </span>
+              </div>
+              ${diag ? `<div class="consult-diag"><strong>Diagnostic :</strong> ${diag}</div>` : ''}
+              ${notes ? `<div class="consult-notes">📝 ${notes}</div>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+
+    } catch (e) {
+      list.innerHTML = `<div class="state-box" style="color:#be1b2f;">Erreur : ${esc(e.message)}</div>`;
+    }
+  }
+
+  // ── USER CHIP ─────────────────────────────────────────────────────────────────
+  function updateUserChip(fullName) {
+    const name = fullName || 'Patient';
+    document.getElementById('userName').textContent = name;
+    const initials = name.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase();
+    document.getElementById('userInitials').textContent = initials;
+  }
+</script>
+</body>
+</html>
