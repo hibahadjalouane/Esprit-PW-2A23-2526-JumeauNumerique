@@ -523,6 +523,12 @@ function renderConsultationTable() {
           <button class="icon-btn" onclick="editConsultation(${c.id_consultation})" title="Modifier">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
+          <button class="icon-btn remind" onclick="openReminderModal(${c.id_consultation})" title="Envoyer rappel email">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16v16H4z" opacity="0"/><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+          </button>
+          <button class="icon-btn refer" onclick="openReferModal(${c.id_consultation})" title="Référencer le patient">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          </button>
           <button class="icon-btn del" onclick="deleteConsultation(${c.id_consultation})" title="Supprimer">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
           </button>
@@ -750,3 +756,226 @@ function clearErrors(ids) {
 }
 
 function hide(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
+
+
+// ════════════════════════════════════════════════════════════════════════════
+//  RAPPEL EMAIL
+// ════════════════════════════════════════════════════════════════════════════
+
+const CRUD_REMINDER = '../../controleur/backoffice/send_reminder.php';
+
+function openReminderModal(id) {
+  const c = allConsultations.find(x => x.id_consultation == id);
+  if (!c) return;
+
+  const date  = c.date_consultation ? String(c.date_consultation).split(' ')[0] : '—';
+  const motif = c.motif      || '—';
+  const diag  = c.diagnostic || '—';
+
+  document.getElementById('reminderConsultId').value       = id;
+  document.getElementById('reminderDateVal').textContent   = date;
+  document.getElementById('reminderMotifVal').textContent  = motif;
+  document.getElementById('reminderDiagVal').textContent   = diag;
+  document.getElementById('reminderDossierVal').textContent = c.id_dossier;
+  document.getElementById('reminderStatus').textContent    = '';
+  document.getElementById('reminderStatus').className      = '';
+  document.getElementById('reminderSendBtn').disabled      = false;
+  document.getElementById('reminderSendBtn').textContent   = '📧 Envoyer le rappel';
+
+  document.getElementById('reminderModal').style.display = 'flex';
+}
+
+function closeReminderModal() {
+  document.getElementById('reminderModal').style.display = 'none';
+}
+
+async function sendReminder() {
+  const id  = document.getElementById('reminderConsultId').value;
+  const btn = document.getElementById('reminderSendBtn');
+  const status = document.getElementById('reminderStatus');
+
+  btn.disabled    = true;
+  btn.textContent = 'Envoi en cours...';
+  status.textContent = '';
+  status.className   = '';
+
+  try {
+    const fd = new FormData();
+    fd.append('action', 'sendReminder');
+    fd.append('id_consultation', id);
+    const res = await fetch(CRUD_REMINDER, { method: 'POST', body: fd });
+    const r   = await res.json();
+
+    if (r.success) {
+      status.textContent = '✓ ' + r.message;
+      status.className   = 'reminder-success';
+      showToast(r.message, 'success');
+      btn.textContent = '✓ Envoyé';
+    } else {
+      status.textContent = '✗ ' + (r.error || 'Erreur inconnue.');
+      status.className   = 'reminder-error';
+      btn.disabled    = false;
+      btn.textContent = '📧 Réessayer';
+    }
+  } catch (e) {
+    status.textContent = '✗ Erreur réseau.';
+    status.className   = 'reminder-error';
+    btn.disabled    = false;
+    btn.textContent = '📧 Réessayer';
+  }
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+//  RÉFÉRENCEMENT PATIENT
+// ════════════════════════════════════════════════════════════════════════════
+
+const REFER_KEYWORDS = [
+  { keys: ['pharmacie','médicament','medicament','ordonnance','traitement','comprimé','sirop','antibiotique','antidouleur','pilule'],
+    type: 'pharmacie', label: 'Pharmacie', emoji: '💊', maps: 'pharmacie' },
+  { keys: ['scanner','scan','tomodensitométrie','tdm','ct scan'],
+    type: 'scanner', label: 'Centre de scanner', emoji: '🖥️', maps: 'centre+scanner' },
+  { keys: ['radio','radiographie','rx','rayon x','rayons x'],
+    type: 'radiologie', label: 'Cabinet de radiologie', emoji: '🔬', maps: 'cabinet+radiologie' },
+  { keys: ['irm','imagerie','résonance magnétique'],
+    type: 'irm', label: "Centre d'IRM", emoji: '🧲', maps: 'centre+IRM' },
+  { keys: ['analyse','laboratoire','labo','prise de sang','bilan sanguin','numération','sérologie','urine'],
+    type: 'laboratoire', label: "Laboratoire d'analyses", emoji: '🧪', maps: 'laboratoire+analyses+medicales' },
+  { keys: ['kinésithérapie','kiné','rééducation','physiothérapie'],
+    type: 'kine', label: 'Cabinet de kinésithérapie', emoji: '🏃', maps: 'cabinet+kinesitherapie' },
+  { keys: ['ophtalmologie','ophtalmo','oeil','yeux','vision'],
+    type: 'ophtalmo', label: 'Ophtalmologue', emoji: '👁️', maps: 'ophtalmologue' },
+  { keys: ['dentiste','dentisterie','orthodontie','dent'],
+    type: 'dentiste', label: 'Dentiste', emoji: '🦷', maps: 'dentiste' },
+  { keys: ['urgence','urgences','soins urgents'],
+    type: 'urgence', label: 'Urgences médicales', emoji: '🚨', maps: 'urgences+hopital' },
+  { keys: ['hôpital','hopital','clinique','hospitalisation'],
+    type: 'hopital', label: 'Hôpital / Clinique', emoji: '🏥', maps: 'hopital+clinique' },
+];
+
+function detectNeeds(text) {
+  if (!text) return [];
+  const lower = text.toLowerCase();
+  const found = [];
+  for (const cat of REFER_KEYWORDS) {
+    if (cat.keys.some(k => lower.includes(k))) {
+      if (!found.find(f => f.type === cat.type)) found.push(cat);
+    }
+  }
+  return found;
+}
+
+function openReferModal(id) {
+  const c = allConsultations.find(x => x.id_consultation == id);
+  if (!c) return;
+
+  const fullText = [c.motif, c.diagnostic, c.notes].filter(Boolean).join(' ');
+  const needs    = detectNeeds(fullText);
+
+  const tagsEl = document.getElementById('referTags');
+  if (needs.length === 0) {
+    tagsEl.innerHTML = '<span style="color:var(--muted);font-size:.78rem;">Aucun besoin détecté. Vous pouvez rechercher manuellement.</span>';
+  } else {
+    tagsEl.innerHTML = needs.map(n => `<span class="refer-tag">${n.emoji} ${n.label}</span>`).join('');
+  }
+
+  document.getElementById('referModal').dataset.needs = JSON.stringify(needs);
+  document.getElementById('referConsultId').value = id;
+  document.getElementById('referCity').value = '';
+  document.getElementById('referResults').innerHTML = '';
+  document.getElementById('referModal').style.display = 'flex';
+  setTimeout(() => document.getElementById('referCity').focus(), 100);
+}
+
+function closeReferModal() {
+  document.getElementById('referModal').style.display = 'none';
+}
+
+function searchRefer() {
+  const city = document.getElementById('referCity').value.trim();
+  if (!city) {
+    document.getElementById('referCity').style.borderColor = 'var(--red)';
+    document.getElementById('referCity').focus();
+    return;
+  }
+  document.getElementById('referCity').style.borderColor = '';
+
+  const needs = JSON.parse(document.getElementById('referModal').dataset.needs || '[]');
+  const resultsEl = document.getElementById('referResults');
+  const toShow = needs.length > 0 ? needs : REFER_KEYWORDS.slice(0, 5);
+  const encodedCity = encodeURIComponent(city);
+
+  resultsEl.innerHTML = `
+    <div style="font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">
+      Résultats pour <strong style="color:var(--text)">${esc(city)}</strong>
+    </div>
+    ${toShow.map(n => {
+      const url = `https://www.google.com/maps/search/${n.maps}+${encodedCity}`;
+      return `<a href="${url}" target="_blank" class="refer-result-btn">
+        <span class="refer-result-emoji">${n.emoji}</span>
+        <div>
+          <div class="refer-result-label">${n.label}</div>
+          <div class="refer-result-sub">Rechercher à ${esc(city)}</div>
+        </div>
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:14px;height:14px;margin-left:auto;flex-shrink:0;color:var(--muted)"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      </a>`;
+    }).join('')}`;
+
+  // Store city and results for email sending
+  document.getElementById('referModal').dataset.city   = city;
+  document.getElementById('referModal').dataset.toshow = JSON.stringify(toShow);
+
+  // Show the send button
+  const sendBtn = document.getElementById('referSendBtn');
+  sendBtn.style.display  = 'inline-flex';
+  sendBtn.disabled       = false;
+  sendBtn.textContent    = '📧 Envoyer au patient';
+
+  document.getElementById('referStatus').textContent = '';
+  document.getElementById('referStatus').className   = '';
+}
+
+async function sendReferEmail() {
+  const id     = document.getElementById('referConsultId').value;
+  const city   = document.getElementById('referModal').dataset.city   || '';
+  const toShow = JSON.parse(document.getElementById('referModal').dataset.toshow || '[]');
+  const btn    = document.getElementById('referSendBtn');
+  const status = document.getElementById('referStatus');
+
+  btn.disabled    = true;
+  btn.textContent = 'Envoi en cours...';
+
+  try {
+    const fd = new FormData();
+    fd.append('action',          'sendReferral');
+    fd.append('id_consultation', id);
+    fd.append('city',            city);
+    fd.append('places',          JSON.stringify(toShow));
+    const res = await fetch(CRUD_REMINDER, { method: 'POST', body: fd });
+    const r   = await res.json();
+
+    if (r.success) {
+      status.textContent = '✓ ' + r.message;
+      status.className   = 'reminder-success';
+      showToast(r.message, 'success');
+      btn.textContent = '✓ Envoyé';
+    } else {
+      status.textContent = '✗ ' + (r.error || 'Erreur inconnue.');
+      status.className   = 'reminder-error';
+      btn.disabled    = false;
+      btn.textContent = '📧 Réessayer';
+    }
+  } catch (e) {
+    status.textContent = '✗ Erreur réseau.';
+    status.className   = 'reminder-error';
+    btn.disabled    = false;
+    btn.textContent = '📧 Réessayer';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    const cityInput = document.getElementById('referCity');
+    if (cityInput) cityInput.addEventListener('keydown', e => { if (e.key === 'Enter') searchRefer(); });
+  }, 500);
+});
