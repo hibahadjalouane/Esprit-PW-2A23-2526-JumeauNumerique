@@ -432,13 +432,12 @@
       fill: url(#sparkGrad); stroke: none; opacity: 0.4;
     }
 
-    /* LAYOUT */
+    /* LAYOUT — booking au-dessus, rendez-vous en dessous */
     .main-grid {
-      display: grid; grid-template-columns: 1fr; gap: 1.25rem;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
       padding-bottom: 3rem;
-    }
-    @media (min-width: 1100px) {
-      .main-grid { grid-template-columns: 1.55fr 1fr; }
     }
     .section-head {
       display: flex; justify-content: space-between; align-items: baseline;
@@ -909,8 +908,9 @@
     }
 
     .appt-list {
-      display: flex; flex-direction: column; gap: 0.6rem;
-      max-height: 680px; overflow-y: auto; padding-right: 4px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 0.7rem;
     }
     .appt {
       background: var(--surface-2);
@@ -1123,12 +1123,12 @@
             <path d="M3 12h4l3-9 4 18 3-9h4"/>
           </svg>
         </span>
-        Aurea<sup>•</sup>
+        JumeauNum
       </a>
 
       <ul class="nav-links">
-        <li><a href="#" class="nav-link active">Tableau de bord</a></li>
-        <li><a href="#" class="nav-link">Dossier</a></li>
+        <li><a href="#" class="nav-link active">Acceuil</a></li>
+        <li><a href="#" class="nav-link">Dossier Medical</a></li>
         <li><a href="#" class="nav-link">Ordonnances</a></li>
         <li><a href="#" class="nav-link">Paiements</a></li>
       </ul>
@@ -1143,7 +1143,7 @@
           <span class="moon"><i data-lucide="moon" style="width:16px;height:16px"></i></span>
         </button>
         <div class="avatar-chip">
-          <div class="avatar" id="avatarInitials">EP</div>
+          <div class="avatar" id="avatarInitials">PA</div>
           <span id="patientHeaderName">Patient</span>
         </div>
       </div>
@@ -1166,7 +1166,7 @@
         <div class="reveal" style="animation-delay: .05s">
           <span class="eyebrow"><span class="pulse"></span><span id="todayDate">—</span></span>
           <h1 class="hero-title">
-            Bonjour, <em id="firstName">Patient</em>.<br>
+            Bonjour<br>
             Votre <em>santé</em>,<br>en clair.
           </h1>
           <p class="hero-subtitle">
@@ -1377,6 +1377,10 @@
               <div class="field">
                 <label class="field-label" for="notes">Notes / motif (optionnel)</label>
                 <textarea id="notes" class="field-textarea" placeholder="Décrivez brièvement les symptômes ou la raison de votre rendez-vous..."></textarea>
+                <div class="field-hint" id="hintNotes" style="display:flex; justify-content:space-between; align-items:center;">
+                  <span id="hintNotesMsg">Si vous ajoutez une note, elle doit faire au moins 20 caractères.</span>
+                  <span id="hintNotesCount" style="font-family:monospace; font-size:.78rem; color:var(--muted, #888);">0 / 20</span>
+                </div>
               </div>
 
               <div style="background: var(--surface-2); border:1px solid var(--line); border-radius: 14px; padding: 1rem;">

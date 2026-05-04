@@ -6,6 +6,7 @@
 
 const ICON_PATHS = {
   // Navigation / UI
+  'pencil':          '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
   'bell':            '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
   'sun':             '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
   'moon':            '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
@@ -92,6 +93,18 @@ const ICON_PATHS = {
         const orig = el.getAttribute('style') || '';
         if (orig.includes('fill:currentColor')) {
           svgEl.setAttribute('fill', 'currentColor');
+        }
+        // Preserve id, class, title, and any data-* attributes from the original <i>
+        if (el.id) svgEl.id = el.id;
+        if (el.className) svgEl.setAttribute('class', svgEl.getAttribute('class') + ' ' + el.className);
+        if (el.title) svgEl.setAttribute('title', el.title);
+        for (const attr of el.attributes) {
+          if (attr.name.startsWith('data-') && attr.name !== 'data-lucide') {
+            svgEl.setAttribute(attr.name, attr.value);
+          }
+          if (attr.name.startsWith('aria-')) {
+            svgEl.setAttribute(attr.name, attr.value);
+          }
         }
         el.replaceWith(svgEl);
       } else {

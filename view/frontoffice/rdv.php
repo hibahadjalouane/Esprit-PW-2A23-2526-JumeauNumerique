@@ -288,6 +288,139 @@ if ($action === 'charger') {
     }
 
 /* ─────────────────────────────────────────────────────────
+   ACTION: modifier
+   Modifier un RDV (changer créneau et/ou type) — seulement si en_attente
+   ───────────────────────────────────────────────────────── */
+} elseif ($action === 'modifier') {
+    $id          = trim($_POST['id'] ?? '');
+    $id_patient  = trim($_POST['patient'] ?? '');
+    $new_creneau = trim($_POST['creneau'] ?? '');
+    $new_type    = trim($_POST['type'] ?? '');
+
+    if ($id === '' || $id_patient === '' || $new_creneau === '') {
+        echo json_encode(["success" => false, "message" => "champs_manquants"]);
+        exit;
+    }
+
+    try {
+        $db->beginTransaction();
+
+        // 1) Vérifier le RDV existe et appartient au patient
+        $q = $db->prepare("SELECT id_creneau, statut, id_patient, id_medecin, type_consultation
+                           FROM rendez_vous
+                           WHERE id_rdv = :id
+                           FOR UPDATE");
+        $q->execute([':id' => $id]);
+        $rdv = $q->fetch(PDO::FETCH_ASSOC);
+
+        if (!$rdv) {
+            $db->rollBack();
+            echo json_encode(["success" => false, "message" => "rdv_introuvable"]);
+            exit;
+        }
+
+        if ($rdv['id_patient'] !== $id_patient) {
+            $db->rollBack();
+            echo json_encode(["success" => false, "message" => "acces_refuse"]);
+            exit;
+        }
+
+        // Seuls les RDV en attente peuvent être modifiés
+        if (strtolower($rdv['statut']) === 'confirme') {
+            $db->rollBack();
+            echo json_encode(["success" => false, "message" => "rdv_deja_confirme"]);
+            exit;
+        }
+        if (strtolower($rdv['statut']) === 'annule') {
+            $db->rollBack();
+            echo json_encode(["success" => false, "message" => "rdv_deja_annule"]);
+            exit;
+        }
+
+        $old_creneau = $rdv['id_creneau'];
+
+        // 2) Si le créneau change, vérifier le nouveau
+        if ($new_creneau !== $old_creneau) {
+            // Verrouiller le nouveau créneau
+            $q = $db->prepare("SELECT statut, id_medecin, date_creneau
+                               FROM creneau
+                               WHERE id_creneau = :c
+                               FOR UPDATE");
+            $q->execute([':c' => $new_creneau]);
+            $nouveau = $q->fetch(PDO::FETCH_ASSOC);
+
+            if (!$nouveau) {
+                $db->rollBack();
+                echo json_encode(["success" => false, "message" => "creneau_introuvable"]);
+                exit;
+            }
+
+            if (strtolower($nouveau['statut']) === 'reserve') {
+                $db->rollBack();
+                echo json_encode(["success" => false, "message" => "creneau_pris"]);
+                exit;
+            }
+
+            // Le nouveau créneau doit être chez le même médecin
+            if ($nouveau['id_medecin'] !== $rdv['id_medecin']) {
+                $db->rollBack();
+                echo json_encode(["success" => false, "message" => "creneau_medecin_mismatch"]);
+                exit;
+            }
+
+            // 3) Libérer l'ancien créneau
+            $q = $db->prepare("UPDATE creneau
+                               SET statut = 'disponible'
+                               WHERE id_creneau = :c");
+            $q->execute([':c' => $old_creneau]);
+
+            // 4) Réserver le nouveau créneau
+            $q = $db->prepare("UPDATE creneau
+                               SET statut = 'reserve'
+                               WHERE id_creneau = :c");
+            $q->execute([':c' => $new_creneau]);
+
+            // 5) Mettre à jour le RDV avec le nouveau créneau et la nouvelle date
+            $type_to_save = $new_type !== '' ? $new_type : $rdv['type_consultation'];
+            $q = $db->prepare("UPDATE rendez_vous
+                               SET id_creneau = :c,
+                                   date_rdv = :d,
+                                   type_consultation = :t
+                               WHERE id_rdv = :id");
+            $q->execute([
+                ':c'  => $new_creneau,
+                ':d'  => $nouveau['date_creneau'],
+                ':t'  => $type_to_save,
+                ':id' => $id
+            ]);
+        } else {
+            // Même créneau : on ne touche qu'au type
+            if ($new_type === '') {
+                $db->rollBack();
+                echo json_encode(["success" => false, "message" => "rien_a_modifier"]);
+                exit;
+            }
+            $q = $db->prepare("UPDATE rendez_vous
+                               SET type_consultation = :t
+                               WHERE id_rdv = :id");
+            $q->execute([':t' => $new_type, ':id' => $id]);
+        }
+
+        $db->commit();
+
+        echo json_encode(["success" => true, "message" => "RDV modifié avec succès"]);
+    } catch (Exception $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        http_response_code(500);
+        echo json_encode([
+            "success" => false,
+            "message" => $e->getMessage()
+        ]);
+    }
+
+/* ─────────────────────────────────────────────────────────
    ACTION: stats
    ───────────────────────────────────────────────────────── */
 } elseif ($action === 'stats') {

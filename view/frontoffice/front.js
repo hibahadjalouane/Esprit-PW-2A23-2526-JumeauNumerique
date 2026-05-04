@@ -1,8 +1,3 @@
-/* ═══════════════════════════════════════════════════════════
-   AUREA — Patient Portal
-   Connects to creneauuuu.php and rdv.php
-   ═══════════════════════════════════════════════════════════ */
-
 const API_BASE     = '.';
 const CRENEAU_API  = `${API_BASE}/creneauuuu.php`;
 const RDV_API      = `${API_BASE}/rdv.php`;
@@ -11,7 +6,7 @@ const RDV_API      = `${API_BASE}/rdv.php`;
 const CURRENT_PATIENT_ID   = (window.CURRENT_PATIENT_ID   || 'PAT-001');
 const CURRENT_PATIENT_NAME = (window.CURRENT_PATIENT_NAME || 'Elena Martinez');
 
-/* ─── STATE ──────────────────────────────────────────────── */
+
 let allDoctors = [];
 let allSlots   = [];
 let appointments = [];
@@ -27,34 +22,37 @@ let calendarMonth = new Date().getMonth();
 
 /* ─── HELPERS ────────────────────────────────────────────── */
 const $ = (id) => document.getElementById(id);
-
+//renderSlotPills, renderFinalSummary, showDetail, openEditModal.
 function fmtDateFR(d) {
   if (!d) return '';
   return new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', {
     day: 'numeric', month: 'long', year: 'numeric'
   });
 }
+//updateSummaries, renderDoctors.
 function fmtShort(d) {
   if (!d) return '';
   return new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', {
     day: '2-digit', month: 'short'
   });
 }
+//renderAppointments, showDetail.
 function statusLabel(s) {
   return ({ confirme:'Confirmé', 'en-attente':'En attente', en_attente:'En attente', annule:'Annulé' })[s] || s;
 }
+// load,hender appointment
 function normalize(s) {
   return s ? String(s).replace('_','-').toLowerCase() : '';
 }
+//renderDoctors, init.
 function initials(name) {
   if (!name) return '?';
   return name.trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase();
 }
+//buildCalendar , renderAppointments
 function todayISO() { return new Date().toISOString().slice(0,10); }
 
-/* ═══════════════════════════════════════════════════════════
-   THEME TOGGLE
-   ═══════════════════════════════════════════════════════════ */
+//inittt
 function initTheme() {
   const stored = localStorage.getItem('aurea-theme');
   const prefers = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -68,9 +66,7 @@ $('themeToggle')?.addEventListener('click', () => {
   localStorage.setItem('aurea-theme', next);
 });
 
-/* ═══════════════════════════════════════════════════════════
-   TOAST
-   ═══════════════════════════════════════════════════════════ */
+
 const ICONS = {
   success: 'check-circle-2',
   error:   'alert-circle',
@@ -94,9 +90,7 @@ function toast(msg, type = 'info') {
   }, 3500);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   ANIMATED COUNTER
-   ═══════════════════════════════════════════════════════════ */
+
 function animateCounter(el, target, duration = 1200) {
   if (!el) return;
   const start = parseFloat(el.dataset.counter || '0');
@@ -215,12 +209,14 @@ async function loadAppointments() {
     if (!j.success) throw new Error(j.message);
 
     appointments = (j.data || []).map(a => ({
-      id:     a.id_rdv,
-      date:   a.date_rdv,
-      time:   `${String(a.heure_debut||'').slice(0,5)} - ${String(a.heure_fin||'').slice(0,5)}`,
-      doctor: a.nom_medecin || '',
-      type:   a.type_consultation || '',
-      status: normalize(a.statut)
+      id:         a.id_rdv,
+      date:       a.date_rdv,
+      time:       `${String(a.heure_debut||'').slice(0,5)} - ${String(a.heure_fin||'').slice(0,5)}`,
+      doctor:     a.nom_medecin || '',
+      type:       a.type_consultation || '',
+      status:     normalize(a.statut),
+      id_creneau: a.id_creneau || '',
+      id_medecin: a.id_medecin || ''
     }));
 
     renderAppointments();
@@ -684,11 +680,59 @@ function renderFinalSummary() {
   `;
 }
 
+function validateNotes() {
+  const el = $('notes');
+  if (!el) return true;
+  const val = el.value || '';
+  const len = val.length;
+  const hintMsg   = $('hintNotesMsg');
+  const hintCount = $('hintNotesCount');
+
+  /* Mise à jour du compteur visuel */
+  if (hintCount) hintCount.textContent = `${len} / 20`;
+
+  /* Cas 1 : champ vide → OK (puisque optionnel) */
+  if (len === 0) {
+    el.classList.remove('invalid');
+    if (hintMsg) {
+      hintMsg.textContent = 'Si vous ajoutez une note, elle doit faire au moins 20 caractères.';
+      hintMsg.style.color = 'var(--muted, #888)';
+    }
+    if (hintCount) hintCount.style.color = 'var(--muted, #888)';
+    return true;
+  }
+
+  /* Cas 2 : champ rempli mais < 20 → INVALIDE */
+  if (len < 20) {
+    el.classList.add('invalid');
+    if (hintMsg) {
+      hintMsg.textContent = `Encore ${20 - len} caractère${(20 - len) > 1 ? 's' : ''} pour atteindre le minimum.`;
+      hintMsg.style.color = '#d97706';   /* orange */
+    }
+    if (hintCount) hintCount.style.color = '#d97706';
+    return false;
+  }
+
+  /* Cas 3 : champ rempli et >= 20 → OK */
+  el.classList.remove('invalid');
+  if (hintMsg) {
+    hintMsg.textContent = '✓ Note valide.';
+    hintMsg.style.color = '#10b981';     /* vert */
+  }
+  if (hintCount) hintCount.style.color = '#10b981';
+  return true;
+}
+
 function validateBookingButton() {
-  const ok = selectedSpecialty && selectedDoctorId && selectedSlotId && $('consultationType').value;
+  const baseOk  = selectedSpecialty && selectedDoctorId && selectedSlotId && $('consultationType').value;
+  const notesOk = validateNotes();
+  const ok = baseOk && notesOk;
   $('btnBook').disabled = !ok;
   return ok;
 }
+
+/* Recalcul à chaque frappe dans le champ notes */
+$('notes')?.addEventListener('input', validateBookingButton);
 
 $('consultationType')?.addEventListener('change', () => {
   const v = $('consultationType').value;
@@ -732,9 +776,9 @@ $('btnBook')?.addEventListener('click', async function() {
   const spinner = $('bookSpinner');
   const icon = $('bookIcon');
   const text = $('bookText');
-  spinner.style.display = 'inline-block';
-  icon.style.display = 'none';
-  text.textContent = 'Traitement...';
+  if (spinner) spinner.style.display = 'inline-block';
+  if (icon)    icon.style.display    = 'none';
+  if (text)    text.textContent      = 'Traitement...';
   this.disabled = true;
 
   try {
@@ -787,9 +831,9 @@ $('btnBook')?.addEventListener('click', async function() {
     console.error(e);
     toast('Erreur serveur', 'error');
   } finally {
-    spinner.style.display = 'none';
-    icon.style.display = '';
-    text.textContent = 'Confirmer la réservation';
+    if (spinner) spinner.style.display = 'none';
+    if (icon)    icon.style.display    = '';
+    if (text)    text.textContent      = 'Confirmer la réservation';
     validateBookingButton();
     refreshIcons();
   }
@@ -818,6 +862,7 @@ function renderAppointments(list) {
     const day = date.getDate();
     const month = date.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '');
     const isPast = a.date < todayISO();
+    const canModify = a.status === 'en-attente' && !isPast;
     const canCancel = a.status !== 'annule' && a.status !== 'confirme' && !isPast;
 
     return `
@@ -845,6 +890,9 @@ function renderAppointments(list) {
             <button class="ico-btn" title="Détails" onclick="showDetail('${a.id}')">
               <i data-lucide="eye" style="width:14px;height:14px"></i>
             </button>
+            ${canModify ? `<button class="ico-btn" title="Modifier" onclick="openEditModal('${a.id}')">
+              <i data-lucide="pencil" style="width:14px;height:14px"></i>
+            </button>` : ''}
             ${canCancel ? `<button class="ico-btn cancel" title="Annuler" onclick="cancelAppt('${a.id}')">
               <i data-lucide="x" style="width:14px;height:14px"></i>
             </button>` : ''}
@@ -925,6 +973,183 @@ async function cancelAppt(id) {
 window.cancelAppt = cancelAppt;
 
 /* ═══════════════════════════════════════════════════════════
+   MODIFY APPOINTMENT (open modal + submit)
+   ═══════════════════════════════════════════════════════════ */
+function openEditModal(id) {
+  const a = appointments.find(x => x.id === id);
+  if (!a) return;
+
+  // Find all available slots for this doctor (use id_medecin for reliability)
+  const docSlots = allSlots.filter(s =>
+    String(s.id_medecin) === String(a.id_medecin) && s.available
+  );
+
+  // Group slots by date
+  const slotsByDate = {};
+  docSlots.forEach(s => {
+    if (!slotsByDate[s.date]) slotsByDate[s.date] = [];
+    slotsByDate[s.date].push(s);
+  });
+  const dates = Object.keys(slotsByDate).sort();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true" style="max-width:520px">
+      <div class="modal-head">
+        <h3 class="modal-title">Modifier le rendez-vous</h3>
+        <button class="ico-btn" id="closeEditModal">
+          <i data-lucide="x" style="width:16px;height:16px"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div style="background: var(--surface-2); padding: .85rem 1rem; border-radius: 12px; margin-bottom: 1rem; border: 1px solid var(--line);">
+          <div style="font-size:.7rem; color:var(--text-3); text-transform:uppercase; letter-spacing:.06em; font-weight:700; margin-bottom:.25rem">RDV Actuel</div>
+          <div style="font-size:.9rem; color:var(--text); font-weight:600">
+            <i data-lucide="user-round" style="width:13px;height:13px"></i>
+            ${a.doctor} · ${fmtDateFR(a.date)} · ${a.time}
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Type de consultation</label>
+          <select id="editType" class="field-select">
+            <option value="Première consultation"  ${a.type==='Première consultation'?'selected':''}>Première consultation</option>
+            <option value="Suivi"                  ${a.type==='Suivi'?'selected':''}>Consultation de suivi</option>
+            <option value="Urgence"                ${a.type==='Urgence'?'selected':''}>Urgence</option>
+            <option value="Téléconsultation"       ${a.type==='Téléconsultation'?'selected':''}>Téléconsultation</option>
+            <option value="Contrôle"               ${a.type==='Contrôle'?'selected':''}>Contrôle de routine</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Nouveau créneau (optionnel)</label>
+          ${dates.length === 0 ? `
+            <div style="padding: 1rem; background:var(--surface-2); border-radius: 10px; color:var(--text-3); font-size:.82rem; text-align:center; border:1px dashed var(--line)">
+              <i data-lucide="info" style="width:14px;height:14px"></i>
+              Aucun autre créneau disponible chez ce médecin.<br>
+              <span style="font-size:.72rem">Vous pouvez quand même changer le type ci-dessus.</span>
+            </div>
+          ` : `
+            <div style="font-size:.7rem; color:var(--text-3); margin-bottom:.4rem">Choisissez une nouvelle date puis un horaire :</div>
+            <select id="editDate" class="field-select" style="margin-bottom:.5rem">
+              <option value="">— Garder le créneau actuel —</option>
+              ${dates.map(d => `<option value="${d}">${fmtDateFR(d)}</option>`).join('')}
+            </select>
+            <div id="editSlotsWrap" style="display:flex; flex-wrap:wrap; gap:.35rem"></div>
+          `}
+        </div>
+      </div>
+      <div style="padding: 1rem 1.35rem; border-top:1px solid var(--line); background:var(--surface-2); display:flex; justify-content:space-between; gap:.5rem">
+        <button class="btn btn-ghost" id="cancelEditBtn">Annuler</button>
+        <button class="btn btn-primary" id="submitEditBtn" data-rdv-id="${id}">
+          <i data-lucide="check" style="width:13px;height:13px"></i>
+          Enregistrer
+        </button>
+      </div>
+    </div>`;
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  refreshIcons();
+
+  // Wire up close buttons
+  $('closeEditModal').onclick = () => overlay.remove();
+  $('cancelEditBtn').onclick  = () => overlay.remove();
+
+  // Track new slot selection
+  let newCreneauId = null;
+
+  // Wire date dropdown to render slot pills
+  const editDateEl = $('editDate');
+  if (editDateEl) {
+    editDateEl.addEventListener('change', () => {
+      const d = editDateEl.value;
+      const wrap = $('editSlotsWrap');
+      newCreneauId = null;
+      if (!d) { wrap.innerHTML = ''; return; }
+      const slots = slotsByDate[d].sort((x,y) => (x.heure_debut||'').localeCompare(y.heure_debut||''));
+      wrap.innerHTML = slots.map(s => `
+        <button class="pill" data-id="${s.id}">
+          <i data-lucide="clock-4" style="width:12px;height:12px"></i>
+          ${String(s.heure_debut||'').slice(0,5)}
+        </button>
+      `).join('');
+      refreshIcons();
+      wrap.querySelectorAll('.pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+          wrap.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+          btn.classList.add('active');
+          newCreneauId = btn.dataset.id;
+        });
+      });
+    });
+  }
+
+  // Submit
+  $('submitEditBtn').onclick = async () => {
+    const newType = $('editType').value;
+    await submitEdit(id, a, newCreneauId, newType, overlay);
+  };
+}
+window.openEditModal = openEditModal;
+
+async function submitEdit(rdvId, originalAppt, newCreneauId, newType, overlay) {
+  // If neither slot changed nor type changed, do nothing
+  const typeChanged = newType !== originalAppt.type;
+  if (!newCreneauId && !typeChanged) {
+    toast('Aucun changement à enregistrer', 'info');
+    return;
+  }
+
+  const btn = $('submitEditBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Enregistrement...'; }
+
+  try {
+    const fd = new URLSearchParams();
+    fd.append('action',  'modifier');
+    fd.append('id',      rdvId);
+    fd.append('patient', CURRENT_PATIENT_ID);
+    // If user didn't pick a new slot, send the current one (PHP will just update type)
+    fd.append('creneau', newCreneauId || originalAppt.id_creneau);
+    fd.append('type',    newType);
+
+    const r = await fetch(RDV_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: fd.toString()
+    });
+    const j = await r.json();
+
+    if (!j.success) {
+      const errs = {
+        champs_manquants:         'Champs manquants',
+        rdv_introuvable:          'RDV introuvable',
+        acces_refuse:             'Accès refusé',
+        rdv_deja_confirme:        'Impossible : ce RDV est déjà confirmé',
+        rdv_deja_annule:          'Ce RDV est déjà annulé',
+        creneau_introuvable:      'Créneau introuvable',
+        creneau_pris:             'Ce créneau vient d\'être pris',
+        creneau_medecin_mismatch: 'Erreur médecin/créneau',
+        rien_a_modifier:          'Aucun changement à enregistrer'
+      };
+      toast(errs[j.message] || j.message || 'Erreur', 'error');
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="check" style="width:13px;height:13px"></i> Enregistrer'; refreshIcons(); }
+      return;
+    }
+
+    toast('Rendez-vous modifié ✓', 'success');
+    overlay.remove();
+    await Promise.all([loadSlots(), loadAppointments()]);
+
+  } catch (e) {
+    console.error(e);
+    toast('Erreur serveur', 'error');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="check" style="width:13px;height:13px"></i> Enregistrer'; refreshIcons(); }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
    FILTERS
    ═══════════════════════════════════════════════════════════ */
 $('searchRdv')?.addEventListener('input', function() {
@@ -944,9 +1169,7 @@ $('refreshAppts')?.addEventListener('click', async () => {
   await Promise.all([loadSlots(), loadAppointments()]);
 });
 
-/* ═══════════════════════════════════════════════════════════
-   ICONS HELPER
-   ═══════════════════════════════════════════════════════════ */
+
 let _iconRetryQueued = false;
 function refreshIcons() {
   if (window.lucide && typeof window.lucide.createIcons === 'function') {
@@ -967,23 +1190,21 @@ function refreshIcons() {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   INIT
-   ═══════════════════════════════════════════════════════════ */
+
 function init() {
   initTheme();
 
-  // Header
+  // Header — safe assignments (won't crash if any element was removed from HTML)
   const firstName = CURRENT_PATIENT_NAME.split(' ')[0];
-  $('firstName').textContent = firstName;
-  $('patientFullName').textContent = CURRENT_PATIENT_NAME;
-  $('patientHeaderName').textContent = firstName;
-  $('avatarInitials').textContent = initials(CURRENT_PATIENT_NAME);
+  const setText = (id, value) => { const el = $(id); if (el) el.textContent = value; };
 
-  // Today's date
-  $('todayDate').textContent = new Date().toLocaleDateString('fr-FR', {
+  setText('firstName',          firstName);
+  setText('patientFullName',    CURRENT_PATIENT_NAME);
+  setText('patientHeaderName',  firstName);
+  setText('avatarInitials',     initials(CURRENT_PATIENT_NAME));
+  setText('todayDate', new Date().toLocaleDateString('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long'
-  });
+  }));
 
   refreshIcons();
   buildCalendar();
