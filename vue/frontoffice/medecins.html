@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>JumeauNum | Nos Médecins</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-container: #dbeafe;
+  --secondary: #14b8a6;
+  --secondary-dark: #0f9484;
+  --tertiary: #7c3aed;
+  --background: #f8faff;
+  --surface: #ffffff;
+  --surface-low: #f1f5ff;
+  --surface-mid: #e8eeff;
+  --on-surface: #0f172a;
+  --on-surface-muted: #64748b;
+  --outline: #94a3b8;
+  --outline-light: #e2e8f0;
+  --error: #dc2626;
+  --success: #16a34a;
+  --warning: #d97706;
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(37,99,235,0.08), 0 1px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 20px 40px rgba(37,99,235,0.10), 0 4px 12px rgba(0,0,0,0.05);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--background);
+  color: var(--on-surface);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ── SIDEBAR ─────────────────────────────────────────── */
+.sidebar {
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  width: 260px;
+  background: var(--surface);
+  border-right: 1px solid var(--outline-light);
+  display: flex;
+  flex-direction: column;
+  z-index: 200;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-brand {
+  padding: 1.5rem 1.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--outline-light);
+}
+
+.brand-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--tertiary) 100%);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: white;
+  font-size: 18px;
+}
+
+.brand-name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--on-surface);
+  letter-spacing: -0.03em;
+}
+
+.brand-name span { color: var(--primary); }
+
+.sidebar-nav {
+  flex: 1;
+  padding: 1rem 0.75rem;
+  overflow-y: auto;
+}
+
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--outline);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.5rem 0.75rem 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.nav-item-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--on-surface-muted);
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: all 0.15s ease;
+  margin-bottom: 2px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.nav-item-link:hover {
+  background: var(--surface-low);
+  color: var(--primary);
+}
+
+.nav-item-link.active {
+  background: var(--primary-container);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.nav-item-link .material-symbols-outlined {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.sidebar-footer {
+  padding: 1rem 0.75rem;
+  border-top: 1px solid var(--outline-light);
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-low);
+}
+
+.user-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  display: flex; align-items: center; justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.user-info { flex: 1; min-width: 0; }
+.user-name { font-size: 0.85rem; font-weight: 600; color: var(--on-surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-top: 1px;
+}
+.role-patient  { background: #dcfce7; color: #166534; }
+.role-medecin  { background: #dbeafe; color: #1e40af; }
+.role-admin    { background: #fef3c7; color: #92400e; }
+.role-superadmin { background: #ede9fe; color: #4c1d95; }
+
+/* ── MAIN CONTENT ─────────────────────────────────────── */
+.main-content {
+  margin-left: 260px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── TOP BAR ─────────────────────────────────────────── */
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--outline-light);
+  padding: 0.9rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.topbar-left { display: flex; align-items: center; gap: 1rem; }
+.topbar-title { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; color: var(--on-surface); }
+.topbar-subtitle { font-size: 0.78rem; color: var(--on-surface-muted); margin-top: 1px; }
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-low);
+  border: 1.5px solid var(--outline-light);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 1rem;
+  min-width: 280px;
+  transition: border-color 0.2s;
+}
+
+.search-bar:focus-within { border-color: var(--primary); background: white; }
+.search-bar input { border: none; background: none; outline: none; font-family: var(--font-body); font-size: 0.875rem; color: var(--on-surface); width: 100%; }
+.search-bar input::placeholder { color: var(--outline); }
+.search-bar .material-symbols-outlined { font-size: 18px; color: var(--outline); }
+
+.topbar-actions { display: flex; align-items: center; gap: 0.75rem; }
+
+.icon-btn {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--surface-low);
+  color: var(--on-surface-muted);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.icon-btn:hover { background: var(--surface-mid); color: var(--primary); }
+.icon-btn .material-symbols-outlined { font-size: 20px; }
+
+.notif-dot {
+  position: absolute; top: 4px; right: 4px;
+  width: 7px; height: 7px;
+  background: var(--error);
+  border-radius: 50%;
+  border: 1.5px solid white;
+}
+
+/* ── PAGE BODY ─────────────────────────────────────────── */
+.page-body { padding: 2rem; flex: 1; }
+
+/* ── HERO SECTION ─────────────────────────────────────── */
+.hero-section {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #0ea5e9 100%);
+  border-radius: var(--radius-xl);
+  padding: 2.5rem 3rem;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+  color: white;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 240px; height: 240px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 50%;
+}
+
+.hero-section::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; right: 80px;
+  width: 180px; height: 180px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 50%;
+}
+
+.hero-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.8;
+  margin-bottom: 0.5rem;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.03em;
+}
+
+.hero-subtitle { font-size: 0.9rem; opacity: 0.8; max-width: 450px; line-height: 1.6; }
+
+.hero-stats {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1.75rem;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-stat { text-align: center; }
+.hero-stat-number { font-family: var(--font-display); font-size: 1.6rem; font-weight: 800; }
+.hero-stat-label { font-size: 11px; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
+
+/* ── FILTER SECTION ─────────────────────────────────────── */
+.filter-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.specialty-filters {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--outline-light);
+  background: var(--surface);
+  color: var(--on-surface-muted);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.filter-chip:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-container); }
+
+.filter-chip.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.25);
+}
+
+.filter-chip .material-symbols-outlined { font-size: 16px; }
+
+.sort-controls { display: flex; align-items: center; gap: 0.5rem; }
+
+.sort-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--outline-light);
+  background: var(--surface);
+  color: var(--on-surface-muted);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sort-btn:hover { border-color: var(--primary); color: var(--primary); }
+.sort-btn .material-symbols-outlined { font-size: 16px; }
+
+/* ── SECTION HEADER ─────────────────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--outline);
+}
+
+.section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-container);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 11px;
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-left: 8px;
+}
+
+/* ── DOCTOR CARD ─────────────────────────────────────────── */
+.doctor-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--outline-light);
+  padding: 1.5rem;
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  transition: all 0.3s ease;
+  margin-bottom: 1rem;
+  animation: slideUp 0.4s ease both;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.doctor-card:hover {
+  border-color: rgba(37,99,235,0.2);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.doctor-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.doctor-avatar {
+  width: 80px; height: 80px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--primary-container) 0%, var(--surface-mid) 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.5rem;
+  color: var(--primary);
+  overflow: hidden;
+}
+
+.doctor-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.status-dot {
+  position: absolute;
+  bottom: -3px; right: -3px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 2.5px solid white;
+}
+
+.status-dot.available { background: var(--secondary); }
+.status-dot.busy      { background: var(--outline); }
+
+.doctor-body { flex: 1; min-width: 0; }
+
+.doctor-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--on-surface);
+  margin-bottom: 2px;
+}
+
+.doctor-service {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 0.6rem;
+}
+
+.doctor-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--on-surface-muted);
+  font-weight: 500;
+}
+
+.meta-item .material-symbols-outlined { font-size: 14px; }
+
+.doctor-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--surface-low);
+  color: var(--on-surface-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.doctor-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 160px;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%;
+}
+
+.btn-primary:hover { background: var(--primary-dark); box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+.btn-primary .material-symbols-outlined { font-size: 16px; }
+
+.btn-outline {
+  background: transparent;
+  color: var(--on-surface-muted);
+  border: 1.5px solid var(--outline-light);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%;
+}
+
+.btn-outline:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-container); }
+.btn-outline .material-symbols-outlined { font-size: 16px; }
+
+/* ── EMPTY STATE ─────────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--on-surface-muted);
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: var(--outline);
+}
+
+.empty-state h4 { font-family: var(--font-display); font-weight: 700; margin-bottom: 0.5rem; color: var(--on-surface); }
+.empty-state p  { font-size: 0.9rem; }
+
+/* ── SKELETON ─────────────────────────────────────────── */
+.skeleton { background: linear-gradient(90deg, var(--surface-low) 25%, var(--surface-mid) 50%, var(--surface-low) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.skel-card { background: var(--surface); border-radius: var(--radius-lg); border: 1.5px solid var(--outline-light); padding: 1.5rem; display: flex; gap: 1.5rem; margin-bottom: 1rem; }
+.skel-avatar { width: 80px; height: 80px; border-radius: var(--radius-md); flex-shrink: 0; }
+.skel-body { flex: 1; }
+.skel-line { height: 12px; margin-bottom: 8px; border-radius: 4px; }
+
+/* ── TOAST ─────────────────────────────────────────── */
+.toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+
+.toast-msg {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-md);
+  background: var(--on-surface);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  animation: toastIn 0.3s ease both;
+  min-width: 280px;
+}
+
+@keyframes toastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.toast-msg.success { background: var(--success); }
+.toast-msg.error   { background: var(--error); }
+.toast-msg .material-symbols-outlined { font-size: 18px; }
+
+/* ── FAB ─────────────────────────────────────────── */
+.fab {
+  position: fixed;
+  bottom: 2rem; right: 2rem;
+  width: 52px; height: 52px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--tertiary) 100%);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.35);
+  cursor: pointer;
+  transition: transform 0.25s, box-shadow 0.25s;
+  z-index: 500;
+}
+
+.fab:hover { transform: scale(1.08); box-shadow: 0 12px 32px rgba(37,99,235,0.45); }
+.fab .material-symbols-outlined { font-size: 22px; }
+
+/* ── RESPONSIVE ─────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main-content { margin-left: 0; }
+  .doctor-card { flex-direction: column; }
+  .doctor-actions { flex-direction: row; min-width: 0; width: 100%; }
+  .hero-section { padding: 1.5rem; }
+  .hero-title { font-size: 1.4rem; }
+  .search-bar { min-width: 0; }
+}
+
+/* ── ACCESS DENIED ─────────────────────────────────────────── */
+.access-denied {
+  display: none;
+  text-align: center;
+  padding: 5rem 2rem;
+}
+.access-denied-icon { font-size: 4rem; color: var(--error); margin-bottom: 1rem; }
+.access-denied h3 { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; margin-bottom: 0.5rem; }
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ───────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">
+      <span class="material-symbols-outlined" style="font-size:20px">ecg_heart</span>
+    </div>
+    <span class="brand-name">Jumeau<span>Num</span></span>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Principal</div>
+    <a class="nav-item-link active" href="medecins.html">
+      <span class="material-symbols-outlined">stethoscope</span>
+      Nos Médecins
+    </a>
+    <a class="nav-item-link" href="#">
+      <span class="material-symbols-outlined">calendar_month</span>
+      Rendez-vous
+    </a>
+    <a class="nav-item-link" href="#">
+      <span class="material-symbols-outlined">folder_shared</span>
+      Mes Dossiers
+    </a>
+    <a class="nav-item-link" href="#">
+      <span class="material-symbols-outlined">notifications</span>
+      Notifications
+    </a>
+
+    <div class="nav-section-label" style="margin-top:1rem">Mon Compte</div>
+    <a class="nav-item-link" href="profil.html">
+      <span class="material-symbols-outlined">manage_accounts</span>
+      Mon Profil
+    </a>
+
+    <!-- Admin-only: hidden for patients & doctors -->
+    <button class="nav-item-link" id="btnGestionUsers" onclick="goGestionUsers()" style="display:none">
+      <span class="material-symbols-outlined">group</span>
+      Gestion Utilisateurs
+    </button>
+
+    <div style="margin-top:0.5rem">
+      <button class="nav-item-link" onclick="logout()" style="color: var(--error)">
+        <span class="material-symbols-outlined">logout</span>
+        Déconnexion
+      </button>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="user-avatar" id="sidebarAvatar">?</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebarName">Chargement...</div>
+        <span class="user-role-badge role-patient" id="sidebarRoleBadge">—</span>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ── MAIN CONTENT ───────────────────────────────────── -->
+<div class="main-content">
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <!-- Hamburger mobile -->
+      <button class="icon-btn d-lg-none" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+      <div>
+        <div class="topbar-title">Découvrez nos Médecins</div>
+        <div class="topbar-subtitle">Trouvez le spécialiste qui vous convient</div>
+      </div>
+    </div>
+
+    <div class="search-bar">
+      <span class="material-symbols-outlined">search</span>
+      <input type="text" id="searchInput" placeholder="Nom, spécialité, service..." oninput="filterDoctors()"/>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="icon-btn">
+        <span class="material-symbols-outlined">notifications</span>
+        <span class="notif-dot"></span>
+      </button>
+      <button class="icon-btn" onclick="window.location.href='profil.html'">
+        <span class="material-symbols-outlined">manage_accounts</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- PAGE BODY -->
+  <div class="page-body">
+
+    <!-- HERO -->
+    <div class="hero-section">
+      <div class="hero-label">🏥 Plateforme de santé numérique</div>
+      <h1 class="hero-title">Nos Spécialistes Médicaux</h1>
+      <p class="hero-subtitle">Consultez en toute confiance nos médecins qualifiés. Prenez rendez-vous en quelques clics avec le professionnel qui correspond à vos besoins.</p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-number" id="statTotal">—</div>
+          <div class="hero-stat-label">Médecins</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-number" id="statServices">—</div>
+          <div class="hero-stat-label">Spécialités</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-number">98%</div>
+          <div class="hero-stat-label">Satisfaction</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filter-section">
+      <div class="specialty-filters" id="specialtyFilters">
+        <button class="filter-chip active" data-service="all" onclick="setServiceFilter(this,'all')">
+          <span class="material-symbols-outlined">apps</span>
+          Tous
+        </button>
+        <!-- Dynamic filters inserted here -->
+      </div>
+      <div class="sort-controls">
+        <button class="sort-btn" onclick="sortDoctors('name')">
+          <span class="material-symbols-outlined">sort_by_alpha</span>
+          Nom
+        </button>
+        <button class="sort-btn" onclick="sortDoctors('service')">
+          <span class="material-symbols-outlined">swap_vert</span>
+          Service
+        </button>
+      </div>
+    </div>
+
+    <!-- DOCTORS LIST -->
+    <div class="section-header">
+      <div>
+        <span class="section-label">Médecins trouvés</span>
+        <span class="section-count" id="doctorCount">0</span>
+      </div>
+    </div>
+
+    <!-- Skeleton loaders -->
+    <div id="skeletonList">
+      <div class="skel-card" style="animation-delay:0s">
+        <div class="skeleton skel-avatar"></div>
+        <div class="skel-body">
+          <div class="skeleton skel-line" style="width:40%"></div>
+          <div class="skeleton skel-line" style="width:25%"></div>
+          <div class="skeleton skel-line" style="width:65%"></div>
+          <div class="skeleton skel-line" style="width:50%"></div>
+        </div>
+      </div>
+      <div class="skel-card" style="animation-delay:0.1s">
+        <div class="skeleton skel-avatar"></div>
+        <div class="skel-body">
+          <div class="skeleton skel-line" style="width:35%"></div>
+          <div class="skeleton skel-line" style="width:20%"></div>
+          <div class="skeleton skel-line" style="width:60%"></div>
+          <div class="skeleton skel-line" style="width:45%"></div>
+        </div>
+      </div>
+      <div class="skel-card" style="animation-delay:0.2s">
+        <div class="skeleton skel-avatar"></div>
+        <div class="skel-body">
+          <div class="skeleton skel-line" style="width:45%"></div>
+          <div class="skeleton skel-line" style="width:30%"></div>
+          <div class="skeleton skel-line" style="width:55%"></div>
+          <div class="skeleton skel-line" style="width:40%"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="doctorsList" style="display:none"></div>
+
+    <div class="empty-state" id="emptyState" style="display:none">
+      <span class="material-symbols-outlined empty-icon">person_search</span>
+      <h4>Aucun médecin trouvé</h4>
+      <p>Essayez un autre filtre ou modifiez votre recherche.</p>
+    </div>
+
+  </div><!-- /page-body -->
+</div><!-- /main-content -->
+
+<!-- FAB -->
+<button class="fab" title="Nouveau rendez-vous">
+  <span class="material-symbols-outlined">add</span>
+</button>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────
+const CRUD = '../../controleur/backoffice/user_crud.php';
+
+// Rôles
+const ROLES = { 1: 'Patient', 2: 'Admin', 3: 'Médecin', 4: 'Super Admin' };
+const ROLE_CLASSES = { 1: 'role-patient', 2: 'role-admin', 3: 'role-medecin', 4: 'role-superadmin' };
+
+// Icons par service (fallback générique)
+const SERVICE_ICONS = {
+  'cardiologie':      'favorite',
+  'neurologie':       'neurology',
+  'chirurgie':        'surgical',
+  'pédiatrie':        'child_care',
+  'psychiatrie':      'psychology',
+  'ophtalmologie':    'visibility',
+  'dermatologie':     'dermatology',
+  'oncologie':        'oncology',
+  'radiologie':       'radiology',
+  'urgences':         'emergency',
+  'orthopédie':       'accessibility',
+  'gynécologie':      'pregnant_woman',
+  'pneumologie':      'pulmonology',
+  'gastroentérologie':'gastroenterology',
+  default:            'stethoscope'
+};
+
+// ── STATE ─────────────────────────────────────────────
+let allDoctors = [];
+let filteredDoctors = [];
+let activeService = 'all';
+let currentUser = null;
+
+// ── INIT ──────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  await checkSession();
+  await loadDoctors();
+});
+
+// ── SESSION CHECK ─────────────────────────────────────
+async function checkSession() {
+  try {
+    const r = await fetch(CRUD + '?action=checkSession');
+    const j = await r.json();
+
+    if (!j.success || !j.loggedIn) {
+      window.location.replace('login.html');
+      return;
+    }
+
+   currentUser = {
+  id:   parseInt(j.id_user),
+  role: parseInt(j.id_role),
+  name: j.name || localStorage.getItem('jn_user_name') || 'Utilisateur',
+};
+localStorage.setItem('jn_user_role', j.id_role);
+
+    // Mise à jour sidebar
+    const initial = currentUser.name.trim()[0]?.toUpperCase() || '?';
+    document.getElementById('sidebarAvatar').textContent = initial;
+    document.getElementById('sidebarName').textContent   = currentUser.name;
+
+    const badge = document.getElementById('sidebarRoleBadge');
+    badge.textContent = ROLES[currentUser.role] || 'Inconnu';
+    badge.className   = 'user-role-badge ' + (ROLE_CLASSES[currentUser.role] || 'role-patient');
+
+    // Bouton Gestion Utilisateurs : visible si role = 2 (Admin) ou 4 (Super Admin)
+    if (parseInt(currentUser.role) === 2 || parseInt(currentUser.role) === 4) {
+      document.getElementById('btnGestionUsers').style.display = 'flex';
+    }
+
+  } catch (e) {
+    // Fallback localStorage si l'API session n'existe pas encore
+    const id   = parseInt(localStorage.getItem('jn_user_id')   || '0');
+    const role = parseInt(localStorage.getItem('jn_user_role')  || '1');
+    const name = localStorage.getItem('jn_user_name') || 'Utilisateur';
+
+    if (!id) { window.location.replace('login.html'); return; }
+
+    currentUser = { id, role, name };
+
+    const initial = name.trim()[0]?.toUpperCase() || '?';
+    document.getElementById('sidebarAvatar').textContent = initial;
+    document.getElementById('sidebarName').textContent   = name;
+
+    const badge = document.getElementById('sidebarRoleBadge');
+    badge.textContent = ROLES[role] || 'Inconnu';
+    badge.className   = 'user-role-badge ' + (ROLE_CLASSES[role] || 'role-patient');
+
+    if (role === 2 || role === 4) {
+      document.getElementById('btnGestionUsers').style.display = 'flex';
+    }
+  }
+}
+
+// ── LOAD DOCTORS ──────────────────────────────────────
+async function loadDoctors() {
+  try {
+    const r = await fetch(CRUD + '?action=getAllUsers&role=3');
+    const j = await r.json();
+
+    document.getElementById('skeletonList').style.display = 'none';
+    document.getElementById('doctorsList').style.display  = 'block';
+
+    if (!j.success) { showToast('Erreur lors du chargement.', 'error'); return; }
+
+    allDoctors      = j.data || [];
+    filteredDoctors = [...allDoctors];
+
+    // Stats hero
+    document.getElementById('statTotal').textContent = allDoctors.length;
+    const services = [...new Set(allDoctors.map(d => d.service).filter(Boolean))];
+    document.getElementById('statServices').textContent = services.length || '—';
+
+    buildServiceFilters(services);
+    renderDoctors(filteredDoctors);
+
+  } catch (e) {
+    document.getElementById('skeletonList').style.display = 'none';
+    document.getElementById('doctorsList').style.display  = 'block';
+    showToast('Erreur réseau. Vérifiez que XAMPP est démarré.', 'error');
+  }
+}
+
+// ── BUILD SERVICE FILTERS ─────────────────────────────
+function buildServiceFilters(services) {
+  const container = document.getElementById('specialtyFilters');
+  services.forEach(svc => {
+    const icon = getServiceIcon(svc);
+    const btn  = document.createElement('button');
+    btn.className         = 'filter-chip';
+    btn.dataset.service   = svc;
+    btn.innerHTML         = `<span class="material-symbols-outlined">${icon}</span>${svc}`;
+    btn.onclick           = () => setServiceFilter(btn, svc);
+    container.appendChild(btn);
+  });
+}
+
+function getServiceIcon(svc) {
+  const key = (svc || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  for (const [k, v] of Object.entries(SERVICE_ICONS)) {
+    if (k !== 'default' && key.includes(k.normalize('NFD').replace(/[\u0300-\u036f]/g,''))) return v;
+  }
+  return SERVICE_ICONS.default;
+}
+
+// ── FILTER & SORT ─────────────────────────────────────
+function setServiceFilter(btn, svc) {
+  activeService = svc;
+  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function filterDoctors() { applyFilters(); }
+
+function applyFilters() {
+  const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+  filteredDoctors = allDoctors.filter(d => {
+    const svcMatch = activeService === 'all' || (d.service || '').toLowerCase() === activeService.toLowerCase();
+    const searchMatch = !q ||
+      (d.nom    || '').toLowerCase().includes(q) ||
+      (d.prenom || '').toLowerCase().includes(q) ||
+      (d.service|| '').toLowerCase().includes(q) ||
+      (d.email  || '').toLowerCase().includes(q);
+    return svcMatch && searchMatch;
+  });
+  renderDoctors(filteredDoctors);
+}
+
+function sortDoctors(by) {
+  if (by === 'name') {
+    filteredDoctors.sort((a,b) => (a.nom+a.prenom).localeCompare(b.nom+b.prenom));
+  } else {
+    filteredDoctors.sort((a,b) => (a.service||'').localeCompare(b.service||''));
+  }
+  renderDoctors(filteredDoctors);
+}
+
+// ── RENDER DOCTORS ────────────────────────────────────
+function renderDoctors(list) {
+  const container  = document.getElementById('doctorsList');
+  const emptyState = document.getElementById('emptyState');
+  document.getElementById('doctorCount').textContent = list.length;
+
+  if (!list.length) {
+    container.innerHTML = '';
+    emptyState.style.display = 'block';
+    return;
+  }
+
+  emptyState.style.display = 'none';
+  container.innerHTML = list.map((d, i) => buildDoctorCard(d, i)).join('');
+}
+
+function buildDoctorCard(d, idx) {
+  const fullName   = `Dr. ${d.prenom || ''} ${d.nom || ''}`.trim();
+  const initial    = ((d.prenom || d.nom || '?')[0]).toUpperCase();
+  const svc        = d.service || 'Médecine générale';
+  const icon       = getServiceIcon(svc);
+  const isAvail    = d.statut_cmpt === 'actif' || d.statut_cmpt === 'active' || !d.statut_cmpt;
+  const statusCls  = isAvail ? 'available' : 'busy';
+  const statusLbl  = isAvail ? 'Disponible' : 'Occupé';
+
+  // Tags générés depuis le service
+  const tags = generateTags(svc);
+
+  return `
+  <div class="doctor-card" style="animation-delay:${idx * 0.06}s">
+    <div class="doctor-avatar-wrap">
+      <div class="doctor-avatar">${initial}</div>
+      <span class="status-dot ${statusCls}" title="${statusLbl}"></span>
+    </div>
+
+    <div class="doctor-body">
+      <div class="doctor-name">${fullName}</div>
+      <div class="doctor-service">
+        <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;margin-right:4px">${icon}</span>
+        ${svc}
+      </div>
+      <div class="doctor-meta">
+        <span class="meta-item">
+          <span class="material-symbols-outlined">badge</span>
+          #${d.id_user}
+        </span>
+        <span class="meta-item">
+          <span class="material-symbols-outlined">mail</span>
+          ${d.email || '—'}
+        </span>
+        <span class="meta-item" style="color: ${isAvail ? 'var(--secondary)' : 'var(--outline)'}; font-weight: 600;">
+          <span class="material-symbols-outlined">${isAvail ? 'check_circle' : 'schedule'}</span>
+          ${statusLbl}
+        </span>
+      </div>
+      <div class="doctor-tags">
+        ${tags.map(t => `<span class="tag">${t}</span>`).join('')}
+      </div>
+    </div>
+
+    <div class="doctor-actions">
+      <button class="btn-primary" onclick="bookConsultation(${d.id_user},'${fullName.replace(/'/g,"\\'")}')">
+        <span class="material-symbols-outlined">calendar_add_on</span>
+        Prendre RDV
+      </button>
+      <button class="btn-outline" onclick="viewProfile(${d.id_user})">
+        <span class="material-symbols-outlined">account_circle</span>
+        Voir Profil
+      </button>
+    </div>
+  </div>`;
+}
+
+function generateTags(service) {
+  const map = {
+    cardiolog: ['Cardiopathie', 'ECG', 'Échocardiographie'],
+    neurolog:  ['AVC', 'Épilepsie', 'IRM cérébrale'],
+    chirurg:   ['Laparoscopie', 'Chirurgie mini-invasive'],
+    pédiatr:   ['Nourrissons', 'Croissance', 'Vaccins'],
+    psychiatr: ['Thérapie cognitivo-comportementale', 'Anxiété'],
+    ophtalmol: ['Rétine', 'Glaucome', 'Chirurgie oculaire'],
+    dermato:   ['Acné', 'Psoriasis', 'Dermatoscopie'],
+    oncolog:   ['Chimiothérapie', 'Oncologie moléculaire'],
+    urgence:   ['Traumatologie', 'Réanimation'],
+    orthopéd:  ['Fractures', 'Prothèse', 'Arthroscopie'],
+    gynécolog: ['Obstétrique', 'Fertilité', 'Colposcopie'],
+    pneumolog: ['Asthme', 'BPCO', 'Spirométrie'],
+  };
+
+  const svcLow = (service || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  for (const [k, tags] of Object.entries(map)) {
+    if (svcLow.includes(k.normalize('NFD').replace(/[\u0300-\u036f]/g,''))) return tags.slice(0,3);
+  }
+  return ['Consultation', 'Bilan médical'];
+}
+
+// ── ACTIONS ───────────────────────────────────────────
+function bookConsultation(doctorId, doctorName) {
+  showToast(`📅 Réservation en cours avec ${doctorName}...`, 'success');
+  // TODO: Redirect to appointment booking page
+}
+
+function viewProfile(doctorId) {
+  showToast(`👤 Chargement du profil...`, 'success');
+  // TODO: Open doctor profile modal or redirect
+}
+
+function goGestionUsers() {
+  window.location.href = '../backoffice/supadmin.html';
+}
+
+async function logout() {
+  try { await fetch(CRUD + '?action=logout'); } catch(e) {}
+  localStorage.clear();
+  sessionStorage.clear();
+  window.location.replace('login.html');
+}
+
+// ── TOAST ─────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+  const icons = { success: 'check_circle', error: 'error', info: 'info' };
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = `toast-msg ${type}`;
+  el.innerHTML = `<span class="material-symbols-outlined">${icons[type] || 'info'}</span>${msg}`;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

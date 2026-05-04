@@ -238,18 +238,33 @@ main { margin-left:var(--sidebar-w); flex:1; padding:22px 20px 40px; min-width:0
 
           <div class="form-group">
             <label class="form-label" for="p_ancien_mdp">Ancien mot de passe</label>
-            <input class="form-control" type="password" id="p_ancien_mdp" placeholder="••••••••••••"/>
-            <div class="field-msg" id="err_p_ancien_mdp"></div>
+<div style="position:relative">
+  <input class="form-control" type="password" id="p_ancien_mdp" placeholder="••••••••••••" style="padding-right:42px"/>
+  <button type="button" onclick="toggleEye('p_ancien_mdp',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;color:#9ca3af;padding:0">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+  </button>
+</div>
+<div class="field-msg" id="err_p_ancien_mdp"></div>
           </div>
           <div class="form-group">
             <label class="form-label" for="p_nouveau_mdp">Nouveau mot de passe</label>
-            <input class="form-control" type="password" id="p_nouveau_mdp" placeholder="Min. 6 caractères"/>
-            <div class="field-msg" id="err_p_nouveau_mdp"></div>
+<div style="position:relative">
+  <input class="form-control" type="password" id="p_nouveau_mdp" placeholder="Min. 6 caractères" style="padding-right:42px"/>
+  <button type="button" onclick="toggleEye('p_nouveau_mdp',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;color:#9ca3af;padding:0">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+  </button>
+</div>
+<div class="field-msg" id="err_p_nouveau_mdp"></div>
           </div>
           <div class="form-group">
             <label class="form-label" for="p_confirm_nouveau">Confirmer le nouveau mot de passe</label>
-            <input class="form-control" type="password" id="p_confirm_nouveau" placeholder="Confirmez"/>
-            <div class="field-msg" id="err_p_confirm_nouveau"></div>
+<div style="position:relative">
+  <input class="form-control" type="password" id="p_confirm_nouveau" placeholder="Confirmez" style="padding-right:42px"/>
+  <button type="button" onclick="toggleEye('p_confirm_nouveau',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;color:#9ca3af;padding:0">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+  </button>
+</div>
+<div class="field-msg" id="err_p_confirm_nouveau"></div>
           </div>
 
           <p class="msg-error"   id="msg_mdp_global"></p>
@@ -257,6 +272,21 @@ main { margin-left:var(--sidebar-w); flex:1; padding:22px 20px 40px; min-width:0
 
           <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px" onclick="changeMdp()">
             Changer le mot de passe
+          </button>
+        </div>
+
+        <!-- Reconnaissance faciale -->
+        <div class="panel-card">
+          <div class="panel-section-title">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 9a3 3 0 116 0"/><path d="M9 15a3 3 0 106 0"/><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M3 17v2a2 2 0 002 2h2M17 21h2a2 2 0 002-2v-2"/></svg>
+            Reconnaissance faciale
+          </div>
+          <p style="font-size:.8rem;color:var(--muted);margin-bottom:14px;line-height:1.5">
+            Enregistrez votre visage pour vous connecter sans mot de passe.
+          </p>
+          <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="openFaceEnroll()">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Enregistrer mon visage
           </button>
         </div>
 
@@ -303,6 +333,7 @@ main { margin-left:var(--sidebar-w); flex:1; padding:22px 20px 40px; min-width:0
 </div>
 
 <div class="toast" id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <script src="profil.js" defer></script>
 </body>
 </html>
