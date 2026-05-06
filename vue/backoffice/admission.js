@@ -1,162 +1,186 @@
+// admission.js : Logique JavaScript de la page Gestion des Admissions
+//
+// Charge par index.html via : <script src="admission.js" defer></script>
+//
+// Communique avec :
+//   ../../controleur/backoffice/admission_crud.php
+//   ../../controleur/backoffice/salle_crud.php
+
 
 const CRUD_ADMISSION = '../../controleur/backoffice/admission_crud.php';
+const CRUD_SALLE     = '../../controleur/backoffice/salle_crud.php';
 
 
-// ── VARIABLES D'ÉTAT (STATE) ─────────────────────────────────────────────────
-// Ces variables "mémorisent" l'état courant de la page.
+// ETAT GLOBAL
+let allAdmissions = [];
+let editingId     = null;
+let currentPage   = 1;
+const PAGE_SIZE   = 8;
 
-let allAdmissions = [];   // Tableau qui contient TOUTES les admissions chargées depuis la BDD
-let editingId     = null; // Si on est en train de modifier une admission, on stocke son ID ici. Sinon null.
-let currentPage   = 1;    // Page courante pour la pagination du tableau
-const PAGE_SIZE   = 8;    // Nombre de lignes affichées par page dans le tableau
+// IDs existants en memoire pour le de aleatoire
+let existingAdmissionIds = [];
 
 
-// ── INITIALISATION ────────────────────────────────────────────────────────────
-
+// INITIALISATION
 document.addEventListener('DOMContentLoaded', () => {
-  // Pré-remplir le champ date avec la date d'aujourd'hui (format YYYY-MM-DD)
   document.getElementById('a_date').value = new Date().toISOString().split('T')[0];
-
-  
   testConnection();
-  loadSallesDropdown();
 });
 
 
-
-
+// TEST DE CONNEXION
+// Envoie un ping au PHP pour verifier Apache + MySQL.
+// Si OK, charge toutes les donnees. Sinon, affiche une banniere rouge.
 async function testConnection() {
   const banner = document.getElementById('connBanner');
   try {
-    // fetch() envoie une requête HTTP GET vers le PHP avec action=ping
     const res = await fetch(CRUD_ADMISSION + '?action=ping');
-    const r   = await res.json(); // On transforme la réponse JSON en objet JS
+    const r   = await res.json();
 
     if (r.success) {
-      // Connexion OK : bannière verte + chargement des données
       banner.className = 'conn-banner ok';
       banner.innerHTML = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
-        <span>Connecté à la base <strong>jumeaunum</strong> avec succès ✓</span>`;
-      loadAdmissions(); // Charger le tableau des admissions
-      loadTickets();    // Charger le dropdown des tickets disponibles
+        <span>Connecte a la base <strong>jumeaunum</strong> avec succes</span>`;
+      loadAdmissions();
+      loadTickets();
+      loadSallesDropdown();
+      loadSalles();
+      loadMedecins();
+      loadPatients();
+      prefetchAdmissionIds();
     } else {
       showConnError(r.error);
     }
   } catch (e) {
-    // catch(e) : si fetch() échoue complètement (serveur éteint, mauvais chemin...)
-    showConnError('Impossible de joindre le serveur PHP. Vérifiez que :<br>'
-      + '<strong>1.</strong> XAMPP est démarré (Apache + MySQL)<br>'
-      + '<strong>2.</strong> Vous ouvrez la page via <code>localhost</code> et non depuis le système de fichiers<br>'
-      + '<strong>3.</strong> Le fichier est bien dans <code>htdocs/gestion_des_admission/</code>');
+    showConnError('Impossible de joindre le serveur PHP. Verifiez que :<br>'
+      + '<strong>1.</strong> XAMPP est demarre (Apache + MySQL)<br>'
+      + '<strong>2.</strong> Vous ouvrez via <code>localhost</code> et non depuis le systeme de fichiers<br>'
+      + '<strong>3.</strong> Le dossier est dans <code>htdocs/projetweb/gestion_des_admission/</code>');
   }
 }
 
-// Aff l'erreur de connexion avec le message passé en paramètre
 function showConnError(msg) {
   const banner = document.getElementById('connBanner');
   banner.className = 'conn-banner error';
   banner.innerHTML = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
     <span>${msg}</span>`;
   document.getElementById('tableBody').innerHTML =
-    `<tr><td colspan="5" class="no-data" style="color:var(--red)">En attente de connexion à la base de données.</td></tr>`;
+    `<tr><td colspan="6" class="no-data" style="color:var(--red)">En attente de connexion a la base de donnees.</td></tr>`;
 }
 
 
-// ── TOAST (NOTIFICATION) ──────────────────────────────────────────────────────
-// Affiche une petite notification en bas à droite de l'écran pendant 3,2 secondes.
-// type peut être 'success' (vert) ou 'error' (rouge).
+// TOAST : notification en bas a droite pendant 3,2 secondes
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.className   = 'toast ' + type + ' show'; // Ajoute la classe CSS pour l'animation d'apparition
-  setTimeout(() => { t.className = 'toast'; }, 3200); // Après 3,2s : retire la classe → disparaît
+  t.className   = 'toast ' + type + ' show';
+  setTimeout(() => { t.className = 'toast'; }, 3200);
 }
 
+
+// HELPER POST : envoie des donnees en POST vers un PHP et retourne le JSON parse
 async function postData(url, data) {
-  const fd = new FormData(); 
-  for (const [k, v] of Object.entries(data)) fd.append(k, v ?? ''); 
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(data)) fd.append(k, v ?? '');
   const res = await fetch(url, { method: 'POST', body: fd });
-  return res.json(); 
+  return res.json();
 }
 
 
+// PRE-CHARGER LES IDS EXISTANTS pour le de aleatoire
+async function prefetchAdmissionIds() {
+  try {
+    const r = await postData(CRUD_ADMISSION, { action: 'getExistingIds' });
+    if (r.success) existingAdmissionIds = r.ids.map(Number);
+  } catch (e) {}
+}
 
+
+// GENERATEUR D'ID ALEATOIRE : entier unique entre 1 et 99999999 (max 8 chiffres)
+function genRandomId(existingIds) {
+  let id;
+  let tries = 0;
+  do {
+    id = Math.floor(Math.random() * 99999999) + 1;
+    tries++;
+  } while (existingIds.includes(id) && tries < 500);
+  return id;
+}
+
+// Bouton de aleatoire pour l'ID admission
+function rollDiceAdmission() {
+  const id = genRandomId(existingAdmissionIds);
+  document.getElementById('a_id').value = id;
+  clearErrors(['a_id']);
+}
+
+
+// CHARGER LES ADMISSIONS depuis la BDD
 async function loadAdmissions() {
   try {
     const r = await postData(CRUD_ADMISSION, { action: 'getAll' });
     if (r.success) {
-      allAdmissions = r.data; 
-      updateStats();          
-      renderTable();          
+      allAdmissions = r.data;
+      updateStats();
+      renderTable();
     } else {
       document.getElementById('tableBody').innerHTML =
-        `<tr><td colspan="5" class="no-data" style="color:var(--red)">Erreur : ${r.error}</td></tr>`;
+        `<tr><td colspan="6" class="no-data" style="color:var(--red)">Erreur : ${r.error}</td></tr>`;
     }
   } catch (e) {
     document.getElementById('tableBody').innerHTML =
-      `<tr><td colspan="5" class="no-data" style="color:var(--red)">Erreur réseau.</td></tr>`;
+      `<tr><td colspan="6" class="no-data" style="color:var(--red)">Erreur reseau.</td></tr>`;
   }
 }
 
 
-
+// STATS : compte par mode_entree et met a jour les cartes
 function updateStats() {
   const total      = allAdmissions.length;
   const urgences   = allAdmissions.filter(a => a.mode_entree === 'urgence').length;
   const normales   = allAdmissions.filter(a => a.mode_entree === 'normal').length;
   const transferts = allAdmissions.filter(a => a.mode_entree === 'transfert').length;
 
- 
-  document.getElementById('stat-total').textContent      = total;
-  document.getElementById('stat-urgence').textContent    = urgences;
-  document.getElementById('stat-normal').textContent     = normales;
-  document.getElementById('stat-transfert').textContent  = transferts;
+  document.getElementById('stat-total').textContent     = total;
+  document.getElementById('stat-urgence').textContent   = urgences;
+  document.getElementById('stat-normal').textContent    = normales;
+  document.getElementById('stat-transfert').textContent = transferts;
 
- 
-  document.getElementById('stat-badge-total').textContent      = total;
-  document.getElementById('stat-badge-urgence').textContent    = urgences;
-  document.getElementById('stat-badge-normal').textContent     = normales;
-  document.getElementById('stat-badge-transfert').textContent  = transferts;
+  document.getElementById('stat-badge-total').textContent     = total;
+  document.getElementById('stat-badge-urgence').textContent   = urgences;
+  document.getElementById('stat-badge-normal').textContent    = normales;
+  document.getElementById('stat-badge-transfert').textContent = transferts;
 }
 
 
-
-// Filtre allAdmissions selon la recherche + le filtre de mode,
-
+// RENDER TABLE : filtre, pagine et genere les lignes du tableau
 function renderTable() {
   const search = document.getElementById('searchInput').value.toLowerCase();
   const fMode  = document.getElementById('filterMode').value;
 
-  // filter() : garde uniquement les admissions qui correspondent à la recherche ET au filtre
   const filtered = allAdmissions.filter(a => {
     const ms = !search ||
-      (a.id_admission || '').toLowerCase().includes(search) ||
-      (a.id_ticket    || '').toLowerCase().includes(search) ||
-      (a.mode_entree  || '').toLowerCase().includes(search);
+      String(a.id_admission).includes(search) ||
+      String(a.id_ticket   || '').includes(search) ||
+      (a.mode_entree || '').toLowerCase().includes(search);
     return ms && (!fMode || a.mode_entree === fMode);
   });
 
-  // Calcul de la pagination
   const total = filtered.length;
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE)); 
-  if (currentPage > pages) currentPage = pages;            
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (currentPage > pages) currentPage = pages;
 
- 
   const slice = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  // Mise à jour du texte de pagination
   document.getElementById('paginCount').textContent = `Affichage de ${slice.length} sur ${total} admission(s)`;
   document.getElementById('pageInfo').textContent   = `${currentPage} / ${pages}`;
 
   const tbody = document.getElementById('tableBody');
-
-  // Si aucun résultat après filtrage → message "aucune admission"
   if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="no-data">Aucune admission trouvée.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="no-data">Aucune admission trouvee.</td></tr>';
     return;
   }
 
-  
   const modeMap = {
     'urgence':   ['badge-urgence',   'Urgence'],
     'normal':    ['badge-normal',    'Normal'],
@@ -164,22 +188,26 @@ function renderTable() {
     'autre':     ['badge-autre',     'Autre']
   };
 
-  
   tbody.innerHTML = slice.map(a => {
-    const date = a.date_arrive_relle ? String(a.date_arrive_relle).split(' ')[0] : '—';
-    const [mCls, mLabel] = modeMap[a.mode_entree] || ['badge-autre', a.mode_entree || '—'];
+    const date   = a.date_arrive_relle ? String(a.date_arrive_relle).split(' ')[0] : 'Inconnue';
+    const ticket = a.id_ticket   ? `#${a.id_ticket}`   : 'Aucun';
+    const salle  = a.salle_numero ? `Salle ${a.salle_numero} (#${a.id_salle})` : 'Aucune';
+    const patient = a.patient_nom_complet ? esc(a.patient_nom_complet) + ` <span class="id-cell">(#${esc(a.id_patient)})</span>` : '<span style="color:var(--muted)">Non défini</span>';
+    const [mCls, mLabel] = modeMap[a.mode_entree] || ['badge-autre', a.mode_entree || 'Inconnu'];
 
     return `<tr>
       <td class="id-cell">${esc(a.id_admission)}</td>
       <td>${esc(date)}</td>
       <td><span class="badge ${mCls}">${esc(mLabel)}</span></td>
-      <td class="id-cell">${esc(a.id_ticket)}</td>
+      <td class="id-cell">${esc(ticket)}</td>
+      <td>${esc(salle)}</td>
+      <td>${patient}</td>
       <td>
         <div class="actions-cell">
-          <button class="icon-btn" onclick="editAdmission('${esc(a.id_admission)}')" title="Modifier">
+          <button class="icon-btn" onclick="editAdmission(${a.id_admission})" title="Modifier">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
-          <button class="icon-btn del" onclick="deleteAdmission('${esc(a.id_admission)}')" title="Supprimer">
+          <button class="icon-btn del" onclick="deleteAdmission(${a.id_admission})" title="Supprimer">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
           </button>
         </div>
@@ -188,31 +216,25 @@ function renderTable() {
   }).join('');
 }
 
-
-function prevPage() {
-  if (currentPage > 1) { currentPage--; renderTable(); }
-}
+function prevPage() { if (currentPage > 1) { currentPage--; renderTable(); } }
 function nextPage() {
-  const s     = document.getElementById('searchInput').value.toLowerCase();
-  const f     = document.getElementById('filterMode').value;
+  const s = document.getElementById('searchInput').value.toLowerCase();
+  const f = document.getElementById('filterMode').value;
   const total = allAdmissions.filter(a =>
-    (!s || (a.id_admission||'').toLowerCase().includes(s) ||
-           (a.id_ticket||'').toLowerCase().includes(s)    ||
-           (a.mode_entree||'').toLowerCase().includes(s))
+    (!s || String(a.id_admission).includes(s) || (a.mode_entree||'').toLowerCase().includes(s))
     && (!f || a.mode_entree === f)
   ).length;
   if (currentPage < Math.ceil(total / PAGE_SIZE)) { currentPage++; renderTable(); }
 }
 
 
-// ── CHARGER LES TICKETS DISPONIBLES ──────────────────────────────────────────
-
+// CHARGER LES TICKETS disponibles pour le dropdown
 async function loadTickets() {
   try {
     const r   = await postData(CRUD_ADMISSION, { action: 'getTickets' });
     const sel = document.getElementById('a_ticket');
     if (r.success && r.data.length > 0) {
-      sel.innerHTML = '<option value="">Sélectionner un ticket...</option>';
+      sel.innerHTML = '<option value="">Selectionner un ticket...</option>';
       r.data.forEach(t => {
         const opt       = document.createElement('option');
         opt.value       = t.id_ticket;
@@ -227,25 +249,7 @@ async function loadTickets() {
   }
 }
 
-// ── CHARGER LES SALLES DISPONIBLES pour le formulaire admission ───────────────
-async function loadSallesDropdown() {
-  try {
-    const r = await postData(CRUD_SALLE, { action: 'getAll' });
-    const sel = document.getElementById('a_salle');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">-- Sélectionner une salle --</option>';
-    if (r.success && r.data.length > 0) {
-      r.data.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.id_salle;
-        opt.textContent = s.numero + ' — ' + s.statut;
-        sel.appendChild(opt);
-      });
-    }
-  } catch (e) { console.error('Erreur chargement salles:', e); }
-}
-
-// Affiche ou cache la boîte d'info bleue quand un ticket est sélectionné dans le dropdown
+// Affiche ou cache la boite info bleue quand un ticket est selectionne
 function showTicketInfo() {
   const sel  = document.getElementById('a_ticket');
   const info = document.getElementById('ticketInfo');
@@ -253,236 +257,570 @@ function showTicketInfo() {
 }
 
 
-// ── VALIDATION DU FORMULAIRE ──────────────────────────────────────────────────
-
-function validateAdmission() {
-  let ok = true;
-
-  // Récupération des éléments du formulaire via leur id 
-  const inputId   = document.getElementById('a_id');
-  const inputDate = document.getElementById('a_date');
-  const inputMode = document.getElementById('a_mode');
-  const inputTick = document.getElementById('a_ticket');
-
-  // On efface les éventuelles erreurs précédentes avant de revalider
-  clearErrors(['a_id', 'a_date', 'a_mode', 'a_ticket', 'a_salle']);
-  hide('msg_form_global');
-  hide('msg_form_success');
-
- 
-  if (inputId.value.trim() === '') {
-    showFieldError('a_id', "L'ID admission est obligatoire !"); ok = false;
-  } else if (inputId.value.trim().length > 8) {
-    showFieldError('a_id', "Maximum 8 caractères !"); ok = false;
-  } else if (/[^a-zA-Z0-9\-_]/.test(inputId.value.trim())) {
-    // Regex : refuse tout caractère qui n'est pas lettre, chiffre, tiret ou underscore
-    showFieldError('a_id', "Pas de symboles spéciaux (lettres, chiffres, - ou _ uniquement) !"); ok = false;
-  }
-
-  
-  if (!inputDate.value) {
-    showFieldError('a_date', "La date d'arrivée est obligatoire !"); ok = false;
-  } else {
-    const chosen = new Date(inputDate.value);
-    const today  = new Date();
-    today.setHours(0, 0, 0, 0); // On compare seulement les dates, pas les heures
-    if (chosen > today) {
-      showFieldError('a_date', "La date ne peut pas être dans le futur !"); ok = false;
+// CHARGER LES SALLES pour le dropdown du formulaire admission
+async function loadSallesDropdown() {
+  try {
+    const r   = await postData(CRUD_ADMISSION, { action: 'getSalles' });
+    const sel = document.getElementById('a_salle');
+    if (r.success && r.data.length > 0) {
+      sel.innerHTML = '<option value="">Aucune (optionnel)...</option>';
+      r.data.forEach(s => {
+        const opt       = document.createElement('option');
+        opt.value       = s.id_salle;
+        opt.textContent = `Salle ${s.numero} (#${s.id_salle}) - ${s.statut}`;
+        sel.appendChild(opt);
+      });
+    } else {
+      sel.innerHTML = '<option value="">Aucune salle disponible</option>';
     }
+  } catch (e) {
+    document.getElementById('a_salle').innerHTML = '<option value="">Erreur chargement salles</option>';
   }
+}
 
-  // --- Validation du mode d'entrée ---
-  if (!inputMode.value) {
-    showFieldError('a_mode', "Veuillez sélectionner un mode d'entrée !"); ok = false;
+
+// CHARGER LES PATIENTS (id_role = 1) pour le dropdown du formulaire admission
+async function loadPatients() {
+  try {
+    const fd = new FormData();
+    fd.append('action', 'getPatients');
+    const res = await fetch(CRUD_ADMISSION, { method: 'POST', body: fd });
+    const r   = await res.json();
+    const sel = document.getElementById('a_patient');
+    if (!sel) return;
+    if (r.success && r.data && r.data.length > 0) {
+      sel.innerHTML = '<option value="">Aucun (optionnel)...</option>';
+      r.data.forEach(p => {
+        const opt       = document.createElement('option');
+        opt.value       = p.id_user;
+        const label     = [p.Nom, p.Prenom].filter(Boolean).join(' ');
+        opt.textContent = label ? `${label} (#${p.id_user})` : `Patient #${p.id_user}`;
+        sel.appendChild(opt);
+      });
+    } else {
+      sel.innerHTML = '<option value="">Aucun patient trouve</option>';
+    }
+  } catch (e) {
+    console.error('loadPatients error:', e);
+    const sel = document.getElementById('a_patient');
+    if (sel) sel.innerHTML = '<option value="">Erreur chargement patients</option>';
   }
-
-  // --- Validation du ticket ---
-  if (!inputTick.value) {
-    showFieldError('a_ticket', "Veuillez sélectionner un ticket !"); ok = false;
-  }
-
-  // --- Validation de la salle ---
-  const inputSalle = document.getElementById('a_salle');
-  if (inputSalle && inputSalle.selectedIndex <= 0) {
-    showFieldError('a_salle', "Veuillez sélectionner une salle !"); ok = false;
-  }
-
-  return ok; 
 }
 
 
 
-// Appelée par le bouton "Ajouter Admission" / "Enregistrer" dans index.html.
-// Si editingId est null → on fait un INSERT (add). Sinon → UPDATE (update).
+// Retourne true si tout est OK. Affiche les erreurs sous les champs sinon.
+async function validateAdmission() {
+  let ok = true;
+
+  clearErrors(['a_id', 'a_date', 'a_mode', 'a_ticket']);
+  hide('msg_form_global');
+  hide('msg_form_success');
+
+  const inputId = document.getElementById('a_id');
+  const val     = String(inputId.value).trim();
+
+  // Validation ID : chiffres uniquement, max 8 digits, superieur a 0, unique en BDD
+  if (val === '') {
+    showFieldError('a_id', "L'ID admission est obligatoire !"); ok = false;
+  } else if (!/^\d+$/.test(val)) {
+    showFieldError('a_id', "L'ID doit contenir uniquement des chiffres (entier) !"); ok = false;
+  } else if (val.length > 8) {
+    showFieldError('a_id', "Maximum 8 chiffres !"); ok = false;
+  } else if (parseInt(val) <= 0) {
+    showFieldError('a_id', "L'ID doit etre superieur a 0 !"); ok = false;
+  } else if (!editingId) {
+    // Verifier en BDD seulement en mode ajout
+    try {
+      const r = await fetch(CRUD_ADMISSION + `?action=checkId&id=${encodeURIComponent(val)}`);
+      const j = await r.json();
+      if (j.success && j.exists) {
+        showFieldError('a_id', `L'ID ${val} existe deja dans la base !`); ok = false;
+      }
+    } catch (e) {}
+  }
+
+  // Validation date : obligatoire, ne peut pas etre dans le futur.
+  // La date d'aujourd'hui est acceptee. Seul demain ou apres est refuse.
+  if (!document.getElementById('a_date').value) {
+    showFieldError('a_date', "La date d'arrivee est obligatoire !"); ok = false;
+  } else {
+    const chosen = new Date(document.getElementById('a_date').value);
+    const today  = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (chosen > today) {
+      showFieldError('a_date', "La date ne peut pas etre dans le futur !"); ok = false;
+    }
+  }
+
+  if (!document.getElementById('a_mode').value) {
+    showFieldError('a_mode', "Veuillez selectionner un mode d'entree !"); ok = false;
+  }
+
+  return ok;
+}
+
+
+// SUBMIT ADMISSION : ajoute ou modifie
 async function submitAdmission() {
-  // On stopp immédiatement si la validation échoue
-  if (!validateAdmission()) return;
+  if (!(await validateAdmission())) return;
 
   const data = {
-    action:            editingId ? 'update' : 'add', // Détermine l'action PHP selon le mode
+    action:            editingId ? 'update' : 'add',
     id_admission:      document.getElementById('a_id').value.trim(),
     date_arrive_relle: document.getElementById('a_date').value,
     mode_entree:       document.getElementById('a_mode').value,
-    id_ticket:         document.getElementById('a_ticket').value
+    id_ticket:         document.getElementById('a_ticket').value,
+    id_salle:          document.getElementById('a_salle').value,
+    id_patient:        document.getElementById('a_patient').value
   };
 
   try {
     const r = await postData(CRUD_ADMISSION, data);
     if (r.success) {
-      // Afficher le message de succès dans le formulaire
       const s = document.getElementById('msg_form_success');
-      s.textContent = r.message;
-      s.style.display = 'block';
-
-      showToast(r.message, 'success'); // Notification toast verte
-      resetForm();       // Vider le formulaire
-      loadAdmissions();  // Recharger le tableau
-      loadTickets();     // Recharger le dropdown (le ticket utilisé doit disparaître)
+      s.textContent = r.message; s.style.display = 'block';
+      // Couleur différente si email non envoyé
+      s.style.color = (r.email_envoye === false) ? 'var(--amber)' : 'var(--green)';
+      showToast(r.message, r.email_envoye === false ? 'error' : 'success');
+      resetForm();
+      loadAdmissions();
+      loadTickets();
+      loadSallesDropdown();
+      prefetchAdmissionIds();
     } else {
-      // Afficher le message d'erreur retourné par le PHP
       const g = document.getElementById('msg_form_global');
       g.textContent = r.error || "Erreur lors de l'enregistrement.";
       g.style.display = 'block';
     }
   } catch (e) {
-    const g = document.getElementById('msg_form_global');
-    g.textContent = 'Erreur réseau.';
-    g.style.display = 'block';
+    document.getElementById('msg_form_global').textContent = 'Erreur reseau.';
+    document.getElementById('msg_form_global').style.display = 'block';
   }
 }
 
 
-// ── PRÉREMPLIR LE FORMULAIRE POUR MODIFICATION ───────────────────────────────
-
+// EDIT ADMISSION : pre-remplit le formulaire pour modification
 async function editAdmission(id) {
-  const a = allAdmissions.find(x => x.id_admission === id); // Cherche dans le tableau local
+  const a = allAdmissions.find(x => x.id_admission == id);
   if (!a) return;
-
-  editingId = id; 
+  editingId = id;
 
   document.getElementById('formTitle').textContent      = 'Modifier Admission';
   document.getElementById('btnSubmitLabel').textContent = 'Enregistrer';
+  document.getElementById('a_id').value                 = a.id_admission;
+  document.getElementById('a_id').disabled              = true;
+  document.getElementById('a_date').value               = a.date_arrive_relle ? String(a.date_arrive_relle).split(' ')[0] : '';
+  document.getElementById('a_mode').value               = a.mode_entree || '';
 
-  // Préremplir les champs
-  document.getElementById('a_id').value   = a.id_admission;
-  document.getElementById('a_id').disabled = true; // L'ID ne peut pas être modifié (c'est la PK)
-  document.getElementById('a_date').value = a.date_arrive_relle
-    ? String(a.date_arrive_relle).split(' ')[0] : '';
-  document.getElementById('a_mode').value = a.mode_entree || '';
-  const selSalle = document.getElementById('a_salle');
-  if (selSalle && a.id_salle) selSalle.value = a.id_salle;
-
-  // Le ticket actuel est "utilisé" donc absent du dropdown → on l'ajoute manuellement
-  const sel = document.getElementById('a_ticket');
+  // Le ticket actuel peut etre "utilise" donc absent du dropdown : on l'ajoute manuellement
+  const selT = document.getElementById('a_ticket');
   let found = false;
-  for (const opt of sel.options) {
-    if (opt.value === a.id_ticket) { found = true; break; }
+  for (const opt of selT.options) {
+    if (opt.value == a.id_ticket) { found = true; break; }
   }
   if (!found && a.id_ticket) {
-    const opt = document.createElement('option');
+    const opt       = document.createElement('option');
     opt.value       = a.id_ticket;
     opt.textContent = a.id_ticket + ' (actuel)';
-    sel.appendChild(opt);
+    selT.appendChild(opt);
   }
-  sel.value = a.id_ticket || '';
-  showTicketInfo(); // Afficher la boîte d'info bleue
+  selT.value = a.id_ticket || '';
+  showTicketInfo();
 
-  // Scroll automatique vers le formulaire pour que l'utilisateur le voie
+  document.getElementById('a_salle').value = a.id_salle || '';
+  document.getElementById('a_patient').value = a.id_patient || '';
+
   document.querySelector('.right-panel').scrollIntoView({ behavior: 'smooth' });
 }
 
 
-// ── SUPPRIMER UNE ADMISSION ───────────────────────────────────────────────────
-
+// DELETE ADMISSION
 async function deleteAdmission(id) {
-  // confirm() affiche une boîte de dialogue native du navigateur
-  if (!confirm(`Supprimer l'admission "${id}" ? Le ticket associé sera remis à disponible.`)) return;
-
+  if (!confirm(`Supprimer l'admission #${id} ? Le ticket associe sera remis a disponible.`)) return;
   try {
     const r = await postData(CRUD_ADMISSION, { action: 'delete', id_admission: id });
     if (r.success) {
       showToast(r.message, 'success');
-      loadAdmissions(); // Recharger le tableau
-      loadTickets();    // Le ticket est redevenu disponible → il réapparaît dans le dropdown
+      loadAdmissions();
+      loadTickets();
     } else {
       showToast(r.error || 'Erreur suppression', 'error');
     }
-  } catch (e) {
-    showToast('Erreur réseau', 'error');
-  }
+  } catch (e) { showToast('Erreur reseau', 'error'); }
 }
 
 
-// ── RÉINITIALISER LE FORMULAIRE ───────────────────────────────────────────────
-
+// RESET FORMULAIRE ADMISSION
 function resetForm() {
-  editingId = null; // On quitte le mode édition
-
+  editingId = null;
   document.getElementById('formTitle').textContent      = 'Nouvelle Admission';
   document.getElementById('btnSubmitLabel').textContent = 'Ajouter Admission';
-
   document.getElementById('a_id').value      = '';
-  document.getElementById('a_id').disabled   = false; // Réactiver le champ ID
-  document.getElementById('a_date').value    = new Date().toISOString().split('T')[0]; // Date du jour
+  document.getElementById('a_id').disabled   = false;
+  document.getElementById('a_date').value    = new Date().toISOString().split('T')[0];
   document.getElementById('a_mode').value    = '';
   document.getElementById('a_ticket').value  = '';
-  const selSalle2 = document.getElementById('a_salle');
-  if (selSalle2) selSalle2.value = '';
-  document.getElementById('ticketInfo').className = 'ticket-info'; // Cacher la boîte info bleue
-
-  clearErrors(['a_id', 'a_date', 'a_mode', 'a_ticket', 'a_salle']);
+  document.getElementById('a_salle').value   = '';
+  document.getElementById('a_patient').value = '';
+  document.getElementById('ticketInfo').className = 'ticket-info';
+  clearErrors(['a_id', 'a_date', 'a_mode', 'a_ticket']);
   hide('msg_form_global');
   hide('msg_form_success');
 }
 
 
-// ── EXPORT CSV ────────────────────────────────────────────────────────────────
-// Génère un fichier CSV à partir de allAdmissions et le télécharge dans le navigateur.
-// Aucune requête PHP nécessaire : on utilise les données déjà en mémoire.
+// EXPORT CSV ADMISSIONS
 function exportCSV() {
-  const headers = ['ID Admission', 'Date Arrivée', "Mode d'Entrée", 'ID Ticket'];
-
-  // map() : transforme chaque objet admission en tableau de valeurs
+  const headers = ['ID Admission', "Date d'arrivee", "Mode d'entree", 'ID Ticket', 'ID Salle', 'Patient'];
   const rows = allAdmissions.map(a => [
     a.id_admission,
     (a.date_arrive_relle || '').split(' ')[0],
     a.mode_entree,
-    a.id_ticket
+    a.id_ticket  || '',
+    a.id_salle   || '',
+    a.patient_nom_complet || ''
   ]);
-
-  // Génération du contenu CSV : chaque valeur est entourée de guillemets (gestion des virgules)
-  const csv = [headers, ...rows]
-    .map(r => r.map(c => `"${String(c || '').replace(/"/g, '""')}"`).join(','))
-    .join('\n');
-
-  // Création d'un lien de téléchargement invisible et déclenchement du clic
+  const csv  = [headers, ...rows].map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const a    = document.createElement('a');
-  a.href     = URL.createObjectURL(blob);
-  a.download = 'admissions.csv';
-  a.click(); // Déclenche le téléchargement
+  a.href = URL.createObjectURL(blob); a.download = 'admissions.csv'; a.click();
 }
 
 
-// ── FONCTIONS UTILITAIRES (HELPERS) ──────────────────────────────────────────
+// ============================================================================
+// SECTION SALLES
+// ============================================================================
+
+let allSalles      = [];
+let editingSalleId = null;
+let currentPageS   = 1;
+const PAGE_SIZE_S  = 8;
+let existingSalleIds = [];
+
+
+// CHARGER LES MEDECINS pour le dropdown du formulaire salle (id_role = 3)
+async function loadMedecins() {
+  try {
+    const r   = await fetch(CRUD_SALLE + '?action=getMedecins');
+    const j   = await r.json();
+    const sel = document.getElementById('s_medecin');
+    if (!sel) return;
+    if (j.success && j.data.length > 0) {
+      sel.innerHTML = '<option value="">Selectionner un medecin...</option>';
+      j.data.forEach(m => {
+        const opt   = document.createElement('option');
+        opt.value   = m.id_user;
+        const label = [m.nom, m.prenom].filter(Boolean).join(' ');
+        opt.textContent = label ? `${label} (${m.id_user})` : m.id_user;
+        sel.appendChild(opt);
+      });
+    } else {
+      sel.innerHTML = '<option value="">Aucun medecin trouve</option>';
+    }
+  } catch (e) {
+    const sel = document.getElementById('s_medecin');
+    if (sel) sel.innerHTML = '<option value="">Erreur chargement medecins</option>';
+  }
+}
+
+
+// CHARGER LES SALLES depuis la BDD
+async function loadSalles() {
+  try {
+    const fd = new FormData();
+    fd.append('action', 'getAll');
+    const res = await fetch(CRUD_SALLE, { method: 'POST', body: fd });
+    const r   = await res.json();
+    if (r.success) {
+      allSalles = r.data;
+      updateStatsSalles();
+      renderSalleTable();
+      prefetchSalleIds();
+    } else {
+      const tb = document.getElementById('salleTableBody');
+      if (tb) tb.innerHTML = `<tr><td colspan="5" class="no-data" style="color:var(--red)">Erreur : ${r.error}</td></tr>`;
+    }
+  } catch (e) {
+    const tb = document.getElementById('salleTableBody');
+    if (tb) tb.innerHTML = `<tr><td colspan="5" class="no-data" style="color:var(--red)">Erreur reseau.</td></tr>`;
+  }
+}
+
+// PRE-CHARGER LES IDS SALLE pour le de aleatoire
+async function prefetchSalleIds() {
+  try {
+    const fd = new FormData();
+    fd.append('action', 'getExistingIds');
+    const res = await fetch(CRUD_SALLE, { method: 'POST', body: fd });
+    const r   = await res.json();
+    if (r.success) existingSalleIds = r.ids.map(Number);
+  } catch (e) {}
+}
+
+// Bouton de aleatoire pour l'ID salle
+function rollDiceSalle() {
+  const id = genRandomId(existingSalleIds);
+  document.getElementById('s_id').value = id;
+  clearErrors(['s_id']);
+}
+
+
+// STATS SALLES
+function updateStatsSalles() {
+  const total   = allSalles.length;
+  const dispo   = allSalles.filter(s => s.statut === 'disponible').length;
+  const indispo = allSalles.filter(s => s.statut !== 'disponible').length;
+
+  const elTotal   = document.getElementById('stat-total-salles');
+  const elDispo   = document.getElementById('stat-dispo-salles');
+  const elIndispo = document.getElementById('stat-indispo-salles');
+  const badgeT    = document.getElementById('stat-badge-salles');
+
+  if (elTotal)   elTotal.textContent   = total;
+  if (elDispo)   elDispo.textContent   = dispo;
+  if (elIndispo) elIndispo.textContent = indispo;
+  if (badgeT)    badgeT.textContent    = total;
+}
+
+
+// RENDER TABLE SALLES
+function renderSalleTable() {
+  const search = (document.getElementById('salleSearch')?.value || '').toLowerCase();
+  const fStat  = document.getElementById('filterSalleStatut')?.value || '';
+
+  const filtered = allSalles.filter(s => {
+    const ms = !search ||
+      String(s.id_salle).includes(search) ||
+      String(s.numero  || '').includes(search) ||
+      (s.medecin_nom_complet || '').toLowerCase().includes(search);
+    return ms && (!fStat || s.statut === fStat);
+  });
+
+  const total = filtered.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE_S));
+  if (currentPageS > pages) currentPageS = pages;
+  const slice = filtered.slice((currentPageS - 1) * PAGE_SIZE_S, currentPageS * PAGE_SIZE_S);
+
+  const countEl = document.getElementById('sallePaginCount');
+  const pageEl  = document.getElementById('sallePageInfo');
+  if (countEl) countEl.textContent = `Affichage de ${slice.length} sur ${total} salle(s)`;
+  if (pageEl)  pageEl.textContent  = `${currentPageS} / ${pages}`;
+
+  const tbody = document.getElementById('salleTableBody');
+  if (!tbody) return;
+
+  if (!slice.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="no-data">Aucune salle trouvee.</td></tr>';
+    return;
+  }
+
+  const statusMap = {
+    'disponible':     ['badge-normal',  'Disponible'],
+    'non disponible': ['badge-urgence', 'Non disponible']
+  };
+
+  tbody.innerHTML = slice.map(s => {
+    const med = s.medecin_nom_complet || 'Non assigne';
+    const [sCls, sLabel] = statusMap[s.statut] || ['badge-autre', s.statut || 'Inconnu'];
+    return `<tr>
+      <td class="id-cell">${esc(s.id_salle)}</td>
+      <td>${esc(s.numero)}</td>
+      <td><span class="badge ${sCls}">${esc(sLabel)}</span></td>
+      <td>${esc(med)}</td>
+      <td>
+        <div class="actions-cell">
+          <button class="icon-btn" onclick="editSalle(${s.id_salle})" title="Modifier">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="icon-btn del" onclick="deleteSalle(${s.id_salle})" title="Supprimer">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function prevPageS() { if (currentPageS > 1) { currentPageS--; renderSalleTable(); } }
+function nextPageS() {
+  const s = (document.getElementById('salleSearch')?.value || '').toLowerCase();
+  const f = document.getElementById('filterSalleStatut')?.value || '';
+  const total = allSalles.filter(x =>
+    (!s || String(x.id_salle).includes(s) || String(x.numero||'').includes(s))
+    && (!f || x.statut === f)
+  ).length;
+  if (currentPageS < Math.ceil(total / PAGE_SIZE_S)) { currentPageS++; renderSalleTable(); }
+}
+
+
+// VALIDATION SALLE
+// numero est INT(11) : chiffres uniquement, pas de symboles ni lettres.
+async function validateSalle() {
+  let ok = true;
+  clearErrors(['s_id', 's_numero', 's_statut']);
+  hide('msg_salle_global');
+  hide('msg_salle_success');
+
+  const inputId     = document.getElementById('s_id');
+  const inputNumero = document.getElementById('s_numero');
+  const inputStatut = document.getElementById('s_statut');
+  const val         = String(inputId.value).trim();
+
+  // Validation ID salle : chiffres uniquement, max 8 digits
+  if (val === '') {
+    showFieldError('s_id', "L'ID salle est obligatoire !"); ok = false;
+  } else if (!/^\d+$/.test(val)) {
+    showFieldError('s_id', "L'ID doit contenir uniquement des chiffres !"); ok = false;
+  } else if (val.length > 8) {
+    showFieldError('s_id', "Maximum 8 chiffres !"); ok = false;
+  } else if (parseInt(val) <= 0) {
+    showFieldError('s_id', "L'ID doit etre superieur a 0 !"); ok = false;
+  } else if (!editingSalleId) {
+    try {
+      const r = await fetch(CRUD_SALLE + `?action=checkId&id=${encodeURIComponent(val)}`);
+      const j = await r.json();
+      if (j.success && j.exists) {
+        showFieldError('s_id', `L'ID ${val} existe deja dans la base !`); ok = false;
+      }
+    } catch (e) {}
+  }
+
+  // Validation numero : INT(11), donc chiffres uniquement, superieur a 0
+  const numVal = String(inputNumero.value).trim();
+  if (numVal === '') {
+    showFieldError('s_numero', "Le numero est obligatoire !"); ok = false;
+  } else if (!/^\d+$/.test(numVal)) {
+    showFieldError('s_numero', "Le numero doit contenir uniquement des chiffres !"); ok = false;
+  } else if (parseInt(numVal) <= 0) {
+    showFieldError('s_numero', "Le numero doit etre superieur a 0 !"); ok = false;
+  }
+
+  // Validation statut
+  if (!inputStatut.value) {
+    showFieldError('s_statut', "Veuillez selectionner un statut !"); ok = false;
+  }
+
+  return ok;
+}
+
+
+// SUBMIT SALLE
+async function submitSalle() {
+  if (!(await validateSalle())) return;
+
+  const fd = new FormData();
+  fd.append('action',     editingSalleId ? 'update' : 'add');
+  fd.append('id_salle',   document.getElementById('s_id').value.trim());
+  fd.append('numero',     document.getElementById('s_numero').value.trim());
+  fd.append('statut',     document.getElementById('s_statut').value);
+  fd.append('id_medecin', document.getElementById('s_medecin').value);
+
+  try {
+    const res = await fetch(CRUD_SALLE, { method: 'POST', body: fd });
+    const r   = await res.json();
+    if (r.success) {
+      const s = document.getElementById('msg_salle_success');
+      if (s) { s.textContent = r.message; s.style.display = 'block'; }
+      showToast(r.message, 'success');
+      resetSalleForm();
+      loadSalles();
+      loadSallesDropdown();
+    } else {
+      const g = document.getElementById('msg_salle_global');
+      if (g) { g.textContent = r.error || 'Erreur.'; g.style.display = 'block'; }
+    }
+  } catch (e) {
+    const g = document.getElementById('msg_salle_global');
+    if (g) { g.textContent = 'Erreur reseau.'; g.style.display = 'block'; }
+  }
+}
+
+
+// EDIT SALLE : pre-remplit le formulaire
+function editSalle(id) {
+  const s = allSalles.find(x => x.id_salle == id);
+  if (!s) return;
+  editingSalleId = id;
+
+  document.getElementById('salleFormTitle').textContent = 'Modifier Salle';
+  document.getElementById('salleBtnLabel').textContent  = 'Enregistrer';
+  document.getElementById('s_id').value      = s.id_salle;
+  document.getElementById('s_id').disabled   = true;
+  document.getElementById('s_numero').value  = s.numero    || '';
+  document.getElementById('s_statut').value  = s.statut    || '';
+  document.getElementById('s_medecin').value = s.id_medecin || '';
+
+  document.querySelector('.right-panel-salle')?.scrollIntoView({ behavior: 'smooth' });
+}
+
+
+// DELETE SALLE
+async function deleteSalle(id) {
+  if (!confirm(`Supprimer la salle #${id} ? Cette action est irreversible.`)) return;
+  const fd = new FormData();
+  fd.append('action',   'delete');
+  fd.append('id_salle', id);
+  try {
+    const res = await fetch(CRUD_SALLE, { method: 'POST', body: fd });
+    const r   = await res.json();
+    if (r.success) {
+      showToast(r.message, 'success');
+      loadSalles();
+      loadSallesDropdown();
+    }
+    else showToast(r.error || 'Erreur suppression', 'error');
+  } catch (e) { showToast('Erreur reseau', 'error'); }
+}
+
+
+// RESET FORMULAIRE SALLE
+function resetSalleForm() {
+  editingSalleId = null;
+  document.getElementById('salleFormTitle').textContent = 'Nouvelle Salle';
+  document.getElementById('salleBtnLabel').textContent  = 'Ajouter Salle';
+  document.getElementById('s_id').value      = '';
+  document.getElementById('s_id').disabled   = false;
+  document.getElementById('s_numero').value  = '';
+  document.getElementById('s_statut').value  = '';
+  document.getElementById('s_medecin').value = '';
+  clearErrors(['s_id', 's_numero', 's_statut']);
+  hide('msg_salle_global');
+  hide('msg_salle_success');
+}
+
+
+// EXPORT CSV SALLES
+function exportSalleCSV() {
+  const headers = ['ID Salle', 'Numero', 'Statut', 'Medecin'];
+  const rows = allSalles.map(s => [
+    s.id_salle,
+    s.numero,
+    s.statut,
+    s.medecin_nom_complet || s.id_medecin || ''
+  ]);
+  const csv  = [headers, ...rows].map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a    = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'salles.csv'; a.click();
+}
+
+
+// ============================================================================
+// HELPERS
+// ============================================================================
 
 function esc(s) {
-  return String(s || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// showFieldError() : colorie le champ en rouge et affiche son message d'erreur sous lui
 function showFieldError(fieldId, msg) {
   const el    = document.getElementById(fieldId);
   const msgEl = document.getElementById('msg_' + fieldId);
-  if (el)    el.classList.add('error');                    // Bordure rouge sur le champ
-  if (msgEl) { msgEl.textContent = msg; msgEl.classList.add('visible'); } // Texte d'erreur visible
+  if (el)    el.classList.add('error');
+  if (msgEl) { msgEl.textContent = msg; msgEl.classList.add('visible'); }
 }
 
-// clearErrors() : supprime les bordures rouges et cache les messages d'erreur pour une liste de champs
 function clearErrors(ids) {
   ids.forEach(id => {
     const el    = document.getElementById(id);
@@ -492,345 +830,4 @@ function clearErrors(ids) {
   });
 }
 
-// hide() : cache un élément HTML par son id (display: none)
-function hide(id) {
-  const el = document.getElementById(id);
-  if (el) el.style.display = 'none';
-}
-
-
-// ══════════════════════════════════════════════════════════════════════════════
-// GESTION DES SALLES — CRUD COMPLET
-// ══════════════════════════════════════════════════════════════════════════════
-
-const CRUD_SALLE = '../../controleur/backoffice/salle_crud.php';
-
-let allSalles      = [];
-let salleEditingId = null;
-let salleDeleteId  = null;
-let sallePage      = 1;
-const SALLE_PAGE_SIZE = 8;
-
-// ── Chargement initial des salles ─────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  loadSalles();
-  loadMedecinsForSalle();
-});
-
-async function loadSalles() {
-  try {
-    const r = await postData(CRUD_SALLE, { action: 'getAll' });
-    if (r.success) {
-      allSalles = r.data;
-      updateSalleStats();
-      renderSalles();
-    } else {
-      document.getElementById('salleTableBody').innerHTML =
-        `<tr><td colspan="4" class="no-data" style="color:var(--red)">Erreur : ${r.error}</td></tr>`;
-    }
-  } catch (e) {
-    document.getElementById('salleTableBody').innerHTML =
-      `<tr><td colspan="4" class="no-data" style="color:var(--red)">Erreur réseau.</td></tr>`;
-  }
-}
-
-// ── Stats salles ──────────────────────────────────────────────────────────────
-function updateSalleStats() {
-  document.getElementById('salle-stat-total').textContent =
-    allSalles.length;
-  document.getElementById('salle-stat-dispo').textContent =
-    allSalles.filter(s => s.statut === 'disponible').length;
-  document.getElementById('salle-stat-occupee').textContent =
-    allSalles.filter(s => s.statut === 'occupée').length;
-  document.getElementById('salle-stat-maint').textContent =
-    allSalles.filter(s => s.statut === 'maintenance').length;
-}
-
-// ── Rendu du tableau des salles ───────────────────────────────────────────────
-function renderSalles() {
-  const search = (document.getElementById('salleSearch')?.value || '').toLowerCase();
-  const fStat  = document.getElementById('salleFilterStatut')?.value || '';
-
-  const filtered = allSalles.filter(s => {
-    const ms = !search ||
-      (s.id_salle || '').toLowerCase().includes(search) ||
-      (s.numero     || '').toLowerCase().includes(search) ||
-      (s.statut     || '').toLowerCase().includes(search);
-    return ms && (!fStat || s.statut === fStat);
-  });
-
-  const total = filtered.length;
-  const pages = Math.max(1, Math.ceil(total / SALLE_PAGE_SIZE));
-  if (sallePage > pages) sallePage = pages;
-
-  const slice = filtered.slice((sallePage - 1) * SALLE_PAGE_SIZE, sallePage * SALLE_PAGE_SIZE);
-
-  document.getElementById('sallePaginCount').textContent =
-    `Affichage de ${slice.length} sur ${total} salle(s)`;
-  document.getElementById('sallePageInfo').textContent = `${sallePage} / ${pages}`;
-
-  const tbody = document.getElementById('salleTableBody');
-
-  if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="no-data">Aucune salle trouvée.</td></tr>';
-    return;
-  }
-
-  const statutMap = {
-    'disponible':  ['badge-disponible',  'Disponible'],
-    'occupée':     ['badge-occupee',     'Occupée'],
-    'maintenance': ['badge-maintenance', 'Maintenance']
-  };
-
-  tbody.innerHTML = slice.map(s => {
-    const [sCls, sLabel] = statutMap[s.statut] || ['badge-autre', s.statut || '—'];
-    return `<tr>
-      <td class="id-cell">${esc(s.id_salle)}</td>
-      <td><strong>${esc(s.numero)}</strong></td>
-      <td><span class="badge ${sCls}">${esc(sLabel)}</span></td>
-      <td style="font-size:.78rem">${esc(s.nom_medecin || '—')}</td>
-      <td>
-        <div class="actions-cell">
-          <button class="icon-btn" onclick="editSalle('${esc(s.id_salle)}')" title="Modifier">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-          </button>
-          <button class="icon-btn del" onclick="openSalleDeleteModal('${esc(s.id_salle)}')" title="Supprimer">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-              <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
-            </svg>
-          </button>
-          <button class="icon-btn" onclick="toggleSalleStatut('${esc(s.id_salle)}')" title="Changer statut" style="font-size:11px;font-weight:600;width:auto;padding:0 7px">
-            ⇄
-          </button>
-        </div>
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-function sallePrevPage() {
-  if (sallePage > 1) { sallePage--; renderSalles(); }
-}
-function salleNextPage() {
-  const total = allSalles.length;
-  if (sallePage < Math.ceil(total / SALLE_PAGE_SIZE)) { sallePage++; renderSalles(); }
-}
-
-// ── Validation formulaire salle ───────────────────────────────────────────────
-function validateSalle() {
-  let ok = true;
-  clearErrors(['s_id', 's_numero', 's_statut', 's_medecin']);
-  hideSalleMsg();
-
-  const inputId     = document.getElementById('s_id');
-  const inputNumero = document.getElementById('s_numero');
-  const inputStatut = document.getElementById('s_statut');
-
-  if (!salleEditingId) {
-    if (!inputId.value.trim()) {
-      showFieldError('s_id', "L'ID chambre est obligatoire !"); ok = false;
-    } else if (inputId.value.trim().length > 10) {
-      showFieldError('s_id', "Maximum 10 caractères !"); ok = false;
-    } else if (/[^a-zA-Z0-9\-_]/.test(inputId.value.trim())) {
-      showFieldError('s_id', "Lettres, chiffres, - ou _ uniquement !"); ok = false;
-    }
-  }
-
-  if (!inputNumero.value.trim()) {
-    showFieldError('s_numero', "Le numéro est obligatoire !"); ok = false;
-  } else if (inputNumero.value.trim().length > 20) {
-    showFieldError('s_numero', "Maximum 20 caractères !"); ok = false;
-  }
-
-  if (!inputStatut.value) {
-    showFieldError('s_statut', "Veuillez sélectionner un statut !"); ok = false;
-  }
-
-  const inputMed = document.getElementById('s_medecin');
-  if (inputMed && inputMed.selectedIndex <= 0) {
-    showFieldError('s_medecin', "Veuillez sélectionner un médecin !"); ok = false;
-  }
-
-  return ok;
-}
-
-// ── Soumettre (add / update) ──────────────────────────────────────────────────
-async function submitSalle() {
-  if (!validateSalle()) return;
-
-  const data = {
-    action:     salleEditingId ? 'update' : 'add',
-    id_salle: document.getElementById('s_id').value.trim(),
-    numero:     document.getElementById('s_numero').value.trim(),
-    statut:     document.getElementById('s_statut').value
-  };
-
-  try {
-    const r = await postData(CRUD_SALLE, data);
-    if (r.success) {
-      showSalleSuccess(r.message);
-      showToast(r.message, 'success');
-      resetSalleForm();
-      loadSalles();
-      loadMedecinsForSalle();
-    } else {
-      showSalleError(r.error || "Erreur lors de l'enregistrement.");
-    }
-  } catch (e) {
-    showSalleError('Erreur réseau.');
-  }
-}
-
-// ── Préremplir pour modification ──────────────────────────────────────────────
-function editSalle(id) {
-  const s = allSalles.find(x => x.id_salle === id);
-  if (!s) return;
-
-  salleEditingId = id;
-  document.getElementById('salleFormTitle').textContent  = 'Modifier Salle';
-  document.getElementById('btnSalleLabel').textContent   = 'Enregistrer';
-
-  const inputId = document.getElementById('s_id');
-  inputId.value    = s.id_salle;
-  inputId.disabled = true;
-
-  document.getElementById('s_numero').value = s.numero;
-  document.getElementById('s_statut').value = s.statut;
-  // Ajouter l'admission actuelle dans le select si elle n'y est pas
-  const selMed = document.getElementById('s_medecin');
-  if (selMed && s.id_medecin) {
-    selMed.value = s.id_medecin;
-  }
-
-  hideSalleMsg();
-  document.querySelector('.salle-zone .right-panel').scrollIntoView({ behavior: 'smooth' });
-}
-
-// ── Basculer rapidement le statut ─────────────────────────────────────────────
-async function toggleSalleStatut(id) {
-  const s = allSalles.find(x => x.id_salle === id);
-  if (!s) return;
-
-  const cycle = { 'disponible': 'occupée', 'occupée': 'maintenance', 'maintenance': 'disponible' };
-  const next  = cycle[s.statut] || 'disponible';
-
-  try {
-    const r = await postData(CRUD_SALLE, {
-      action: 'update', id_salle: id, numero: s.numero, statut: next
-    });
-    if (r.success) {
-      showToast(`Statut → ${next}`, 'success');
-      loadSalles();
-    } else {
-      showToast(r.error || 'Erreur', 'error');
-    }
-  } catch (e) {
-    showToast('Erreur réseau', 'error');
-  }
-}
-
-// ── Modal suppression ─────────────────────────────────────────────────────────
-function openSalleDeleteModal(id) {
-  salleDeleteId = id;
-  document.getElementById('modalSalleId').textContent = id;
-  document.getElementById('salleDeleteModal').classList.add('open');
-}
-function closeSalleDeleteModal() {
-  salleDeleteId = null;
-  document.getElementById('salleDeleteModal').classList.remove('open');
-}
-async function confirmDeleteSalle() {
-  if (!salleDeleteId) return;
-  closeSalleDeleteModal();
-  try {
-    const r = await postData(CRUD_SALLE, { action: 'delete', id_salle: salleDeleteId });
-    if (r.success) {
-      showToast(r.message, 'success');
-      loadSalles();
-    } else {
-      showToast(r.error || 'Erreur suppression', 'error');
-    }
-  } catch (e) {
-    showToast('Erreur réseau', 'error');
-  }
-}
-
-// ── Réinitialiser le formulaire ───────────────────────────────────────────────
-function resetSalleForm() {
-  salleEditingId = null;
-  document.getElementById('salleFormTitle').textContent = 'Nouvelle Salle';
-  document.getElementById('btnSalleLabel').textContent  = '+ Ajouter Salle';
-  document.getElementById('s_id').value      = '';
-  document.getElementById('s_id').disabled   = false;
-  document.getElementById('s_numero').value  = '';
-  document.getElementById('s_statut').value  = '';
-  const selMed2 = document.getElementById('s_medecin');
-  if (selMed2) selMed2.value = '';
-  clearErrors(['s_id', 's_numero', 's_statut', 's_medecin']);
-  hideSalleMsg();
-}
-
-// ── Export CSV salles ─────────────────────────────────────────────────────────
-function exportSallesCSV() {
-  const headers = ['ID Chambre', 'Numéro', 'Statut'];
-  const rows    = allSalles.map(s => [s.id_salle, s.numero, s.statut]);
-  const csv = [headers, ...rows]
-    .map(r => r.map(c => `"${String(c || '').replace(/"/g, '""')}"`).join(','))
-    .join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const a    = document.createElement('a');
-  a.href     = URL.createObjectURL(blob);
-  a.download = 'salles.csv';
-  a.click();
-}
-
-// ── Helpers messages salle ────────────────────────────────────────────────────
-function hideSalleMsg() {
-  const g = document.getElementById('msg_salle_global');
-  const s = document.getElementById('msg_salle_success');
-  if (g) g.style.display = 'none';
-  if (s) s.style.display = 'none';
-}
-function showSalleError(msg) {
-  const el = document.getElementById('msg_salle_global');
-  if (el) { el.textContent = msg; el.style.display = 'block'; }
-}
-function showSalleSuccess(msg) {
-  const el = document.getElementById('msg_salle_success');
-  if (el) { el.textContent = msg; el.style.display = 'block'; }
-}
-
-// Fermer le modal en cliquant sur le fond
-document.addEventListener('DOMContentLoaded', () => {
-  const modal = document.getElementById('salleDeleteModal');
-  if (modal) {
-    modal.addEventListener('click', e => {
-      if (e.target === modal) closeSalleDeleteModal();
-    });
-  }
-});
-async function loadMedecinsForSalle(keepValue = '') {
-  try {
-    const r = await postData(CRUD_SALLE, { action: 'getMedecins' });
-    const sel = document.getElementById('s_medecin');
-    if (!sel) return;
-    const prev = keepValue || sel.value;
-    sel.innerHTML = '<option value="">-- Sélectionner un médecin --</option>';
-    if (r.success && r.data.length > 0) {
-      r.data.forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m.id_user;
-        opt.textContent = m.nom_complet;
-        sel.appendChild(opt);
-      });
-    }
-    if (prev) sel.value = prev;
-  } catch (e) { console.error('Erreur chargement médecins:', e); }
-}
-
-
+function hide(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }

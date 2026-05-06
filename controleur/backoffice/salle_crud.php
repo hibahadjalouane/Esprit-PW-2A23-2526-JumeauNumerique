@@ -9,147 +9,125 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 switch ($action) {
 
-    // ── PING ─────────────────────────────────────────────────────────────────
-    case 'ping':
-        try {
-            $db   = config::getConnexion();
-            $cols = $db->query("DESCRIBE salle")->fetchAll();
-            echo json_encode([
-                'success'       => true,
-                'message'       => 'Connexion OK — table salle accessible',
-                'salle_columns' => array_column($cols, 'Field')
-            ]);
-        } catch (Exception $e) {
-            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-        }
-        break;
-
-    // ── GET ALL ──────────────────────────────────────────────────────────────
     case 'getAll':
         try {
-            $db    = config::getConnexion();
-            $query = $db->prepare(
-                "SELECT s.id_salle, s.numero, s.statut, s.id_medecin,
-                        CONCAT(u.Nom, ' ', u.Prenom) AS nom_medecin
-                 FROM salle s
-                 LEFT JOIN user u ON s.id_medecin = u.id_user
-                 ORDER BY s.id_salle ASC"
-            );
-            $query->execute();
-            echo json_encode(['success' => true, 'data' => $query->fetchAll(PDO::FETCH_ASSOC)]);
+            $db  = config::getConnexion();
+            $sql = "SELECT
+                        s.id_salle,
+                        s.numero,
+                        s.statut,
+                        s.id_medecin,
+                        CONCAT(u.nom, ' ', u.prenom) AS medecin_nom_complet
+                    FROM salle s
+                    LEFT JOIN user u ON s.id_medecin = u.id_user AND u.id_role = 3
+                    ORDER BY s.id_salle ASC";
+            $q = $db->prepare($sql);
+            $q->execute();
+            echo json_encode(['success' => true, 'data' => $q->fetchAll()]);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
         break;
 
-    // ── GET MÉDECINS (pour le dropdown) ──────────────────────────────────────
+    case 'getExistingIds':
+        try {
+            $db = config::getConnexion();
+            $q  = $db->prepare("SELECT id_salle FROM salle");
+            $q->execute();
+            $ids = array_column($q->fetchAll(), 'id_salle');
+            echo json_encode(['success' => true, 'ids' => array_map('intval', $ids)]);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+        break;
+
+    case 'checkId':
+        try {
+            $db = config::getConnexion();
+            $q  = $db->prepare("SELECT COUNT(*) as cnt FROM salle WHERE id_salle = :id");
+            $q->execute(['id' => intval($_GET['id'] ?? 0)]);
+            $row = $q->fetch();
+            echo json_encode(['success' => true, 'exists' => (int)$row['cnt'] > 0]);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+        break;
+
     case 'getMedecins':
         try {
-            $db    = config::getConnexion();
-            $query = $db->prepare(
-                "SELECT id_user, CONCAT(Nom, ' ', Prenom) AS nom_complet
-                 FROM user
-                 WHERE id_role = 3
-                 ORDER BY Nom ASC"
+            $db = config::getConnexion();
+            $q  = $db->prepare(
+                "SELECT id_user, nom, prenom FROM user WHERE id_role = 3 ORDER BY nom, prenom"
             );
-            $query->execute();
-            echo json_encode(['success' => true, 'data' => $query->fetchAll(PDO::FETCH_ASSOC)]);
+            $q->execute();
+            echo json_encode(['success' => true, 'data' => $q->fetchAll()]);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
         break;
 
-    // ── CREATE ───────────────────────────────────────────────────────────────
     case 'add':
         try {
             $db = config::getConnexion();
 
-            // Vérifier doublon numero
-            $chkNum = $db->prepare("SELECT id_salle FROM salle WHERE numero = :numero");
-            $chkNum->execute(['numero' => $_POST['numero']]);
-            if ($chkNum->fetch()) {
-                echo json_encode(['success' => false, 'error' => 'Ce numéro de salle existe déjà.']);
-                break;
-            }
+            $id = intval($_POST['id_salle'] ?? 0);
 
-            if (empty($_POST['id_medecin'])) {
-                echo json_encode(['success' => false, 'error' => "Le médecin est obligatoire."]);
+            $chk = $db->prepare("SELECT COUNT(*) as cnt FROM salle WHERE id_salle = :id");
+            $chk->execute(['id' => $id]);
+            if ((int)$chk->fetch()['cnt'] > 0) {
+                echo json_encode(['success' => false, 'error' => "L'ID salle $id existe deja."]);
                 break;
             }
 
             $salle = new Salle(
-                trim($_POST['id_salle']),
-                (int)$_POST['numero'],
-                $_POST['statut'],
-                (int)$_POST['id_medecin']
+                $id,
+                intval($_POST['numero']  ?? 0),
+                $_POST['statut']         ?? 'disponible',
+                !empty($_POST['id_medecin']) ? intval($_POST['id_medecin']) : null
             );
 
             $sql = "INSERT INTO salle (id_salle, numero, statut, id_medecin)
                     VALUES (:id_salle, :numero, :statut, :id_medecin)";
-            $query = $db->prepare($sql);
-            $query->execute([
+            $q = $db->prepare($sql);
+            $q->execute([
                 'id_salle'   => $salle->getIdSalle(),
                 'numero'     => $salle->getNumero(),
                 'statut'     => $salle->getStatut(),
                 'id_medecin' => $salle->getIdMedecin()
             ]);
-
-            echo json_encode(['success' => true, 'message' => 'Salle ajoutée avec succès !']);
+            echo json_encode(['success' => true, 'message' => 'Salle ajoutee avec succes !']);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
         break;
 
-    // ── UPDATE ───────────────────────────────────────────────────────────────
     case 'update':
         try {
-            $db = config::getConnexion();
-
-            // Vérifier doublon numéro (sauf salle actuelle)
-            $chkNum = $db->prepare("SELECT id_salle FROM salle WHERE numero = :numero AND id_salle != :id");
-            $chkNum->execute(['numero' => (int)$_POST['numero'], 'id' => $_POST['id_salle']]);
-            if ($chkNum->fetch()) {
-                echo json_encode(['success' => false, 'error' => 'Ce numéro est déjà utilisé par une autre salle.']);
-                break;
-            }
-
-            if (empty($_POST['id_medecin'])) {
-                echo json_encode(['success' => false, 'error' => "Le médecin est obligatoire."]);
-                break;
-            }
-
-            $sql = "UPDATE salle SET numero = :numero, statut = :statut, id_medecin = :id_medecin
+            $db  = config::getConnexion();
+            $sql = "UPDATE salle SET
+                        numero     = :numero,
+                        statut     = :statut,
+                        id_medecin = :id_medecin
                     WHERE id_salle = :id_salle";
-            $query = $db->prepare($sql);
-            $query->execute([
-                'id_salle'   => $_POST['id_salle'],
-                'numero'     => (int)$_POST['numero'],
-                'statut'     => $_POST['statut'],
-                'id_medecin' => (int)$_POST['id_medecin']
+            $q = $db->prepare($sql);
+            $q->execute([
+                'id_salle'   => intval($_POST['id_salle']),
+                'numero'     => intval($_POST['numero'] ?? 0),
+                'statut'     => $_POST['statut']     ?? 'disponible',
+                'id_medecin' => !empty($_POST['id_medecin']) ? intval($_POST['id_medecin']) : null
             ]);
-
-            echo json_encode(['success' => true, 'message' => $query->rowCount() . ' salle(s) mise(s) à jour.']);
+            echo json_encode(['success' => true, 'message' => $q->rowCount() . ' salle(s) mise(s) a jour']);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
         break;
 
-    // ── DELETE ───────────────────────────────────────────────────────────────
     case 'delete':
         try {
             $db = config::getConnexion();
-
-            // Vérifier si la salle est liée à une admission
-            $chk = $db->prepare("SELECT id_admission FROM admission WHERE id_salle = :id LIMIT 1");
-            $chk->execute(['id' => $_POST['id_salle']]);
-            if ($chk->fetch()) {
-                echo json_encode(['success' => false, 'error' => 'Impossible de supprimer : salle liée à des admissions.']);
-                break;
-            }
-
-            $query = $db->prepare("DELETE FROM salle WHERE id_salle = :id");
-            $query->execute(['id' => $_POST['id_salle']]);
-            echo json_encode(['success' => true, 'message' => $query->rowCount() . ' salle(s) supprimée(s).']);
+            $q  = $db->prepare("DELETE FROM salle WHERE id_salle = :id");
+            $q->execute(['id' => intval($_POST['id_salle'])]);
+            echo json_encode(['success' => true, 'message' => $q->rowCount() . ' salle(s) supprimee(s)']);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
