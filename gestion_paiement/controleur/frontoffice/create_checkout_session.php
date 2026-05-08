@@ -24,7 +24,7 @@ if (!$id_facture) {
 }
 
 // Clé secrète Stripe (test mode)
-$stripeSecretKey = 'sk_test_51TT74YCWRHNpYscdONALpVIvgDePwNNI5RHmxJ9pQ4rhbvVLkZ7AnKLy2eIDT7xYXhI5kuJ3cD31BVQi47Aw1F0n00gIUWIJ7p';
+$stripeSecretKey = '';   // lena secret key for stripe
 
 // Récupère les infos de la facture (vérification appartenance + statut)
 try {

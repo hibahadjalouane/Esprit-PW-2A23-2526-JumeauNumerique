@@ -40,7 +40,7 @@ if (!$sessionId || !$id_facture) {
     stockerResultatEtRediriger($paiement_ok, $ticket_ok, $email_ok, $id_ticket, $date_expiration, $erreur);
 }
 
-$stripeSecretKey = 'sk_test_51TT74YCWRHNpYscdONALpVIvgDePwNNI5RHmxJ9pQ4rhbvVLkZ7AnKLy2eIDT7xYXhI5kuJ3cD31BVQi47Aw1F0n00gIUWIJ7p';
+$stripeSecretKey = '';   //lena nekteb secret key 
 
 // Etape 1 : Vérifie la session Stripe côté serveur
 $ch = curl_init();

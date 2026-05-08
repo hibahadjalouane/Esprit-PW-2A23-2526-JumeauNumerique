@@ -17,8 +17,8 @@ function envoyerEmailConfirmation(array $destinataire, array $facture, array $ti
 {
     require_once __DIR__ . '/../../../vendor/autoload.php';
 
-    $gmailUser = getenv('GMAIL_USER') ?: 'yakinhidourii@gmail.com';
-    $gmailPass = getenv('GMAIL_PASS') ?: 'eqfv dxmm ysvz grtw';
+    $gmailUser = getenv('GMAIL_USER') ?: '';  // lena nekteb el mail
+    $gmailPass = getenv('GMAIL_PASS') ?: '';  //lena nekteb el app password
 
     //$gmailUser = $_ENV['GMAIL_USER'];
     //$gmailPass = $_ENV['GMAIL_PASS'];

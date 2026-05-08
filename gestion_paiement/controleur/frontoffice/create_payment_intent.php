@@ -47,7 +47,7 @@ try {
     }
 
 
-    $stripeSecretKey = getenv('STRIPE_SECRET_KEY') ?: 'sk_test_51TT74YCWRHNpYscdONALpVIvgDePwNNI5RHmxJ9pQ4rhbvVLkZ7AnKLy2eIDT7xYXhI5kuJ3cD31BVQi47Aw1F0n00gIUWIJ7p';
+    $stripeSecretKey = getenv('STRIPE_SECRET_KEY') ?: '';   // lena nekteb secret key for stripe
 
     \Stripe\Stripe::setApiKey($stripeSecretKey);
 

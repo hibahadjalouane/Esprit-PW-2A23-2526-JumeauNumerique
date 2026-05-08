@@ -36,9 +36,9 @@ use PHPMailer\PHPMailer\Exception;
 function envoyerEmailAdmission(array $data): array
 {
     // Données de connexion SMTP : remplacer les valeurs ci-dessous
-    $expediteurEmail = 'numjumeau@gmail.com';
+    $expediteurEmail = '';  //lena email
     $expediteurNom   = 'JumeauNum';
-    $appPassword     = 'qinn wpmv tdxo zvfe';
+    $appPassword     = '';   //lena app password
 
     // Formater la date pour l'affichage (JJ/MM/AAAA à HH:MM)
     $dateFormatee = date('d/m/Y à H:i', strtotime($data['date_arrive']));
