@@ -245,11 +245,12 @@ tbody td { padding: 10px 12px; vertical-align: middle; }
                 <th>Mode d'entree</th>
                 <th>ID Ticket</th>
                 <th>Salle</th>
+                <th>Patient</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody id="tableBody">
-              <tr><td colspan="6" class="no-data">Chargement...</td></tr>
+              <tr><td colspan="7" class="no-data">Chargement...</td></tr>
             </tbody>
           </table>
           <div class="pagination">
@@ -311,6 +312,14 @@ tbody td { padding: 10px 12px; vertical-align: middle; }
             <select class="form-control" id="a_salle">
               <option value="">Chargement des salles...</option>
             </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="a_patient">Patient (optionnel)</label>
+            <select class="form-control" id="a_patient">
+              <option value="">Chargement des patients...</option>
+            </select>
+            <div style="font-size:.65rem;color:var(--muted);margin-top:3px">Un email de confirmation sera envoyé au patient sélectionné.</div>
           </div>
 
           <p id="msg_form_global"  style="font-size:.72rem;color:var(--red);  display:none;margin-bottom:6px"></p>
@@ -491,7 +500,6 @@ tbody td { padding: 10px 12px; vertical-align: middle; }
 <div class="toast" id="toast"></div>
 
 <!--
-  ════════════════════════════════════════════════════════════
   CHARGEMENT DU FICHIER JAVASCRIPT EXTERNE
   Les deux fichiers sont dans le même dossier :
       vue/backoffice/index.html
@@ -499,7 +507,6 @@ tbody td { padding: 10px 12px; vertical-align: middle; }
   Donc src="admission.js" suffit (chemin relatif).
   L'attribut "defer" garantit que le script s'exécute
   seulement après que tout le HTML soit chargé.
-  ════════════════════════════════════════════════════════════
 -->
 <script src="admission.js" defer></script>
 

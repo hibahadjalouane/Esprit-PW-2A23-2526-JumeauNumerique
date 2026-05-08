@@ -1,0 +1,65 @@
+chemin
+
+C:\xampp\htdocs\
+│
+├── assets\
+│
+├── projetapp\
+│   ├── assets\
+│
+│   ├── gestion_user\
+│   │   ├── modele\
+│   │   ├── controller\
+│   │   │   ├── backoffice\
+│   │   │   └── frontoffice\
+│   │   └── vue\
+│   │       ├── backoffice\
+│   │       └── frontoffice\
+│
+│   ├── gestion_paiement\
+│   │   ├── modele\
+│   │   ├── controller\
+│   │   │   ├── backoffice\
+│   │   │   └── frontoffice\
+│   │   │       ├── get_factures.php
+│   │   │       ├── logout_paiement.php
+│   │   │       └── payer_facture.php
+│   │   └── vue\
+│   │       ├── backoffice\
+│   │       └── frontoffice\
+│
+│   ├── gestion_admission\
+│   │   ├── modele\
+│   │   ├── controller\
+│   │   │   ├── backoffice\
+│   │   │   └── frontoffice\
+│   │   └── vue\
+│   │       ├── backoffice\
+│   │       └── frontoffice\
+│
+│   ├── gestion_rdv\
+│   │   ├── modele\
+│   │   ├── controller\
+│   │   │   ├── backoffice\
+│   │   │   └── frontoffice\
+│   │   └── vue\
+│   │       ├── backoffice\
+│   │       └── frontoffice\
+│
+│   ├── gestion_ressource\
+│   │   ├── modele\
+│   │   ├── controller\
+│   │   │   ├── backoffice\
+│   │   │   └── frontoffice\
+│   │   └── vue\
+│   │       ├── backoffice\
+│   │       └── frontoffice\
+│
+│   └── gestion_dossier\
+│       ├── modele\
+│       ├── controller\
+│       │   ├── backoffice\
+│       │   └── frontoffice\
+│       └── vue\
+│           ├── backoffice\
+│           └── frontoffice\

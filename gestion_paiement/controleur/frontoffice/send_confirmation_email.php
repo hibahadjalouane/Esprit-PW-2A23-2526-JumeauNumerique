@@ -1,11 +1,5 @@
 <?php
-/**
- * send_confirmation_email.php
- * Chemin : gestion_paiement/controleur/frontoffice/send_confirmation_email.php
- *
- * Fonction qui envoie un email de confirmation de paiement via PHPMailer + Gmail SMTP.
- * Ce fichier est inclus par payer_facture.php, il n'est pas appelé directement.
- */
+
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
@@ -21,13 +15,13 @@ use PHPMailer\PHPMailer\Exception;
  */
 function envoyerEmailConfirmation(array $destinataire, array $facture, array $ticket): array
 {
-    // Charge Composer (PHPMailer)
     require_once __DIR__ . '/../../../vendor/autoload.php';
 
-    // Identifiants Gmail — utilise les variables d'environnement si disponibles
-    // Sinon remplace les valeurs par défaut par les tiennes
     $gmailUser = getenv('GMAIL_USER') ?: 'yakinhidourii@gmail.com';
     $gmailPass = getenv('GMAIL_PASS') ?: 'eqfv dxmm ysvz grtw';
+
+    //$gmailUser = $_ENV['GMAIL_USER'];
+    //$gmailPass = $_ENV['GMAIL_PASS'];
 
     // Formatage des dates pour l'affichage dans l'email
     $dateCreation   = date('d/m/Y à H:i:s', strtotime($ticket['date_creation']));

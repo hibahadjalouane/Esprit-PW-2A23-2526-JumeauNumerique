@@ -46,6 +46,7 @@ async function testConnection() {
       loadSallesDropdown();
       loadSalles();
       loadMedecins();
+      loadPatients();
       prefetchAdmissionIds();
     } else {
       showConnError(r.error);
@@ -191,6 +192,7 @@ function renderTable() {
     const date   = a.date_arrive_relle ? String(a.date_arrive_relle).split(' ')[0] : 'Inconnue';
     const ticket = a.id_ticket   ? `#${a.id_ticket}`   : 'Aucun';
     const salle  = a.salle_numero ? `Salle ${a.salle_numero} (#${a.id_salle})` : 'Aucune';
+    const patient = a.patient_nom_complet ? esc(a.patient_nom_complet) + ` <span class="id-cell">(#${esc(a.id_patient)})</span>` : '<span style="color:var(--muted)">Non défini</span>';
     const [mCls, mLabel] = modeMap[a.mode_entree] || ['badge-autre', a.mode_entree || 'Inconnu'];
 
     return `<tr>
@@ -199,6 +201,7 @@ function renderTable() {
       <td><span class="badge ${mCls}">${esc(mLabel)}</span></td>
       <td class="id-cell">${esc(ticket)}</td>
       <td>${esc(salle)}</td>
+      <td>${patient}</td>
       <td>
         <div class="actions-cell">
           <button class="icon-btn" onclick="editAdmission(${a.id_admission})" title="Modifier">
@@ -276,7 +279,36 @@ async function loadSallesDropdown() {
 }
 
 
-// VALIDATION ADMISSION
+// CHARGER LES PATIENTS (id_role = 1) pour le dropdown du formulaire admission
+async function loadPatients() {
+  try {
+    const fd = new FormData();
+    fd.append('action', 'getPatients');
+    const res = await fetch(CRUD_ADMISSION, { method: 'POST', body: fd });
+    const r   = await res.json();
+    const sel = document.getElementById('a_patient');
+    if (!sel) return;
+    if (r.success && r.data && r.data.length > 0) {
+      sel.innerHTML = '<option value="">Aucun (optionnel)...</option>';
+      r.data.forEach(p => {
+        const opt       = document.createElement('option');
+        opt.value       = p.id_user;
+        const label     = [p.Nom, p.Prenom].filter(Boolean).join(' ');
+        opt.textContent = label ? `${label} (#${p.id_user})` : `Patient #${p.id_user}`;
+        sel.appendChild(opt);
+      });
+    } else {
+      sel.innerHTML = '<option value="">Aucun patient trouve</option>';
+    }
+  } catch (e) {
+    console.error('loadPatients error:', e);
+    const sel = document.getElementById('a_patient');
+    if (sel) sel.innerHTML = '<option value="">Erreur chargement patients</option>';
+  }
+}
+
+
+
 // Retourne true si tout est OK. Affiche les erreurs sous les champs sinon.
 async function validateAdmission() {
   let ok = true;
@@ -339,7 +371,8 @@ async function submitAdmission() {
     date_arrive_relle: document.getElementById('a_date').value,
     mode_entree:       document.getElementById('a_mode').value,
     id_ticket:         document.getElementById('a_ticket').value,
-    id_salle:          document.getElementById('a_salle').value
+    id_salle:          document.getElementById('a_salle').value,
+    id_patient:        document.getElementById('a_patient').value
   };
 
   try {
@@ -347,7 +380,9 @@ async function submitAdmission() {
     if (r.success) {
       const s = document.getElementById('msg_form_success');
       s.textContent = r.message; s.style.display = 'block';
-      showToast(r.message, 'success');
+      // Couleur différente si email non envoyé
+      s.style.color = (r.email_envoye === false) ? 'var(--amber)' : 'var(--green)';
+      showToast(r.message, r.email_envoye === false ? 'error' : 'success');
       resetForm();
       loadAdmissions();
       loadTickets();
@@ -394,6 +429,7 @@ async function editAdmission(id) {
   showTicketInfo();
 
   document.getElementById('a_salle').value = a.id_salle || '';
+  document.getElementById('a_patient').value = a.id_patient || '';
 
   document.querySelector('.right-panel').scrollIntoView({ behavior: 'smooth' });
 }
@@ -426,6 +462,7 @@ function resetForm() {
   document.getElementById('a_mode').value    = '';
   document.getElementById('a_ticket').value  = '';
   document.getElementById('a_salle').value   = '';
+  document.getElementById('a_patient').value = '';
   document.getElementById('ticketInfo').className = 'ticket-info';
   clearErrors(['a_id', 'a_date', 'a_mode', 'a_ticket']);
   hide('msg_form_global');
@@ -435,13 +472,14 @@ function resetForm() {
 
 // EXPORT CSV ADMISSIONS
 function exportCSV() {
-  const headers = ['ID Admission', "Date d'arrivee", "Mode d'entree", 'ID Ticket', 'ID Salle'];
+  const headers = ['ID Admission', "Date d'arrivee", "Mode d'entree", 'ID Ticket', 'ID Salle', 'Patient'];
   const rows = allAdmissions.map(a => [
     a.id_admission,
     (a.date_arrive_relle || '').split(' ')[0],
     a.mode_entree,
     a.id_ticket  || '',
-    a.id_salle   || ''
+    a.id_salle   || '',
+    a.patient_nom_complet || ''
   ]);
   const csv  = [headers, ...rows].map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

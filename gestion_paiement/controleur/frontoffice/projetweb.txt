@@ -1,0 +1,68 @@
+chemin
+htdocs in my laptop is in here :    C:\xampp\htdocs
+
+htdocs
+   assets
+   projetapp
+      assets
+      gestion_users
+         modele
+         vue
+            backoffice
+            frontoffice
+         controller
+            backoffice
+            frontoffice
+      gestion_paiement
+         modele
+         vue
+            backoffice
+            frontoffice
+         controller
+            backoffice
+            frontoffice
+      gestion_admission
+         modele
+         vue
+            backoffice
+            frontoffice
+         controller
+            backoffice
+            frontoffice
+      gestion_rdv
+         modele
+         vue
+            backoffice
+            frontoffice
+         controller
+            backoffice
+            frontoffice
+      gestion_ressource
+         modele
+         vue
+            backoffice
+            frontoffice
+         controller
+            backoffice
+            frontoffice
+      gestion_dossier
+         modele
+         vue
+            backoffice
+            frontoffice
+         controller
+            backoffice
+            frontoffice
+      
+      tableau_bord
+         dashboard_api.php
+      bord.html
+      inc_session.php
+
+
+
+modele : have a php file, in which we store the classes or entités and its attributes.
+controller: we store in it all of the php files needed for the projuct ( crud .. etc)
+vue: we store in it the design; html files and javascript
+
+in each of controller and vue we have backoffice nd frontoffice, and in each of those we will put the right corresponding files and interfaces. 

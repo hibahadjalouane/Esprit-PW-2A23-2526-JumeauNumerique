@@ -15,8 +15,7 @@ checkSession([1]);
 
 require_once __DIR__ . '/../../modele/config.php';
 
-// Charge l'autoloader Composer (Stripe SDK installé via composer)
-// Le dossier vendor est à la racine du projet
+
 require_once __DIR__ . '/../../../vendor/autoload.php';
 
 $pdo = config::getConnexion();
@@ -47,14 +46,11 @@ try {
         exit;
     }
 
-    // Clé secrète Stripe — stockée dans une variable d'environnement ou ici en constante
-    // Pour production : utilise $_ENV['STRIPE_SECRET_KEY'] ou putenv()
-    // Pour le dev local XAMPP, on peut la définir directement ici
+
     $stripeSecretKey = getenv('STRIPE_SECRET_KEY') ?: 'sk_test_51TT74YCWRHNpYscdONALpVIvgDePwNNI5RHmxJ9pQ4rhbvVLkZ7AnKLy2eIDT7xYXhI5kuJ3cD31BVQi47Aw1F0n00gIUWIJ7p';
 
     \Stripe\Stripe::setApiKey($stripeSecretKey);
 
-    // Stripe travaille en centimes (entier), donc on multiplie par 100
     $montantCentimes = (int) round((float) $facture['montant'] * 100);
 
     $paymentIntent = \Stripe\PaymentIntent::create([

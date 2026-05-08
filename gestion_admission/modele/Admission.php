@@ -5,25 +5,31 @@ class Admission {
     private $mode_entree;
     private $id_ticket;
     private $id_salle;
+    private $id_patient;
 
-    public function __construct($id_admission, $date_arrive_relle, $mode_entree, $id_ticket, $id_salle) {
+    public function __construct($id_admission, $date_arrive_relle, $mode_entree, $id_ticket, $id_salle, $id_patient = null) {
         $this->id_admission      = $id_admission;
         $this->date_arrive_relle = $date_arrive_relle;
         $this->mode_entree       = $mode_entree;
         $this->id_ticket         = $id_ticket;
         $this->id_salle          = $id_salle;
+        $this->id_patient        = $id_patient;
     }
 
+    // Getters
     public function getIdAdmission()     { return $this->id_admission; }
     public function getDateArriveRelle() { return $this->date_arrive_relle; }
     public function getModeEntree()      { return $this->mode_entree; }
     public function getIdTicket()        { return $this->id_ticket; }
     public function getIdSalle()         { return $this->id_salle; }
+    public function getIdPatient()       { return $this->id_patient; }
 
+    // Setters
     public function setIdAdmission($v)     { $this->id_admission = $v; }
     public function setDateArriveRelle($v) { $this->date_arrive_relle = $v; }
     public function setModeEntree($v)      { $this->mode_entree = $v; }
     public function setIdTicket($v)        { $this->id_ticket = $v; }
     public function setIdSalle($v)         { $this->id_salle = $v; }
+    public function setIdPatient($v)       { $this->id_patient = $v; }
 }
 ?>
