@@ -146,7 +146,8 @@ async function confirmBan() {
   const notifSMS   = document.getElementById('notifSMS').checked   ? '1' : '0';
 
   const btn = document.getElementById('banConfirmBtn');
-  btn.disabled = true; btn.textContent = 'Traitement...';
+  btn.disabled = true;
+  btn.textContent = 'Traitement...';
 
   const fd = new FormData();
   fd.append('action',       'changeStatutWithAlert');
@@ -159,16 +160,21 @@ async function confirmBan() {
   try {
     const r = await fetch(CRUD_USER_A, { method:'POST', body:fd });
     const j = await r.json();
+    
     closeBanModal();
+    
     if (j.success) {
-      showToast('✓ ' + j.message, 'success');
-      loadStats(); loadUsers();
+      showToast('✓ ' + (j.message || 'Statut mis à jour avec succès'), 'success');
+      loadStats();
+      loadUsers();        // recharge le tableau
     } else {
-      showToast(j.error || 'Erreur', 'error');
+      showToast(j.error || 'Erreur lors du changement de statut', 'error');
     }
   } catch(e) {
     closeBanModal();
     showToast('Erreur réseau', 'error');
+  } finally {
+    btn.disabled = false;
   }
 }
 
@@ -229,12 +235,32 @@ function renderTable() {
     const roleLbl   = ROLE_LABELS[u.id_role]  || 'Inconnu';
     const roleCls   = ROLE_CLASSES[u.id_role] || 'role-patient';
     const isBanned  = u.statut_cmpt === 'bloqué' || u.statut_cmpt === 'bloque';
-    const statusCls = isBanned ? 'badge-bloque' : 'badge-actif';
-    const statusLbl = isBanned ? 'Bloqué' : 'Actif';
+    const isPending = u.statut_cmpt === 'en_attente';
+    const statusCls = isBanned ? 'badge-bloque' : isPending ? 'badge-pending' : 'badge-actif';
+    const statusLbl = isBanned ? 'Bloqué' : isPending ? 'En attente' : 'Actif';
 
     const roleOptions = [1,2,3,4].map(r =>
       `<option value="${r}" ${u.id_role == r ? 'selected':''}>${ROLE_LABELS[r]}</option>`
     ).join('');
+
+    // Bouton d'action selon le statut
+    let actionBtn = '';
+    if (isPending) {
+      actionBtn = `<button class="icon-btn ok" onclick="approvePending(${u.id_user},'${esc(name)}',${u.id_role})" title="Approuver le compte">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+      </button>
+      <button class="icon-btn warn" onclick="rejectPending(${u.id_user},'${esc(name)}')" title="Refuser et supprimer">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg>
+      </button>`;
+    } else if (isBanned) {
+      actionBtn = `<button class="icon-btn ok" onclick="openBanModal(${u.id_user},'${esc(name)}','actif')" title="Débloquer">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+      </button>`;
+    } else {
+      actionBtn = `<button class="icon-btn warn" onclick="openBanModal(${u.id_user},'${esc(name)}','bloqué')" title="Bloquer">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg>
+      </button>`;
+    }
 
     return `<tr>
       <td class="id-cell">${esc(u.id_user)}</td>
@@ -253,20 +279,10 @@ function renderTable() {
       <td><span class="status-dot ${statusCls}">${statusLbl}</span></td>
       <td>
         <div class="actions-cell">
-          <select class="role-select" onchange="changeRole(${u.id_user}, this.value)" title="Changer le rôle">
+          <select class="role-select" onchange="changeRole(${u.id_user}, this.value)" title="Changer le rôle" ${isPending ? 'disabled title="Approuver d\'abord"' : ''}>
             ${roleOptions}
           </select>
-          ${isBanned
-            ? `<button class="icon-btn ok" onclick="openBanModal(${u.id_user},'${esc(name)}','actif')" title="Débloquer">
-                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
-               </button>`
-            : `<button class="icon-btn warn" onclick="openBanModal(${u.id_user},'${esc(name)}','bloqué')" title="Bloquer">
-                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg>
-               </button>`
-          }
-          <button class="icon-btn" onclick="editUser(${u.id_user})" title="Modifier le profil">
-  <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-</button>
+          ${actionBtn}
           <button class="icon-btn del" onclick="deleteUser(${u.id_user}, '${esc(name)}')" title="Supprimer">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
           </button>
@@ -293,6 +309,35 @@ async function changeRole(idUser, newRole) {
     const r = await fetch(CRUD_USER_A, {method:'POST',body:fd});
     const j = await r.json();
     if (j.success) { showToast(`Rôle → ${ROLE_LABELS[newRole]}`, 'success'); loadStats(); loadUsers(); }
+    else showToast(j.error||'Erreur','error');
+  } catch(e) { showToast('Erreur réseau','error'); }
+}
+
+// ── APPROUVER UN COMPTE EN ATTENTE (depuis supadmin) ─────────────────────────
+async function approvePending(idUser, name, role) {
+  if (!confirm(`Approuver et activer le compte de "${name}" avec le rôle ${ROLE_LABELS[role]} ?`)) return;
+  const fd = new FormData();
+  fd.append('action',      'changeStatut');
+  fd.append('id_user',     idUser);
+  fd.append('statut',      'actif');
+  try {
+    const r = await fetch(CRUD_USER_A, {method:'POST',body:fd});
+    const j = await r.json();
+    if (j.success) { showToast(`✓ Compte de ${name} approuvé !`, 'success'); loadStats(); loadUsers(); }
+    else showToast(j.error||'Erreur','error');
+  } catch(e) { showToast('Erreur réseau','error'); }
+}
+
+// ── REFUSER UN COMPTE EN ATTENTE (depuis supadmin) ────────────────────────────
+async function rejectPending(idUser, name) {
+  if (!confirm(`Refuser et supprimer définitivement le compte de "${name}" ?`)) return;
+  const fd = new FormData();
+  fd.append('action',  'deleteUser');
+  fd.append('id_user', idUser);
+  try {
+    const r = await fetch(CRUD_USER_A, {method:'POST',body:fd});
+    const j = await r.json();
+    if (j.success) { showToast(`Compte de ${name} refusé et supprimé.`, 'success'); loadStats(); loadUsers(); }
     else showToast(j.error||'Erreur','error');
   } catch(e) { showToast('Erreur réseau','error'); }
 }
@@ -332,7 +377,4 @@ function showToast(msg, type='success') {
 
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-function editUser(idUser) {
-  window.location.href = '../backoffice/profil.html?id_user=' + idUser;
 }

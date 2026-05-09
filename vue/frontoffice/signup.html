@@ -167,6 +167,22 @@
     .success-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; }
     .success-sub { color: var(--muted); font-size: .88rem; line-height: 1.6; margin-bottom: 28px; }
 
+    /* ── ROLE PICKER ── */
+    .role-picker { display:flex; gap:8px; margin-top:4px; }
+    .role-option {
+      flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+      padding:12px 6px; border:1.5px solid var(--border); border-radius:10px;
+      background:#f8f9fd; font-family:inherit; font-size:.78rem; font-weight:600;
+      color:var(--muted); cursor:pointer; transition:all .18s; line-height:1.2;
+    }
+    .role-option svg { width:20px; height:20px; }
+    .role-option:hover { border-color:var(--primary); color:var(--primary); background:var(--primary-lt); }
+    .role-option.active { border-color:var(--primary); background:var(--primary-lt); color:var(--primary); }
+    .role-info-pending {
+      display:none; margin-top:8px; background:#fef3c7; border:1px solid #fcd34d;
+      border-radius:8px; padding:9px 12px; font-size:.76rem; color:#92400e; line-height:1.5;
+    }
+
     /* ── FOOTER ── */
     footer { background: var(--surface); border-top: 1px solid var(--border); padding: 16px 52px; display: flex; justify-content: space-between; align-items: center; font-size: .78rem; color: var(--muted); }
     footer a { color: var(--muted); text-decoration: none; margin-left: 20px; }
@@ -221,7 +237,7 @@
       <!-- ── ÉTAPE 1 : Identité ── -->
       <div id="step1">
         <div class="form-title">Créer votre compte</div>
-        <div class="form-sub">Tous les nouveaux comptes sont enregistrés comme profils <strong>Patient</strong> par défaut.</div>
+        <div class="form-sub">Choisissez votre type de compte. Les demandes <strong>Admin</strong> et <strong>Médecin</strong> nécessitent une approbation.</div>
 
         <div class="form-group">
           <label class="form-label" for="nom">Nom</label>
@@ -259,6 +275,28 @@
           </div>
         </div>
 
+        <!-- ── TYPE DE COMPTE ── -->
+        <div class="form-group">
+          <label class="form-label">Type de compte</label>
+          <div class="role-picker">
+            <button type="button" class="role-option active" onclick="selectRole(this,1)">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Patient
+            </button>
+            <button type="button" class="role-option" onclick="selectRole(this,2)">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+              Admin
+            </button>
+            <button type="button" class="role-option" onclick="selectRole(this,3)">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              Médecin
+            </button>
+          </div>
+          <div class="role-info-pending" id="roleInfoPending">
+            ⏳ <strong>Approbation requise.</strong> Un email sera envoyé à l'administrateur pour valider votre demande. Votre compte sera activé après confirmation.
+          </div>
+        </div>
+
         <button class="btn-primary-full" onclick="nextStep1()">
           Continuer vers la vérification
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -282,8 +320,8 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="service">Service / Département (optionnel)</label>
+        <div class="form-group" id="serviceGroup" style="display:none">
+          <label class="form-label" for="service">Service / Département</label>
           <div class="input-wrap">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             <input class="form-control" type="text" id="service" placeholder="Ex : Cardiologie"/>
@@ -357,15 +395,15 @@
 
     <!-- ── ÉCRAN DE SUCCÈS ── -->
     <div id="signupSuccess">
-      <div class="success-icon">
+      <div class="success-icon" id="successIcon">
         <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
       </div>
-      <div class="success-title">Compte créé avec succès !</div>
+      <div class="success-title" id="successTitle">Compte créé avec succès !</div>
       <div class="success-sub">
         Bienvenue sur JumeauNum, <strong id="successName"></strong>.<br>
-        Votre compte patient a été créé. Vous pouvez maintenant vous connecter.
+        <span id="successMsg">Votre compte patient a été créé. Redirection en cours...</span>
       </div>
-      <a href="../../controleur/backoffice/login.html"  class="btn-primary-full" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;">
+      <a href="./login.html" id="successBtn" class="btn-primary-full" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;">
         Se connecter
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
@@ -383,6 +421,6 @@
   </div>
 </footer>
 
-<script src="signup.js" defer></script>
+<script src="signup.js?v=3"></script>
 </body>
 </html>

@@ -29,19 +29,22 @@ function sendEmail($to, $subject, $body) {
     }
 }
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
-
 session_start();
 
 require_once '../../modele/config.php';
 require_once '../../modele/User.php';
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
+
+$htmlActions = ['approveUser', 'rejectUser'];
+if (!in_array($action, $htmlActions)) {
+    header('Content-Type: application/json');
+}
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
 
 function sendAlertSMS($phone, $message) {
     error_log("[SMS ALERT] To: $phone | Msg: $message");
@@ -95,6 +98,11 @@ switch ($action) {
                 break;
             }
 
+            if ($user['statut_cmpt'] === 'en_attente') {
+                echo json_encode(['success' => false, 'error' => 'Votre compte est en attente d\'approbation par un administrateur. Vous serez notifié par email dès son activation.', 'pending' => true]);
+                break;
+            }
+
             $ins = $db->prepare("INSERT INTO login_attempts (email, ip_address, success, attempt_time) VALUES (:e,:ip,1,NOW())");
             $ins->execute(['e' => $email, 'ip' => $ip]);
             $upd = $db->prepare("UPDATE user SET last_login = NOW() WHERE id_user = :id");
@@ -108,7 +116,14 @@ switch ($action) {
             $del = $db->prepare("DELETE FROM login_attempts WHERE email=:e AND success=0");
             $del->execute(['e' => $email]);
 
-            echo json_encode(['success' => true, 'message' => 'Connexion réussie. Bienvenue ' . $user['prenom'] . ' !', 'id_user' => $user['id_user'], 'id_role' => $user['id_role'], 'nom' => $user['nom'], 'prenom' => $user['prenom'], 'redirect' => '../../vue/frontoffice/medecins.html']);
+            if ($user['id_role'] === 1) {
+                $redirectPage = '../../vue/frontoffice/patient.html';
+            } elseif ($user['id_role'] === 3) {
+                $redirectPage = '../../vue/frontoffice/medecin_dashboard.html';
+            } else {
+                $redirectPage = '../../vue/backoffice/supadmin.html';
+            }
+            echo json_encode(['success' => true, 'message' => 'Connexion réussie. Bienvenue ' . $user['prenom'] . ' !', 'id_user' => $user['id_user'], 'id_role' => $user['id_role'], 'nom' => $user['nom'], 'prenom' => $user['prenom'], 'redirect' => $redirectPage]);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
@@ -153,7 +168,14 @@ switch ($action) {
             $_SESSION['user_name']  = $user['prenom'] . ' ' . $user['nom'];
             $_SESSION['user_email'] = $user['email'];
 
-            echo json_encode(['success' => true, 'message' => 'Connexion ' . ucfirst($provider) . ' réussie !', 'id_user' => $user['id_user'], 'id_role' => $user['id_role'], 'redirect' => '../../vue/frontoffice/medecins.html']);
+            if ($user['id_role'] === 1) {
+                $redirectPage = '../../vue/frontoffice/patient.html';
+            } elseif ($user['id_role'] === 3) {
+                $redirectPage = '../../vue/frontoffice/medecin_dashboard.html';
+            } else {
+                $redirectPage = '../../vue/backoffice/supadmin.html';
+            }
+            echo json_encode(['success' => true, 'message' => 'Connexion ' . ucfirst($provider) . ' réussie !', 'id_user' => $user['id_user'], 'id_role' => $user['id_role'], 'redirect' => $redirectPage]);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
@@ -193,7 +215,14 @@ switch ($action) {
             $upd = $db->prepare("UPDATE user SET last_login=NOW() WHERE id_user=:id");
             $upd->execute(['id' => $userId]);
 
-            echo json_encode(['success' => true, 'message' => 'Reconnaissance faciale réussie !', 'id_user' => $user['id_user'], 'id_role' => $user['id_role'], 'redirect' => '../../vue/frontoffice/medecins.html']);
+            if ($user['id_role'] === 1) {
+                $redirectPage = '../../vue/frontoffice/patient.html';
+            } elseif ($user['id_role'] === 3) {
+                $redirectPage = '../../vue/frontoffice/medecin_dashboard.html';
+            } else {
+                $redirectPage = '../../vue/backoffice/supadmin.html';
+            }
+            echo json_encode(['success' => true, 'message' => 'Reconnaissance faciale réussie !', 'id_user' => $user['id_user'], 'id_role' => $user['id_role'], 'redirect' => $redirectPage]);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
@@ -312,45 +341,78 @@ switch ($action) {
         break;
 
     case 'changeStatutWithAlert':
-        try {
-            $db      = config::getConnexion();
-            $idUser  = intval($_POST['id_user'] ?? 0);
-            $statut  = $_POST['statut'] ?? '';
-            $raison  = trim($_POST['raison'] ?? 'Aucune raison spécifiée.');
-            $notifEmail = ($_POST['notify_email'] ?? '0') === '1';
-            $notifSMS   = ($_POST['notify_sms']   ?? '0') === '1';
+    try {
+        $db      = config::getConnexion();
+        $idUser  = intval($_POST['id_user'] ?? 0);
+        $statut  = trim($_POST['statut'] ?? '');
+        $raison  = trim($_POST['raison'] ?? 'Aucune raison spécifiée.');
 
-            $upd = $db->prepare("UPDATE user SET statut_cmpt=:s WHERE id_user=:id");
-            $upd->execute(['s' => $statut, 'id' => $idUser]);
+        $notifEmail = ($_POST['notify_email'] ?? '0') === '1';
+        $notifSMS   = ($_POST['notify_sms']   ?? '0') === '1';
 
-            $q = $db->prepare("SELECT nom, prenom, email FROM user WHERE id_user=:id");
-            $q->execute(['id' => $idUser]);
-            $user = $q->fetch();
+        if (!$idUser || empty($statut)) {
+            echo json_encode(['success' => false, 'error' => 'ID utilisateur ou statut manquant.']);
+            break;
+        }
 
-            if ($user) {
-                if ($statut === 'bloqué' || $statut === 'bloque') {
-                    $subject = 'JumeauNum - Votre compte a été suspendu';
-                    $body    = "<h2>Compte suspendu</h2><p>Bonjour {$user['prenom']} {$user['nom']},</p><p>Votre compte a été <strong>suspendu</strong>.</p><p><strong>Raison :</strong> $raison</p>";
-                    $smsMsg  = "JumeauNum: Votre compte a été suspendu. Raison: $raison.";
-                } else {
-                    $subject = 'JumeauNum - Votre compte a été réactivé';
-                    $body    = "<h2>Compte réactivé</h2><p>Bonjour {$user['prenom']} {$user['nom']},</p><p>Votre compte a été <strong>réactivé</strong>.</p>";
-                    $smsMsg  = "JumeauNum: Votre compte a été réactivé.";
-                }
+        // Mise à jour du statut
+        $upd = $db->prepare("UPDATE user SET statut_cmpt = :statut WHERE id_user = :id");
+        $result = $upd->execute(['statut' => $statut, 'id' => $idUser]);
 
-                if ($notifEmail) sendEmail($user['email'], $subject, $body);
-                if ($notifSMS)   sendAlertSMS('+21600000000', $smsMsg);
+        if (!$result) {
+            echo json_encode(['success' => false, 'error' => 'Échec de la mise à jour en base.']);
+            break;
+        }
 
-                $log = $db->prepare("INSERT INTO user_action_log (id_user, action, detail, done_by, done_at) VALUES (:id, :act, :det, :by, NOW())");
-                $log->execute(['id' => $idUser, 'act' => ($statut === 'bloqué' || $statut === 'bloque') ? 'BAN' : 'UNBAN', 'det' => $raison, 'by' => $_SESSION['user_id'] ?? 0]);
+        // Récupérer les infos utilisateur
+        $q = $db->prepare("SELECT nom, prenom, email FROM user WHERE id_user = :id");
+        $q->execute(['id' => $idUser]);
+        $user = $q->fetch();
+
+        if ($user) {
+            if (in_array(strtolower($statut), ['bloqué', 'bloque', 'suspendu', 'blocked'])) {
+                $subject = 'JumeauNum - Votre compte a été suspendu';
+                $body    = "<h2>Compte suspendu</h2>
+                            <p>Bonjour {$user['prenom']} {$user['nom']},</p>
+                            <p>Votre compte a été <strong>suspendu</strong>.</p>
+                            <p><strong>Raison :</strong> $raison</p>";
+                $smsMsg  = "JumeauNum: Votre compte a été suspendu. Raison: $raison.";
+            } else {
+                $subject = 'JumeauNum - Votre compte a été réactivé';
+                $body    = "<h2>Compte réactivé</h2>
+                            <p>Bonjour {$user['prenom']} {$user['nom']},</p>
+                            <p>Votre compte a été <strong>réactivé</strong> avec succès.</p>
+                            <p>Vous pouvez maintenant vous connecter normalement.</p>";
+                $smsMsg  = "JumeauNum: Votre compte a été réactivé avec succès.";
             }
 
-            echo json_encode(['success' => true, 'message' => 'Statut mis à jour et notification envoyée.']);
-        } catch (Exception $e) {
-            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-        }
-        break;
+            if ($notifEmail) {
+                sendEmail($user['email'], $subject, $body);
+            }
+            if ($notifSMS) {
+                sendAlertSMS('+21600000000', $smsMsg);
+            }
 
+            // Log d'action
+            $log = $db->prepare("INSERT INTO user_action_log (id_user, action, detail, done_by, done_at) 
+                                 VALUES (:id, :act, :det, :by, NOW())");
+            $log->execute([
+                'id'  => $idUser,
+                'act' => in_array(strtolower($statut), ['bloqué','bloque','suspendu']) ? 'BAN' : 'UNBAN',
+                'det' => $raison,
+                'by'  => $_SESSION['user_id'] ?? 0
+            ]);
+        }
+
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Statut mis à jour avec succès.',
+            'new_statut' => $statut
+        ]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    break;
     case 'getLoginAttempts':
         try {
             $db = config::getConnexion();
@@ -412,14 +474,18 @@ switch ($action) {
 
     case 'signup':
         try {
-            $db = config::getConnexion();
-            $nom     = trim($_POST['nom']    ?? '');
-            $prenom  = trim($_POST['prenom'] ?? '');
-            $email   = trim($_POST['email']  ?? '');
-            $mdp     = $_POST['mot_de_passe'] ?? '';
-            $cin     = trim($_POST['cin']    ?? '');
-            $service = trim($_POST['service'] ?? '');
+            $db          = config::getConnexion();
+            $nom         = trim($_POST['nom']          ?? '');
+            $prenom      = trim($_POST['prenom']       ?? '');
+            $email       = trim($_POST['email']        ?? '');
+            $mdp         = $_POST['mot_de_passe']      ?? '';
+            $cin         = trim($_POST['cin']          ?? '');
+            $service     = trim($_POST['service']      ?? '');
+            $roleDemande = intval($_POST['role_demande'] ?? 1);
 
+            if (!in_array($roleDemande, [1, 2, 3])) $roleDemande = 1;
+
+            // Générer un ID unique
             $q = $db->prepare("SELECT id_user FROM user");
             $q->execute();
             $ids = array_column($q->fetchAll(), 'id_user');
@@ -435,36 +501,218 @@ switch ($action) {
             $chkCin->execute(['cin' => $cin]);
             if ((int)$chkCin->fetch()['cnt'] > 0) { echo json_encode(['success'=>false,'error'=>'Ce CIN est déjà utilisé.']); break; }
 
-            $user = new User($newId, $nom, $prenom, $email, password_hash($mdp, PASSWORD_BCRYPT), 'actif', $cin, $service, 1);
-            $sql  = "INSERT INTO user (id_user,nom,prenom,email,mot_de_passe,statut_cmpt,cin,service,id_role) VALUES (:id_user,:nom,:prenom,:email,:mot_de_passe,:statut_cmpt,:cin,:service,:id_role)";
-            $ins  = $db->prepare($sql);
-            $ins->execute(['id_user' => $user->getIdUser(), 'nom' => $user->getNom(), 'prenom' => $user->getPrenom(), 'email' => $user->getEmail(), 'mot_de_passe' => $user->getMdp(), 'statut_cmpt' => $user->getStatut(), 'cin' => $user->getCin(), 'service' => $user->getService(), 'id_role' => $user->getIdRole()]);
-
-            $_SESSION['user_id']    = $newId;
-            $_SESSION['user_role']  = 1;
-            $_SESSION['user_name']  = $prenom . ' ' . $nom;
-            $_SESSION['user_email'] = $email;
+            // Patient → actif immédiat | Admin/Médecin → en_attente
+            $needsApproval = ($roleDemande === 2 || $roleDemande === 3);
+            $statut        = $needsApproval ? 'en_attente' : 'actif';
+            // On enregistre le rôle demandé directement. Si en attente, l'approbation confirmera ce rôle.
+            $user = new User($newId, $nom, $prenom, $email, password_hash($mdp, PASSWORD_BCRYPT), $statut, $cin, $service, $roleDemande);
+            $ins  = $db->prepare("INSERT INTO user (id_user,nom,prenom,email,mot_de_passe,statut_cmpt,cin,service,id_role) VALUES (:id_user,:nom,:prenom,:email,:mot_de_passe,:statut_cmpt,:cin,:service,:id_role)");
+            $ins->execute([
+                'id_user'      => $user->getIdUser(),
+                'nom'          => $user->getNom(),
+                'prenom'       => $user->getPrenom(),
+                'email'        => $user->getEmail(),
+                'mot_de_passe' => $user->getMdp(),
+                'statut_cmpt'  => $user->getStatut(),
+                'cin'          => $user->getCin(),
+                'service'      => $user->getService(),
+                'id_role'      => $user->getIdRole()
+            ]);
 
             $prenomEsc = htmlspecialchars($prenom);
+            $nomEsc    = htmlspecialchars($nom);
             $emailEsc  = htmlspecialchars($email);
-            $subject = 'Bienvenue sur JumeauNum !';
-            $body = "<div style='font-family:Inter,sans-serif;max-width:600px;margin:auto;background:#f8faff;padding:32px;border-radius:16px'>
-              <div style='background:linear-gradient(135deg,#1e3a8a,#2563eb);border-radius:12px;padding:28px;text-align:center;margin-bottom:24px'>
-                <h1 style='color:white;font-size:1.6rem;margin:0'>JumeauNum</h1>
-                <p style='color:rgba(255,255,255,.8);margin:8px 0 0'>Plateforme de santé numérique</p>
-              </div>
-              <h2 style='color:#0f172a;font-size:1.2rem'>Bonjour $prenomEsc,</h2>
-              <p style='color:#475569;line-height:1.7'>Votre compte a été créé avec succès sur <strong>JumeauNum</strong>.</p>
-              <div style='background:#dbeafe;border-radius:10px;padding:16px;margin:20px 0'>
-                <p style='margin:0;color:#1e40af;font-size:.9rem'>Email : $emailEsc<br>Rôle : Patient</p>
-              </div>
-              <a href='http://localhost/gestion_users/vue/frontoffice/medecins.html' style='display:block;background:#2563eb;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:20px'>Accéder à la plateforme</a>
-            </div>";
-            sendEmail($email, $subject, $body);
 
-            echo json_encode(['success' => true, 'message' => 'Compte créé avec succès ! Bienvenue sur JumeauNum.', 'id_user' => $newId, 'redirect' => '../../vue/frontoffice/medecins.html']);
+            if ($needsApproval) {
+                // ── Token d'approbation sécurisé ──────────────────────────────
+                $secret     = hash('sha256', $newId . $email . 'JNSECRET2024');
+                $roleLabel  = ($roleDemande === 2) ? 'Admin' : 'Médecin';
+                $approveUrl = "http://localhost/gestion_users/controleur/backoffice/user_crud.php?action=approveUser&id_user={$newId}&role={$roleDemande}&token={$secret}";
+                $rejectUrl  = "http://localhost/gestion_users/controleur/backoffice/user_crud.php?action=rejectUser&id_user={$newId}&token={$secret}";
+
+                // Email à l'administrateur
+                $adminEmail   = 'nourchaari2005@gmail.com';
+                $adminSubject = "JumeauNum – Demande de compte $roleLabel – Action requise";
+                $adminBody    = "
+                <div style='font-family:Inter,sans-serif;max-width:620px;margin:auto;background:#f8faff;padding:32px;border-radius:16px'>
+                  <div style='background:linear-gradient(135deg,#1e3a8a,#2563eb);border-radius:12px;padding:28px;text-align:center;margin-bottom:24px'>
+                    <h1 style='color:white;font-size:1.5rem;margin:0'>JumeauNum</h1>
+                    <p style='color:rgba(255,255,255,.8);margin:8px 0 0'>Nouvelle demande de compte – Action requise</p>
+                  </div>
+                  <h2 style='color:#0f172a;font-size:1.05rem;margin-bottom:6px'>Demande de compte <span style='color:#2563eb'>$roleLabel</span></h2>
+                  <div style='background:#f1f5f9;border-radius:10px;padding:16px;margin-bottom:20px'>
+                    <table style='width:100%;font-size:.88rem;color:#334155;border-collapse:collapse'>
+                      <tr><td style='padding:5px 0;font-weight:600;width:130px'>Nom complet</td><td>$prenomEsc $nomEsc</td></tr>
+                      <tr><td style='padding:5px 0;font-weight:600'>Email</td><td>$emailEsc</td></tr>
+                      <tr><td style='padding:5px 0;font-weight:600'>Rôle demandé</td><td><strong style='color:#2563eb'>$roleLabel</strong></td></tr>
+                      <tr><td style='padding:5px 0;font-weight:600'>ID utilisateur</td><td>#$newId</td></tr>
+                    </table>
+                  </div>
+                  <div style='display:flex;gap:12px;flex-wrap:wrap'>
+                    <a href='$approveUrl' style='flex:1;min-width:140px;display:block;background:#16a34a;color:white;text-align:center;padding:14px 20px;border-radius:8px;text-decoration:none;font-weight:700'>✅ Approuver</a>
+                    <a href='$rejectUrl' style='flex:1;min-width:140px;display:block;background:#dc2626;color:white;text-align:center;padding:14px 20px;border-radius:8px;text-decoration:none;font-weight:700'>❌ Refuser</a>
+                  </div>
+                  <p style='color:#94a3b8;font-size:.75rem;margin-top:16px'>Cliquez sur Approuver pour activer le compte avec le rôle $roleLabel, ou Refuser pour le supprimer.</p>
+                </div>";
+                sendEmail($adminEmail, $adminSubject, $adminBody);
+
+                // Email de confirmation à l'utilisateur
+                $userSubject = 'JumeauNum – Votre demande est en cours de traitement';
+                $userBody    = "
+                <div style='font-family:Inter,sans-serif;max-width:600px;margin:auto;background:#f8faff;padding:32px;border-radius:16px'>
+                  <div style='background:linear-gradient(135deg,#1e3a8a,#2563eb);border-radius:12px;padding:28px;text-align:center;margin-bottom:24px'>
+                    <h1 style='color:white;font-size:1.5rem;margin:0'>JumeauNum</h1>
+                  </div>
+                  <h2 style='color:#0f172a;font-size:1.05rem'>Bonjour $prenomEsc,</h2>
+                  <p style='color:#475569;line-height:1.7'>Votre demande de compte <strong>$roleLabel</strong> sur JumeauNum a bien été reçue et est en attente d'approbation par un administrateur.</p>
+                  <div style='background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:14px;margin:16px 0'>
+                    <p style='margin:0;color:#92400e;font-size:.87rem'>⏳ Vous recevrez un email dès que votre compte sera activé.</p>
+                  </div>
+                </div>";
+                sendEmail($email, $userSubject, $userBody);
+
+                echo json_encode(['success' => true, 'en_attente' => true, 'message' => 'Demande soumise. En attente d\'approbation.', 'id_user' => $newId]);
+
+            } else {
+                // Patient → session immédiate
+                $_SESSION['user_id']    = $newId;
+                $_SESSION['user_role']  = 1;
+                $_SESSION['user_name']  = $prenom . ' ' . $nom;
+                $_SESSION['user_email'] = $email;
+
+                $subject = 'Bienvenue sur JumeauNum !';
+                $body = "<div style='font-family:Inter,sans-serif;max-width:600px;margin:auto;background:#f8faff;padding:32px;border-radius:16px'>
+                  <div style='background:linear-gradient(135deg,#1e3a8a,#2563eb);border-radius:12px;padding:28px;text-align:center;margin-bottom:24px'>
+                    <h1 style='color:white;font-size:1.5rem;margin:0'>JumeauNum</h1>
+                    <p style='color:rgba(255,255,255,.8);margin:8px 0 0'>Plateforme de santé numérique</p>
+                  </div>
+                  <h2 style='color:#0f172a;font-size:1.1rem'>Bonjour $prenomEsc,</h2>
+                  <p style='color:#475569;line-height:1.7'>Votre compte <strong>Patient</strong> a été créé avec succès sur JumeauNum.</p>
+                  <div style='background:#dbeafe;border-radius:10px;padding:14px;margin:16px 0'>
+                    <p style='margin:0;color:#1e40af;font-size:.88rem'>Email : $emailEsc<br>Rôle : Patient</p>
+                  </div>
+                  <a href='http://localhost/gestion_users/vue/frontoffice/patient.html' style='display:block;background:#2563eb;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:16px'>Accéder à la plateforme →</a>
+                </div>";
+                sendEmail($email, $subject, $body);
+
+                echo json_encode(['success' => true, 'en_attente' => false, 'message' => 'Compte créé avec succès !', 'id_user' => $newId]);
+            }
+
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+        break;
+
+    // ── APPROUVER UN COMPTE (clic depuis l'email) ─────────────────────────────
+    case 'approveUser':
+        // Ce cas répond en HTML (pas JSON) car c'est un lien d'email
+        header('Content-Type: text/html; charset=utf-8');
+        try {
+            $db     = config::getConnexion();
+            $idUser = intval($_GET['id_user'] ?? 0);
+            $role   = intval($_GET['role']    ?? 1);
+            $token  = $_GET['token'] ?? '';
+
+            $q = $db->prepare("SELECT * FROM user WHERE id_user = :id");
+            $q->execute(['id' => $idUser]);
+            $user = $q->fetch();
+
+            if (!$user) { echo "<div style='font-family:sans-serif;text-align:center;padding:60px;color:#dc2626'>❌ Utilisateur introuvable.</div>"; break; }
+
+            $expected = hash('sha256', $idUser . $user['email'] . 'JNSECRET2024');
+            if ($token !== $expected) { echo "<div style='font-family:sans-serif;text-align:center;padding:60px;color:#dc2626'>❌ Token invalide ou expiré.</div>"; break; }
+
+            if ($user['statut_cmpt'] !== 'en_attente') {
+                echo "<div style='font-family:sans-serif;text-align:center;padding:60px;color:#d97706'>⚠️ Ce compte a déjà été traité (statut : {$user['statut_cmpt']}).</div>";
+                break;
+            }
+
+            if (!in_array($role, [2, 3])) $role = 1;
+
+            // Activer le compte avec le bon rôle
+            $upd = $db->prepare("UPDATE user SET statut_cmpt = 'actif', id_role = :role WHERE id_user = :id");
+            $upd->execute(['role' => $role, 'id' => $idUser]);
+
+            $roleLabel = ($role === 2) ? 'Admin' : 'Médecin';
+            $prenomEsc = htmlspecialchars($user['prenom']);
+            $nomEsc    = htmlspecialchars($user['nom']);
+
+            // Notifier l'utilisateur de l'approbation
+            $subject = 'JumeauNum – Votre compte est maintenant actif !';
+            $body = "
+            <div style='font-family:Inter,sans-serif;max-width:600px;margin:auto;background:#f8faff;padding:32px;border-radius:16px'>
+              <div style='background:linear-gradient(135deg,#1e3a8a,#2563eb);border-radius:12px;padding:28px;text-align:center;margin-bottom:24px'>
+                <h1 style='color:white;font-size:1.5rem;margin:0'>JumeauNum</h1>
+                <p style='color:rgba(255,255,255,.8);margin:8px 0 0'>Compte approuvé</p>
+              </div>
+              <h2 style='color:#0f172a'>Bonjour $prenomEsc $nomEsc,</h2>
+              <p style='color:#475569;line-height:1.7'>Bonne nouvelle ! Votre compte <strong>$roleLabel</strong> sur JumeauNum a été <strong style='color:#16a34a'>approuvé et activé</strong>. Vous pouvez maintenant vous connecter.</p>
+              <a href='http://localhost/gestion_users/vue/frontoffice/login.html' style='display:block;background:#16a34a;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:20px'>Se connecter →</a>
+            </div>";
+            sendEmail($user['email'], $subject, $body);
+
+            echo "
+            <div style='font-family:Inter,sans-serif;max-width:500px;margin:60px auto;background:#f0fdf4;border:1px solid #86efac;border-radius:16px;padding:36px;text-align:center'>
+              <div style='font-size:3.5rem;margin-bottom:12px'>✅</div>
+              <h2 style='color:#15803d;margin-bottom:8px'>Compte approuvé !</h2>
+              <p style='color:#166534;line-height:1.6'>Le compte de <strong>$prenomEsc $nomEsc</strong> a été activé avec le rôle <strong>$roleLabel</strong>.<br>Un email de confirmation lui a été envoyé.</p>
+            </div>";
+
+        } catch (Exception $e) {
+            echo "<div style='font-family:sans-serif;padding:40px;color:#dc2626'>Erreur : " . htmlspecialchars($e->getMessage()) . "</div>";
+        }
+        break;
+
+    // ── REFUSER UN COMPTE (clic depuis l'email) ───────────────────────────────
+    case 'rejectUser':
+        header('Content-Type: text/html; charset=utf-8');
+        try {
+            $db     = config::getConnexion();
+            $idUser = intval($_GET['id_user'] ?? 0);
+            $token  = $_GET['token'] ?? '';
+
+            $q = $db->prepare("SELECT * FROM user WHERE id_user = :id");
+            $q->execute(['id' => $idUser]);
+            $user = $q->fetch();
+
+            if (!$user) { echo "<div style='font-family:sans-serif;text-align:center;padding:60px;color:#dc2626'>❌ Utilisateur introuvable.</div>"; break; }
+
+            $expected = hash('sha256', $idUser . $user['email'] . 'JNSECRET2024');
+            if ($token !== $expected) { echo "<div style='font-family:sans-serif;text-align:center;padding:60px;color:#dc2626'>❌ Token invalide.</div>"; break; }
+
+            if ($user['statut_cmpt'] !== 'en_attente') {
+                echo "<div style='font-family:sans-serif;text-align:center;padding:60px;color:#d97706'>⚠️ Ce compte a déjà été traité (statut : {$user['statut_cmpt']}).</div>";
+                break;
+            }
+
+            $prenomEsc = htmlspecialchars($user['prenom']);
+            $nomEsc    = htmlspecialchars($user['nom']);
+
+            // Notifier l'utilisateur du refus
+            $subject = 'JumeauNum – Votre demande de compte a été refusée';
+            $body = "
+            <div style='font-family:Inter,sans-serif;max-width:600px;margin:auto;background:#fff8f9;padding:32px;border-radius:16px'>
+              <div style='background:linear-gradient(135deg,#1e3a8a,#2563eb);border-radius:12px;padding:28px;text-align:center;margin-bottom:24px'>
+                <h1 style='color:white;font-size:1.5rem;margin:0'>JumeauNum</h1>
+              </div>
+              <h2 style='color:#0f172a'>Bonjour $prenomEsc,</h2>
+              <p style='color:#475569;line-height:1.7'>Votre demande de compte sur JumeauNum a été <strong style='color:#dc2626'>refusée</strong> par un administrateur. Pour plus d'informations, veuillez contacter le support.</p>
+            </div>";
+            sendEmail($user['email'], $subject, $body);
+
+            // Supprimer le compte en attente
+            $del = $db->prepare("DELETE FROM user WHERE id_user = :id AND statut_cmpt = 'en_attente'");
+            $del->execute(['id' => $idUser]);
+
+            echo "
+            <div style='font-family:Inter,sans-serif;max-width:500px;margin:60px auto;background:#fef2f2;border:1px solid #fca5a5;border-radius:16px;padding:36px;text-align:center'>
+              <div style='font-size:3.5rem;margin-bottom:12px'>❌</div>
+              <h2 style='color:#991b1b;margin-bottom:8px'>Demande refusée</h2>
+              <p style='color:#7f1d1d;line-height:1.6'>Le compte de <strong>$prenomEsc $nomEsc</strong> a été supprimé et l'utilisateur a été notifié par email.</p>
+            </div>";
+
+        } catch (Exception $e) {
+            echo "<div style='font-family:sans-serif;padding:40px;color:#dc2626'>Erreur : " . htmlspecialchars($e->getMessage()) . "</div>";
         }
         break;
 
@@ -586,12 +834,14 @@ switch ($action) {
             $db = config::getConnexion();
             $q  = $db->query("SELECT id_role, COUNT(*) as total FROM user GROUP BY id_role");
             $rows = $q->fetchAll();
-            $stats = ['patients'=>0,'medecins'=>0,'admins'=>0,'total'=>0];
+            $qp = $db->query("SELECT COUNT(*) as cnt FROM user WHERE statut_cmpt = 'en_attente'");
+            $pendingCount = (int)$qp->fetch()['cnt'];
+            $stats = ['patients'=>0,'medecins'=>0,'admins'=>0,'total'=>0,'pending'=>$pendingCount];
             foreach ($rows as $r) {
                 $stats['total'] += (int)$r['total'];
                 if ($r['id_role']==1) $stats['patients'] = (int)$r['total'];
-                if ($r['id_role']==3) $stats['medecins'] = (int)$r['total'];
                 if ($r['id_role']==2) $stats['admins']   = (int)$r['total'];
+                if ($r['id_role']==3) $stats['medecins'] = (int)$r['total'];
             }
             echo json_encode(['success'=>true,'data'=>$stats]);
         } catch (Exception $e) {

@@ -351,6 +351,20 @@ let faceDescriptor = null;
 let faceUserId = null;
 let faceModelsLoaded = false;
 
+function getRedirectForRole(roleId) {
+  switch(role) {
+    case 1: 
+      return './patient.html';                    // Patient
+    case 3: 
+      return './medecin_dashboard.html';          // Médecin
+    case 2:   // Admin
+    case 4:   // Super Admin
+  return '../backoffice/supadmin.html';
+  default:
+      return '../backoffice/supadmin.html';
+}
+}
+
 // ── ONGLETS ───────────────────────────────────────────────────────────────────
 function switchTab(tab) {
   const pw = document.getElementById('panelPassword');
@@ -402,9 +416,7 @@ async function doLogin() {
       localStorage.setItem('jn_user_name', (j.prenom || '') + ' ' + (j.nom || ''));
       sessionStorage.setItem('jn_logged', '1');
       setTimeout(() => {
-        // Tous les rôles → page médecins (front-office)
-        // Le bouton Gestion Utilisateurs est visible seulement pour Admin/SuperAdmin
-        window.location.href = './medecins.html';
+        window.location.href = getRedirectForRole(j.id_role);
       }, 800);
     } else {
       showMsgError(j.error || 'Identifiants incorrects.');
@@ -443,7 +455,7 @@ async function handleGoogleLogin(response) {
     if (j.success) {
       localStorage.setItem('jn_user_id',   j.id_user);
       localStorage.setItem('jn_user_role', j.id_role);
-      window.location.href = './medecins.html';
+      window.location.href = getRedirectForRole(j.id_role);
     } else {
       showMsgError(j.error || 'Erreur Google OAuth.');
     }
@@ -477,7 +489,7 @@ async function oauthLogin(provider) {
             showToast('✓ ' + j.message, 'success');
             localStorage.setItem('jn_user_id',   j.id_user);
             localStorage.setItem('jn_user_role', j.id_role);
-            setTimeout(() => { window.location.href = './medecins.html'; }, 900);
+            setTimeout(() => { window.location.href = getRedirectForRole(j.id_role); }, 900);
           } else {
             showMsgError(j.error || 'Erreur Google OAuth.');
           }
@@ -488,6 +500,10 @@ async function oauthLogin(provider) {
   } else if (provider === 'github') {
     const client_id = 'Ov23li6eW9ZmVudYXvg4';
     window.location.href = `https://github.com/login/oauth/authorize?client_id=${client_id}&scope=user:email`;
+  } else if (provider === 'facebook') {
+    const app_id = '1669656207514097';
+    const redirect = 'https://contently-sugar-projector.ngrok-free.dev/gestion_users/controleur/backoffice/oauth_facebook.php';
+    window.location.href = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${app_id}&redirect_uri=${encodeURIComponent(redirect)}&scope=email,public_profile`;
   } else {
     showToast(provider + ' OAuth — à configurer.', 'error');
   }
@@ -594,7 +610,7 @@ async function doFaceLogin() {
       localStorage.setItem('jn_user_id',   j2.id_user);
       localStorage.setItem('jn_user_role', j2.id_role);
       sessionStorage.setItem('jn_logged', '1');
-      setTimeout(() => { window.location.href = './medecins.html'; }, 800);
+      setTimeout(() => { window.location.href = getRedirectForRole(j2.id_role); }, 800);
     } else {
       showMsgError(j2.error || 'Visage non reconnu.');
     }
@@ -704,7 +720,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const r = await fetch(CRUD + '?action=checkSession');
     const j = await r.json();
     if (j.success && j.loggedIn) {
-      window.location.href = './medecins.html';
+      window.location.href = getRedirectForRole(j.id_role);
     }
   } catch(e) {}
 });

@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JumeauNum – Espace Patient</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary-blue:#2563EB;
+  --dark-teal:#14B8A6;
+  --slate-gray:#1F2937;
+  --soft-blue:#8B5CF6;
+  --bg-main:#f8f9ff;
+  --surface:#ffffff;
+  --border:#e5e7eb;
+  --muted:#64748b;
+  --green:#16a34a;
+  --green-lt:#dcfce7;
+  --red:#dc2626;
+  --red-lt:#fee2e2;
+  --amber:#d97706;
+  --amber-lt:#fef3c7;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg-main);min-height:100vh;color:var(--slate-gray)}
+h1,h2,h3,h4{font-family:'Manrope',sans-serif;font-weight:700}
+
+/* ── NAVBAR ── */
+.topnav{background:rgba(255,255,255,0.95);border-bottom:1px solid rgba(0,0,0,0.06);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px);box-shadow:0 1px 12px rgba(37,99,235,.06)}
+.brand{display:flex;align-items:center;gap:10px;font-family:'Manrope',sans-serif;font-weight:800;font-size:1.05rem;letter-spacing:-.02em;text-decoration:none;color:var(--slate-gray)}
+.brand-icon{width:36px;height:36px;background:linear-gradient(135deg,#2563EB,#14B8A6);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.brand-icon svg{width:20px;height:20px}
+.nav-right{display:flex;align-items:center;gap:12px}
+.welcome-pill{display:flex;align-items:center;gap:8px;background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.15);padding:5px 14px 5px 6px;border-radius:50px;font-size:.82rem;font-weight:600;color:var(--primary-blue)}
+.welcome-pill .avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#2563EB,#14B8A6);color:white;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700}
+.btn-logout{background:none;border:1.5px solid var(--border);padding:.4rem 1.1rem;border-radius:10px;font-weight:600;font-size:.85rem;color:var(--slate-gray);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;font-family:inherit}
+.btn-logout:hover{border-color:var(--red);color:var(--red);background:#fff5f5}
+
+/* ── TABS ── */
+.main-tabs{display:flex;border-bottom:2px solid var(--border);background:rgba(255,255,255,0.95);padding:0 32px;backdrop-filter:blur(10px)}
+.tab-main{padding:16px 24px;border:none;background:none;font-family:'Inter',sans-serif;font-size:.88rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-2px;display:flex;align-items:center;gap:8px;transition:all .2s}
+.tab-main:hover{color:var(--slate-gray)}
+.tab-main.active{color:var(--primary-blue);border-bottom-color:var(--primary-blue)}
+.tab-main svg{width:16px;height:16px}
+.badge-count{background:var(--dark-teal);color:#fff;border-radius:99px;padding:1px 7px;font-size:.65rem;font-weight:700}
+
+/* ── CONTENT ── */
+.content{max-width:1100px;margin:0 auto;padding:40px 24px 80px}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* ── PROFILE HERO ── */
+.profile-hero{background:linear-gradient(135deg,#0ea5e9 0%,#2563EB 50%,#14B8A6 100%);border-radius:20px;padding:32px;color:#fff;display:flex;align-items:center;gap:24px;margin-bottom:28px;position:relative;overflow:hidden}
+.profile-hero::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:rgba(255,255,255,.08);border-radius:50%}
+.profile-hero::after{content:'';position:absolute;bottom:-60px;right:80px;width:140px;height:140px;background:rgba(255,255,255,.05);border-radius:50%}
+.profile-avatar-lg{width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.25);border:3px solid rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;font-family:'Manrope',sans-serif;flex-shrink:0;position:relative;z-index:1}
+.profile-info{flex:1;position:relative;z-index:1}
+.profile-info h2{font-family:'Manrope',sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:4px}
+.profile-info p{font-size:.88rem;opacity:.85}
+.role-badge{display:inline-block;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);border-radius:20px;padding:3px 12px;font-size:.72rem;font-weight:700;letter-spacing:.06em;margin-top:8px}
+
+/* ── CARDS GRID ── */
+.cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
+@media(max-width:720px){.cards-grid{grid-template-columns:1fr}}
+.card{background:#fff;border-radius:20px;padding:28px;box-shadow:0 4px 24px rgba(37,99,235,.06);border:1px solid var(--border);transition:box-shadow .2s}
+.card:hover{box-shadow:0 8px 32px rgba(37,99,235,.10)}
+.card-header{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.card-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.card-icon.blue{background:#eff4ff}.card-icon.blue svg{color:var(--primary-blue)}
+.card-icon.teal{background:rgba(20,184,166,.1)}.card-icon.teal svg{color:var(--dark-teal)}
+.card-icon.green{background:var(--green-lt)}.card-icon.green svg{color:var(--green)}
+.card-icon svg{width:20px;height:20px}
+.card-title{font-family:'Manrope',sans-serif;font-size:.98rem;font-weight:700}
+.card-sub{font-size:.78rem;color:var(--muted);margin-top:2px}
+
+/* ── FORM ── */
+.form-group{margin-bottom:16px}
+.form-label{font-size:.7rem;font-weight:700;color:var(--muted);display:block;margin-bottom:6px;letter-spacing:.08em;text-transform:uppercase}
+.form-control{width:100%;height:46px;border:1.5px solid var(--border);border-radius:10px;padding:0 14px;font-family:'Inter',sans-serif;font-size:.87rem;color:var(--slate-gray);background:#f8f9ff;outline:none;transition:border-color .2s,background .2s}
+.form-control:focus{border-color:var(--primary-blue);background:#fff}
+.form-control.error{border-color:var(--red)}
+textarea.form-control{height:auto;padding-top:12px;resize:none}
+.field-err{font-size:.72rem;color:var(--red);margin-top:4px;display:none}
+.field-err.visible{display:block}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.input-wrap{position:relative}
+.eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);display:flex;align-items:center}
+.eye-btn:hover{color:var(--slate-gray)}
+
+/* ── BUTTONS ── */
+.btn{height:44px;padding:0 20px;border-radius:10px;font-family:'Inter',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;border:none}
+.btn-primary{background:var(--primary-blue);color:#fff;box-shadow:0 4px 12px rgba(37,99,235,.25)}
+.btn-primary:hover{background:#1d4ed8;transform:translateY(-1px)}
+.btn-outline{background:#fff;color:var(--muted);border:1.5px solid var(--border)}
+.btn-outline:hover{border-color:var(--primary-blue);color:var(--primary-blue)}
+.btn-actions{display:flex;gap:10px;margin-top:8px}
+.btn svg{width:16px;height:16px}
+
+/* ── MESSAGES & TOAST ── */
+.msg-global{padding:12px 16px;border-radius:10px;font-size:.82rem;margin-bottom:14px;display:none}
+.msg-global.error{background:var(--red-lt);color:var(--red)}
+.msg-global.success{background:var(--green-lt);color:var(--green)}
+.toast{position:fixed;bottom:24px;right:24px;padding:14px 20px;border-radius:14px;font-size:.85rem;font-weight:600;transform:translateY(80px);opacity:0;transition:all .3s;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.15)}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{background:#0f172a;color:#fff}
+.toast.error{background:var(--red);color:#fff}
+
+/* ── SECTION HEADER ── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.section-title{font-family:'Manrope',sans-serif;font-size:1.1rem;font-weight:800}
+.section-label{font-size:1.1rem;font-weight:700;color:var(--slate-gray);display:flex;align-items:center;gap:8px;margin-bottom:20px;font-family:'Manrope',sans-serif}
+
+/* ── DOCTORS ── */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.filter-btn{height:34px;padding:0 16px;border-radius:50px;border:1.5px solid var(--border);background:#fff;font-family:'Inter',sans-serif;font-size:.78rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .2s}
+.filter-btn:hover{border-color:var(--primary-blue);color:var(--primary-blue)}
+.filter-btn.active{background:var(--primary-blue);color:#fff;border-color:var(--primary-blue)}
+.doctors-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.doctor-card{background:#fff;border-radius:20px;padding:24px 20px;border:1.5px solid var(--border);text-align:center;transition:all .2s;cursor:default;box-shadow:0 4px 24px rgba(37,99,235,.04)}
+.doctor-card:hover{border-color:var(--primary-blue);box-shadow:0 8px 32px rgba(37,99,235,.12);transform:translateY(-3px)}
+.doctor-avatar{width:72px;height:72px;border-radius:50%;margin:0 auto 14px;border:3px solid rgba(37,99,235,.12);background:#eff4ff;display:flex;align-items:center;justify-content:center}
+.doctor-avatar svg{width:38px;height:38px;color:var(--primary-blue)}
+.doctor-name{font-family:'Manrope',sans-serif;font-size:.92rem;font-weight:700;margin-bottom:6px}
+.doctor-service{font-size:.72rem;background:rgba(37,99,235,.08);color:var(--primary-blue);border-radius:50px;padding:3px 12px;display:inline-block;font-weight:600}
+.doctor-status{display:flex;align-items:center;justify-content:center;gap:5px;font-size:.72rem;font-weight:600;color:var(--green);margin-top:10px}
+.doctor-status::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block}
+.btn-rdv{width:100%;height:40px;border:none;border-radius:10px;background:var(--primary-blue);color:#fff;font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;margin-top:14px;transition:all .2s;box-shadow:0 4px 12px rgba(37,99,235,.2)}
+.btn-rdv:hover{background:#1d4ed8;transform:translateY(-1px)}
+
+/* ── RDV MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);backdrop-filter:blur(8px);z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:rgba(255,255,255,.96);backdrop-filter:blur(24px);border:1px solid rgba(220,225,240,.8);border-radius:24px;padding:32px;width:100%;max-width:460px;box-shadow:0 32px 64px -16px rgba(0,30,80,.18);animation:slideUp .22s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.modal-title{font-family:'Manrope',sans-serif;font-size:1.15rem;font-weight:800;margin-bottom:4px}
+.modal-sub{font-size:.82rem;color:var(--muted);margin-bottom:22px}
+.modal-doctor-info{background:#f8f9ff;border-radius:14px;padding:16px;display:flex;align-items:center;gap:14px;margin-bottom:22px;border:1px solid var(--border)}
+.modal-doctor-info .avatar-md{width:50px;height:50px;border-radius:50%;background:#eff4ff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.modal-doctor-info .avatar-md svg{width:28px;height:28px;color:var(--primary-blue)}
+.modal-actions{display:flex;gap:10px;margin-top:22px}
+.modal-actions .btn{flex:1}
+
+/* ── RDV LIST ── */
+.rdv-list{display:flex;flex-direction:column;gap:12px}
+.rdv-item{background:#fff;border-radius:16px;padding:18px 22px;border:1.5px solid var(--border);display:flex;align-items:center;gap:16px;transition:box-shadow .2s}
+.rdv-item:hover{box-shadow:0 4px 20px rgba(37,99,235,.08)}
+.rdv-icon{width:46px;height:46px;border-radius:14px;background:#eff4ff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rdv-icon svg{width:22px;height:22px;color:var(--primary-blue)}
+.rdv-info{flex:1}
+.rdv-doc{font-size:.9rem;font-weight:700;font-family:'Manrope',sans-serif}
+.rdv-details{font-size:.78rem;color:var(--muted);margin-top:3px}
+.rdv-status{font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:50px}
+.rdv-status.confirme{background:var(--green-lt);color:var(--green)}
+.rdv-status.en_attente{background:var(--amber-lt);color:var(--amber)}
+.rdv-status.annule{background:var(--red-lt);color:var(--red)}
+.empty-state{text-align:center;padding:56px 24px;color:var(--muted)}
+.empty-state svg{width:48px;height:48px;margin:0 auto 16px;opacity:.3;display:block}
+.empty-state p{font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <a class="brand" href="#">
+    <div class="brand-icon">
+      <svg viewBox="0 0 40 40" fill="none"><path d="M10 20h4l3-7 4 14 3-10 3 6 3-3h4" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    JumeauNum
+  </a>
+  <div class="nav-right">
+    <div class="welcome-pill">
+      <div class="avatar" id="navAvatar">?</div>
+      <span id="navName">...</span>
+    </div>
+    <button class="btn-logout" onclick="logout()">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="14" height="14"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      Déconnexion
+    </button>
+  </div>
+</nav>
+
+<!-- TABS -->
+<div class="main-tabs">
+  <button class="tab-main active" onclick="switchTab('profil',this)">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    Mon Profil
+  </button>
+  <button class="tab-main" onclick="switchTab('rdv',this)">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    Prendre un RDV
+  </button>
+  <button class="tab-main" onclick="switchTab('mesrdv',this)">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    Mes Rendez-vous
+    <span class="badge-count" id="rdvBadge" style="display:none">0</span>
+  </button>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- PROFIL TAB -->
+  <div class="tab-panel active" id="tab-profil">
+    <div class="profile-hero">
+      <div class="profile-avatar-lg" id="heroAvatar">?</div>
+      <div class="profile-info">
+        <h2 id="heroName">Chargement...</h2>
+        <p id="heroEmail">—</p>
+        <span class="role-badge">👤 Patient</span>
+      </div>
+    </div>
+
+    <div class="cards-grid">
+      <!-- Infos personnelles -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon blue">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          </div>
+          <div>
+            <div class="card-title">Informations personnelles</div>
+            <div class="card-sub">Modifiez vos données de profil</div>
+          </div>
+        </div>
+        <div id="msg_profil_global" class="msg-global error"></div>
+        <div id="msg_profil_success" class="msg-global success"></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Prénom</label>
+            <input type="text" id="p_prenom" class="form-control" placeholder="Votre prénom"/>
+            <div class="field-err" id="err_p_prenom"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nom</label>
+            <input type="text" id="p_nom" class="form-control" placeholder="Votre nom"/>
+            <div class="field-err" id="err_p_nom"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="p_email" class="form-control" placeholder="votre@email.com"/>
+          <div class="field-err" id="err_p_email"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">CIN</label>
+          <input type="text" id="p_cin" class="form-control" placeholder="8 chiffres" maxlength="8"/>
+          <div class="field-err" id="err_p_cin"></div>
+        </div>
+        <div class="btn-actions">
+          <button class="btn btn-primary" onclick="saveProfil()">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+            Sauvegarder
+          </button>
+          <button class="btn btn-outline" onclick="loadProfil()">Annuler</button>
+        </div>
+      </div>
+
+      <!-- Sécurité -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon green">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          </div>
+          <div>
+            <div class="card-title">Sécurité du compte</div>
+            <div class="card-sub">Changez votre mot de passe</div>
+          </div>
+        </div>
+        <div id="msg_mdp_global" class="msg-global error"></div>
+        <div id="msg_mdp_success" class="msg-global success"></div>
+        <div class="form-group">
+          <label class="form-label">Mot de passe actuel</label>
+          <div class="input-wrap">
+            <input type="password" id="p_ancien_mdp" class="form-control" placeholder="••••••••"/>
+            <button type="button" class="eye-btn" onclick="toggleEye('p_ancien_mdp')">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="field-err" id="err_p_ancien_mdp"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nouveau mot de passe</label>
+          <div class="input-wrap">
+            <input type="password" id="p_nouveau_mdp" class="form-control" placeholder="••••••••"/>
+            <button type="button" class="eye-btn" onclick="toggleEye('p_nouveau_mdp')">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="field-err" id="err_p_nouveau_mdp"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirmer le nouveau</label>
+          <div class="input-wrap">
+            <input type="password" id="p_confirm_nouveau" class="form-control" placeholder="••••••••"/>
+            <button type="button" class="eye-btn" onclick="toggleEye('p_confirm_nouveau')">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="field-err" id="err_p_confirm_nouveau"></div>
+        </div>
+        <div class="btn-actions">
+          <button class="btn btn-primary" onclick="changeMdp()">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+            Mettre à jour
+          </button>
+        </div>
+      </div>
+
+      <!-- Reconnaissance faciale -->
+      <div class="card" style="grid-column:1/-1">
+        <div class="card-header">
+          <div class="card-icon teal">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M5 20a7 7 0 0114 0"/><path d="M3 7v-.5A2.5 2.5 0 015.5 4M21 7v-.5A2.5 2.5 0 0018.5 4M3 17v.5A2.5 2.5 0 005.5 20M21 17v.5a2.5 2.5 0 01-2.5 2.5"/></svg>
+          </div>
+          <div>
+            <div class="card-title">Reconnaissance faciale</div>
+            <div class="card-sub">Enregistrez votre visage pour vous connecter plus rapidement</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+          <p style="font-size:.85rem;color:var(--muted);max-width:480px;line-height:1.6">
+            Activez l'identification par reconnaissance faciale. Une fois votre visage enregistré, vous pourrez vous authentifier rapidement sans saisir votre mot de passe.
+          </p>
+          <button class="btn btn-primary" onclick="openFaceEnroll()" style="background:linear-gradient(135deg,#14B8A6,#2563EB);box-shadow:0 4px 14px rgba(20,184,166,.3);white-space:nowrap">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="16" height="16"><path d="M23 7l-7-5-9 5 9 5 7-5zM1 17l7 5 9-5M1 7l9 5M17 12v5"/></svg>
+            Enregistrer mon visage
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RDV TAB -->
+  <div class="tab-panel" id="tab-rdv">
+    <div class="section-header">
+      <div class="section-title">Médecins disponibles</div>
+    </div>
+    <div class="filter-row" id="filterRow">
+      <button class="filter-btn active" onclick="filterDoctors('all',this)">Tous</button>
+    </div>
+    <div class="doctors-grid" id="doctorsGrid">
+      <!-- Rempli dynamiquement -->
+    </div>
+  </div>
+
+  <!-- MES RDV TAB -->
+  <div class="tab-panel" id="tab-mesrdv">
+    <div class="section-label">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20" height="20"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      Mes Rendez-vous
+    </div>
+    <div class="rdv-list" id="rdvList">
+      <!-- Rempli dynamiquement -->
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL PRISE DE RDV -->
+<div class="modal-overlay" id="rdvModal">
+  <div class="modal">
+    <div class="modal-title">📅 Prendre un rendez-vous</div>
+    <div class="modal-sub">Choisissez une date et un motif pour votre consultation</div>
+    <div class="modal-doctor-info">
+      <div class="avatar-md">
+        <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </div>
+      <div>
+        <div style="font-family:'Manrope',sans-serif;font-weight:700;font-size:.95rem" id="modalDocName">Dr. —</div>
+        <div style="font-size:.78rem;color:var(--muted)" id="modalDocService">—</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Date & heure</label>
+      <input type="datetime-local" id="rdv_date" class="form-control"/>
+      <div class="field-err" id="err_rdv_date"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Motif de consultation</label>
+      <textarea id="rdv_motif" class="form-control" style="height:90px" placeholder="Décrivez brièvement votre motif..."></textarea>
+      <div class="field-err" id="err_rdv_motif"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeRdvModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="submitRdv()">
+        <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="16" height="16"><path d="M20 6L9 17l-5-5"/></svg>
+        Confirmer le RDV
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CRUD = '../../controleur/backoffice/user_crud.php';
+let userId = null;
+let selectedDoctorId = null;
+
+function getUserId() {
+  const p = new URLSearchParams(window.location.search);
+  return parseInt(p.get('id_user') || localStorage.getItem('jn_user_id') || '0');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  userId = getUserId();
+  if (!userId) { window.location.replace('./login.html'); return; }
+  loadProfil();
+  loadDoctors();
+  loadMesRdv();
+});
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-main').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── PROFIL ──────────────────────────────────────────────────────────────────
+async function loadProfil() {
+  try {
+    const r = await fetch(CRUD + `?action=getProfil&id_user=${userId}`);
+    const j = await r.json();
+    if (j.success) {
+      const u = j.data;
+      document.getElementById('p_nom').value    = u.nom || '';
+      document.getElementById('p_prenom').value = u.prenom || '';
+      document.getElementById('p_email').value  = u.email || '';
+      document.getElementById('p_cin').value    = u.cin || '';
+      const full = ((u.prenom||'') + ' ' + (u.nom||'')).trim();
+      document.getElementById('heroName').textContent  = full || '—';
+      document.getElementById('heroEmail').textContent = u.email || '—';
+      const init = (u.prenom || u.nom || '?')[0].toUpperCase();
+      document.getElementById('heroAvatar').textContent = init;
+      document.getElementById('navAvatar').textContent  = init;
+      document.getElementById('navName').textContent    = full;
+    }
+  } catch(e) { showToast('Erreur réseau.', 'error'); }
+}
+
+async function saveProfil() {
+  clearErrors(['p_nom','p_prenom','p_email','p_cin']);
+  document.getElementById('msg_profil_global').style.display = 'none';
+  document.getElementById('msg_profil_success').style.display = 'none';
+  let ok = true;
+  const nom    = document.getElementById('p_nom').value.trim();
+  const prenom = document.getElementById('p_prenom').value.trim();
+  const email  = document.getElementById('p_email').value.trim();
+  const cin    = document.getElementById('p_cin').value.trim();
+
+  if (!nom) { showErr('p_nom','Obligatoire.'); ok=false; }
+  if (!prenom) { showErr('p_prenom','Obligatoire.'); ok=false; }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr('p_email','Email invalide.'); ok=false; }
+  if (!/^\d{8}$/.test(cin)) { showErr('p_cin','8 chiffres exacts.'); ok=false; }
+  if (!ok) return;
+
+  const fd = new FormData();
+  fd.append('action','updateProfil'); fd.append('id_user',userId);
+  fd.append('nom',nom); fd.append('prenom',prenom);
+  fd.append('email',email); fd.append('cin',cin); fd.append('service','');
+  try {
+    const res = await fetch(CRUD, {method:'POST',body:fd});
+    const j = await res.json();
+    if (j.success) { showToast('✓ Profil mis à jour !','success'); loadProfil(); }
+    else { document.getElementById('msg_profil_global').textContent=j.error; document.getElementById('msg_profil_global').style.display='block'; }
+  } catch(e) { showToast('Erreur réseau.','error'); }
+}
+
+async function changeMdp() {
+  clearErrors(['p_ancien_mdp','p_nouveau_mdp','p_confirm_nouveau']);
+  document.getElementById('msg_mdp_global').style.display='none';
+  document.getElementById('msg_mdp_success').style.display='none';
+  let ok = true;
+  const ancien  = document.getElementById('p_ancien_mdp').value;
+  const nouveau = document.getElementById('p_nouveau_mdp').value;
+  const confirm = document.getElementById('p_confirm_nouveau').value;
+
+  if (!ancien) { showErr('p_ancien_mdp','Obligatoire.'); ok=false; }
+  if (!nouveau||nouveau.length<6) { showErr('p_nouveau_mdp','Min 6 caractères.'); ok=false; }
+  else if (!/[a-zA-Z]/.test(nouveau)||!/[0-9]/.test(nouveau)||!/[^a-zA-Z0-9]/.test(nouveau))
+    { showErr('p_nouveau_mdp','Lettre + chiffre + caractère spécial.'); ok=false; }
+  if (nouveau && confirm !== nouveau) { showErr('p_confirm_nouveau','Ne correspond pas.'); ok=false; }
+  if (!ok) return;
+
+  const fd = new FormData();
+  fd.append('action','changeMdp'); fd.append('id_user',userId);
+  fd.append('ancien_mdp',ancien); fd.append('nouveau_mdp',nouveau);
+  try {
+    const res = await fetch(CRUD, {method:'POST',body:fd});
+    const j = await res.json();
+    if (j.success) {
+      showToast('✓ Mot de passe mis à jour !','success');
+      ['p_ancien_mdp','p_nouveau_mdp','p_confirm_nouveau'].forEach(id => document.getElementById(id).value='');
+      const s = document.getElementById('msg_mdp_success');
+      s.textContent='Mot de passe mis à jour avec succès.'; s.style.display='block';
+    } else {
+      const g = document.getElementById('msg_mdp_global');
+      g.textContent=j.error; g.style.display='block';
+    }
+  } catch(e) { showToast('Erreur réseau.','error'); }
+}
+
+// ── DOCTORS ─────────────────────────────────────────────────────────────────
+let allDoctors = [];
+async function loadDoctors() {
+  try {
+    const r = await fetch(CRUD + '?action=getAvailableDoctors');
+    const j = await r.json();
+    if (j.success) {
+      allDoctors = j.data;
+      buildServiceFilters();
+      renderDoctors(allDoctors);
+    }
+  } catch(e) {}
+}
+
+function buildServiceFilters() {
+  const services = [...new Set(allDoctors.map(d => d.service).filter(Boolean))];
+  const row = document.getElementById('filterRow');
+  services.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn';
+    btn.textContent = s;
+    btn.onclick = () => filterDoctors(s, btn);
+    row.appendChild(btn);
+  });
+}
+
+function filterDoctors(service, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDoctors(service === 'all' ? allDoctors : allDoctors.filter(d => d.service === service));
+}
+
+function renderDoctors(docs) {
+  const grid = document.getElementById('doctorsGrid');
+  if (!docs.length) {
+    grid.innerHTML = '<div style="text-align:center;padding:48px;color:var(--muted);grid-column:1/-1"><svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 10px;display:block;opacity:.3"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Aucun médecin disponible</div>';
+    return;
+  }
+  grid.innerHTML = docs.map(d => `
+    <div class="doctor-card">
+      <div class="doctor-avatar">${doctorSvg()}</div>
+      <div class="doctor-name">Dr. ${esc(d.prenom)} ${esc(d.nom)}</div>
+      <span class="doctor-service">${esc(d.service||'Généraliste')}</span>
+      <div class="doctor-status">Disponible</div>
+      <button class="btn-rdv" onclick="openRdvModal(${d.id_user},'Dr. ${esc(d.prenom)} ${esc(d.nom)}','${esc(d.service||'Généraliste')}')">
+        Prendre RDV
+      </button>
+    </div>`).join('');
+}
+
+function doctorSvg() {
+  return `<svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" width="40" height="40"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M17 16v3m0 0h3m-3 0H14" stroke-width="2" stroke-linecap="round"/></svg>`;
+}
+
+// ── RDV MODAL ────────────────────────────────────────────────────────────────
+function openRdvModal(docId, docName, service) {
+  selectedDoctorId = docId;
+  document.getElementById('modalDocName').textContent    = docName;
+  document.getElementById('modalDocService').textContent = service;
+  const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('rdv_date').min = now.toISOString().slice(0,16);
+  document.getElementById('rdv_date').value = '';
+  document.getElementById('rdv_motif').value = '';
+  clearErrors(['rdv_date','rdv_motif']);
+  document.getElementById('rdvModal').classList.add('open');
+}
+function closeRdvModal() { document.getElementById('rdvModal').classList.remove('open'); }
+
+async function submitRdv() {
+  clearErrors(['rdv_date','rdv_motif']);
+  const date  = document.getElementById('rdv_date').value;
+  const motif = document.getElementById('rdv_motif').value.trim();
+  let ok = true;
+  if (!date) { showErr('rdv_date','Choisissez une date.'); ok=false; }
+  if (!motif) { showErr('rdv_motif','Indiquez un motif.'); ok=false; }
+  if (!ok) return;
+
+  const fd = new FormData();
+  fd.append('action','createRdv');
+  fd.append('id_patient', userId);
+  fd.append('id_medecin', selectedDoctorId);
+  fd.append('date_rdv', date);
+  fd.append('motif', motif);
+  try {
+    const res = await fetch(CRUD, {method:'POST',body:fd});
+    const j = await res.json();
+    closeRdvModal();
+    if (j.success) { showToast('✓ RDV pris avec succès !','success'); loadMesRdv(); switchTab('mesrdv', document.querySelectorAll('.tab-main')[2]); }
+    else showToast(j.error||'Erreur.','error');
+  } catch(e) { showToast('Erreur réseau.','error'); }
+}
+
+// ── MES RDV ──────────────────────────────────────────────────────────────────
+async function loadMesRdv() {
+  try {
+    const r = await fetch(CRUD + `?action=getMesRdv&id_patient=${userId}`);
+    const j = await r.json();
+    const list = document.getElementById('rdvList');
+    if (!j.success || !j.data.length) {
+      list.innerHTML = `<div class="empty-state"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><p>Aucun rendez-vous pour le moment</p></div>`;
+      document.getElementById('rdvBadge').style.display = 'none';
+      return;
+    }
+    const badge = document.getElementById('rdvBadge');
+    badge.textContent = j.data.length;
+    badge.style.display = 'inline';
+    list.innerHTML = j.data.map(r => `
+      <div class="rdv-item">
+        <div class="rdv-icon"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" width="22" height="22"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+        <div class="rdv-info">
+          <div class="rdv-doc">Dr. ${esc(r.prenom_med||'')} ${esc(r.nom_med||'')} <span style="font-weight:400;color:var(--muted);font-size:.82rem">· ${esc(r.service||'')}</span></div>
+          <div class="rdv-details">📅 ${formatDate(r.date_rdv)} &nbsp;|&nbsp; ${esc(r.motif||'—')}</div>
+        </div>
+        <span class="rdv-status ${r.statut_rdv||'en_attente'}">${statusLabel(r.statut_rdv)}</span>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+// ── LOGOUT ───────────────────────────────────────────────────────────────────
+async function logout() {
+  await fetch(CRUD + '?action=logout');
+  localStorage.clear(); sessionStorage.clear();
+  window.location.replace('./login.html');
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function statusLabel(s) {
+  return {confirme:'Confirmé',en_attente:'En attente',annule:'Annulé'}[s] || 'En attente';
+}
+function formatDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}) + ' à ' + dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showErr(id, msg) {
+  const el=document.getElementById(id), em=document.getElementById('err_'+id);
+  if(el) el.classList.add('error');
+  if(em) { em.textContent=msg; em.classList.add('visible'); }
+}
+function clearErrors(ids) {
+  ids.forEach(id => {
+    const el=document.getElementById(id), em=document.getElementById('err_'+id);
+    if(el) el.classList.remove('error');
+    if(em) { em.textContent=''; em.classList.remove('visible'); }
+  });
+}
+function showToast(msg, type='success') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast '+type+' show';
+  setTimeout(()=>{t.className='toast';},3000);
+}
+function toggleEye(id) {
+  const inp=document.getElementById(id);
+  inp.type = inp.type==='password' ? 'text' : 'password';
+}
+
+// ── RECONNAISSANCE FACIALE ────────────────────────────────────────────────────
+let faceEnrollStream = null;
+let faceEnrollDescriptor = null;
+
+async function openFaceEnroll() {
+  if (!document.getElementById('faceEnrollModal')) {
+    const html = `
+    <div id="faceEnrollModal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px">
+      <div style="background:#fff;border-radius:20px;padding:28px;width:100%;max-width:380px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.25)">
+        <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,rgba(20,184,166,.15),rgba(37,99,235,.15));display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+          <svg fill="none" stroke="#2563eb" stroke-width="2" viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="8" r="3"/><path d="M5 20a7 7 0 0114 0"/><path d="M3 7v-.5A2.5 2.5 0 015.5 4M21 7v-.5A2.5 2.5 0 0018.5 4M3 17v.5A2.5 2.5 0 005.5 20M21 17v.5a2.5 2.5 0 01-2.5 2.5"/></svg>
+        </div>
+        <div style="font-family:'Manrope',sans-serif;font-size:1.05rem;font-weight:700;margin-bottom:6px">Enregistrer votre visage</div>
+        <div style="font-size:.82rem;color:#6b7280;margin-bottom:18px">Positionnez votre visage dans le cadre et restez immobile.</div>
+        <div style="position:relative;width:100%;aspect-ratio:4/3;background:#0f172a;border-radius:16px;overflow:hidden;margin-bottom:14px">
+          <video id="enrollVideo" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video>
+          <div id="enrollOverlay" style="position:absolute;inset:0;border:3px solid #2563eb;border-radius:16px;animation:scanPulse 1.5s ease-in-out infinite"></div>
+        </div>
+        <div id="enrollStatus" style="font-size:.82rem;color:#6b7280;margin-bottom:16px">Démarrage de la caméra...</div>
+        <div style="display:flex;gap:10px">
+          <button onclick="closeFaceEnroll()" style="flex:1;height:42px;border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;font-family:'Inter',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;color:#64748b">Annuler</button>
+          <button id="enrollSaveBtn" onclick="saveFaceEnroll()" style="flex:1;height:42px;border:none;border-radius:10px;background:linear-gradient(135deg,#14B8A6,#2563EB);color:#fff;font-family:'Inter',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;display:none;box-shadow:0 4px 12px rgba(37,99,235,.3)">✓ Enregistrer</button>
+        </div>
+      </div>
+    </div>
+    <style>@keyframes scanPulse{0%,100%{opacity:.3;border-color:#2563eb}50%{opacity:1;border-color:#14B8A6}}</style>`;
+    document.body.insertAdjacentHTML('beforeend', html);
+  }
+  document.getElementById('faceEnrollModal').style.display = 'flex';
+
+  try {
+    const MODEL_URL = '../../controleur/backoffice/model';
+    if (!window._faceModelsLoaded) {
+      // Attendre que face-api.js soit prêt (chargé avec defer)
+      if (!window.faceapi) {
+        document.getElementById('enrollStatus').textContent = '⏳ Chargement de face-api...';
+        await new Promise((resolve, reject) => {
+          let waited = 0;
+          const check = setInterval(() => {
+            waited += 100;
+            if (window.faceapi) { clearInterval(check); resolve(); }
+            else if (waited > 8000) { clearInterval(check); reject(new Error('face-api.js non disponible')); }
+          }, 100);
+        }).catch(err => {
+          document.getElementById('enrollStatus').textContent = '❌ ' + err.message + '. Rechargez la page.';
+          document.getElementById('enrollStatus').style.color = '#dc2626';
+          throw err;
+        });
+      }
+      document.getElementById('enrollStatus').textContent = '⏳ Chargement des modèles IA...';
+      try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+        window._faceModelsLoaded = true;
+      } catch(modelErr) {
+        document.getElementById('enrollStatus').innerHTML = '❌ Erreur chargement modèles : ' + modelErr.message;
+        document.getElementById('enrollStatus').style.color = '#dc2626';
+        console.error('Modèles face-api :', modelErr);
+        return;
+      }
+    }
+
+    faceEnrollStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480}});
+    const video = document.getElementById('enrollVideo');
+    video.srcObject = faceEnrollStream;
+
+    // Attendre que la vidéo soit vraiment prête (frames disponibles)
+    await new Promise(resolve => {
+      if (video.readyState >= 2) { resolve(); return; }
+      video.addEventListener('loadeddata', resolve, { once: true });
+    });
+
+    document.getElementById('enrollStatus').textContent = '👤 Positionnez votre visage dans le cadre...';
+
+    // scoreThreshold abaissé à 0.3 (défaut 0.5) pour mieux détecter sous éclairage moyen
+    const detOptions = new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.3, inputSize: 320 });
+    let attempts = 0;
+    const MAX_ATTEMPTS = 30; // 30 × 500 ms = 15 secondes
+
+    const scanInterval = setInterval(async () => {
+      if (!document.getElementById('faceEnrollModal')) { clearInterval(scanInterval); return; }
+      attempts++;
+
+      if (attempts > MAX_ATTEMPTS) {
+        clearInterval(scanInterval);
+        document.getElementById('enrollStatus').innerHTML =
+          '❌ Visage non détecté après 15 s.<br><small>Assurez-vous d\'être bien éclairé et face à la caméra.</small>';
+        document.getElementById('enrollStatus').style.color = '#dc2626';
+        return;
+      }
+
+      if (video.readyState < 2 || video.videoWidth === 0) return;
+
+      try {
+        const det = await faceapi.detectSingleFace(video, detOptions)
+          .withFaceLandmarks().withFaceDescriptor();
+        if (det) {
+          clearInterval(scanInterval);
+          faceEnrollDescriptor = Array.from(det.descriptor);
+          document.getElementById('enrollStatus').textContent = '✓ Visage détecté ! Cliquez sur Enregistrer.';
+          document.getElementById('enrollStatus').style.color = '#16a34a';
+          document.getElementById('enrollSaveBtn').style.display = 'block';
+          document.getElementById('enrollOverlay').style.borderColor = '#16a34a';
+          document.getElementById('enrollOverlay').style.animation = 'none';
+        } else {
+          const dots = '.'.repeat((attempts % 3) + 1);
+          document.getElementById('enrollStatus').textContent =
+            '👤 Recherche du visage' + dots + ' (' + attempts + '/' + MAX_ATTEMPTS + ')';
+        }
+      } catch(e) {
+        console.error('Détection frame :', e);
+      }
+    }, 500);
+
+  } catch(e) {
+    document.getElementById('enrollStatus').textContent = '❌ Caméra non disponible : ' + e.message;
+    document.getElementById('enrollStatus').style.color = '#dc2626';
+    console.error('Caméra :', e);
+  }
+}
+
+async function saveFaceEnroll() {
+  if (!faceEnrollDescriptor) { showToast('Aucun visage détecté.', 'error'); return; }
+  const fd = new FormData();
+  fd.append('action',     'saveFaceDescriptor');
+  fd.append('id_user',    userId);
+  fd.append('descriptor', JSON.stringify(faceEnrollDescriptor));
+  try {
+    const r = await fetch(CRUD, {method:'POST', body:fd});
+    const j = await r.json();
+    closeFaceEnroll();
+    if (j.success) showToast('✓ Visage enregistré avec succès !', 'success');
+    else showToast(j.error || 'Erreur lors de l\'enregistrement.', 'error');
+  } catch(e) { showToast('Erreur réseau.', 'error'); }
+}
+
+function closeFaceEnroll() {
+  if (faceEnrollStream) { faceEnrollStream.getTracks().forEach(t => t.stop()); faceEnrollStream = null; }
+  faceEnrollDescriptor = null;
+  const m = document.getElementById('faceEnrollModal');
+  if (m) m.remove();
+}
+</script>
+</body>
+</html>
