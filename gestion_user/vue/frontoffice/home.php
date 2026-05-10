@@ -105,7 +105,7 @@ $user = getCurrentUser();
             <li><a class="dropdown-item" href="../../../gestion_paiement/vue/frontoffice/mes_factures.php">
               <span class="material-symbols-outlined">receipt_long</span> Mes Factures
             </a></li>
-            <li><a class="dropdown-item" href="../../../gestion_ressource/vue/frontoffice/les_ressources.php">
+            <li><a class="dropdown-item" href="../../../gestion_ressource/vue/frontoffice/mes_ressources.php">
               <span class="material-symbols-outlined">inventory_2</span> Les Ressources
             </a></li>
             <li><a class="dropdown-item" href="les_medecins.php">
