@@ -1,15 +1,13 @@
 <?php
 require_once __DIR__ . '/../../../inc_session.php';
-
-checkSession([3,4]);
+checkSession([3, 4]);
+require_once dirname(__DIR__, 3) . '/config.php';
 
 $user = getCurrentUser();
 
-$nom = $user['Nom'] ?? $user['nom'] ?? '';
 $prenom = $user['Prenom'] ?? $user['prenom'] ?? $user['username'] ?? 'Utilisateur';
 $role = (int)($user['id_role'] ?? 0);
-
-$initial = strtoupper(substr($prenom, 0, 1));
+$username = $user['username'] ?? 'Utilisateur';
 
 $roleLabel = match ($role) {
     2 => 'Admin',
@@ -17,8 +15,10 @@ $roleLabel = match ($role) {
     4 => 'Super Admin',
     default => 'Utilisateur'
 };
+
+$initial = strtoupper(substr($roleLabel, 0, 1));
 ?>
-DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8"/>
@@ -115,6 +115,7 @@ main { margin-left: var(--sidebar-w); flex: 1; padding: 22px 20px 40px; min-widt
 .btn-outline  { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 .btn-ghost    { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
 .btn-block    { width: 100%; justify-content: center; margin-top: 3px; }
+.sort-active  { background: var(--primary) !important; color: #fff !important; border-color: var(--primary) !important; }
 .toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .filter-label  { font-size: .8rem; color: var(--muted); }
 .filter-select { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px 10px; font-family: inherit; font-size: .82rem; color: var(--text); cursor: pointer; }
@@ -138,7 +139,85 @@ tbody td { padding: 10px 12px; vertical-align: middle; }
 .icon-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: background .12s, color .12s; }
 .icon-btn:hover     { background: var(--primary-lt); color: var(--primary); border-color: var(--primary); }
 .icon-btn.del:hover { background: var(--red-lt); color: var(--red); border-color: var(--red); }
+.icon-btn.remind:hover { background: #e0f2fe; color: #0369a1; border-color: #0369a1; }
+.icon-btn.refer:hover  { background: #f0fdf4; color: #16a34a; border-color: #16a34a; }
 .icon-btn svg { width: 12px; height: 12px; }
+
+/* ── REMINDER MODAL ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 500;
+  background: rgba(15,22,55,.45); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center;
+}
+.modal-box {
+  background: var(--surface); border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(15,22,55,.2);
+  width: 100%; max-width: 420px; padding: 28px;
+  animation: modalIn .2s ease;
+}
+@keyframes modalIn { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
+.modal-title {
+  font-size: 1rem; font-weight: 700; margin-bottom: 4px;
+  display: flex; align-items: center; gap: 8px;
+}
+.modal-sub { font-size: .78rem; color: var(--muted); margin-bottom: 18px; }
+.modal-info-grid { display: grid; grid-template-columns: 110px 1fr; gap: 6px 12px; margin-bottom: 20px; }
+.modal-info-label { font-size: .7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; display: flex; align-items: center; }
+.modal-info-val { font-size: .82rem; font-weight: 500; color: var(--text); }
+.modal-divider { height: 1px; background: var(--border); margin: 16px 0; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.btn-send {
+  background: #0369a1; color: #fff; border: 0;
+  padding: 9px 18px; border-radius: 8px;
+  font-family: inherit; font-size: .82rem; font-weight: 700;
+  cursor: pointer; transition: opacity .15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.btn-send:hover { opacity: .88; }
+.btn-send:disabled { opacity: .55; cursor: not-allowed; }
+.btn-cancel-modal {
+  background: var(--surface2); color: var(--text);
+  border: 1px solid var(--border); padding: 9px 16px;
+  border-radius: 8px; font-family: inherit; font-size: .82rem;
+  font-weight: 600; cursor: pointer;
+}
+.btn-cancel-modal:hover { background: var(--border); }
+.reminder-success { color: var(--green); font-size: .78rem; font-weight: 600; margin-top: 10px; }
+.reminder-error   { color: var(--red);   font-size: .78rem; font-weight: 600; margin-top: 10px; }
+
+/* ── REFER MODAL ── */
+.refer-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0;
+  border-radius: 99px; padding: 3px 10px; font-size: .75rem; font-weight: 600;
+}
+.refer-tags-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.refer-city-row  { display: flex; gap: 8px; margin-bottom: 14px; }
+.refer-city-input {
+  flex: 1; border: 1px solid var(--border); background: var(--bg);
+  border-radius: 7px; padding: 8px 10px; font-family: inherit;
+  font-size: .82rem; color: var(--text); outline: none; transition: border-color .15s;
+}
+.refer-city-input:focus { border-color: #16a34a; }
+.btn-search-refer {
+  background: #16a34a; color: #fff; border: 0;
+  padding: 8px 16px; border-radius: 7px;
+  font-family: inherit; font-size: .82rem; font-weight: 700;
+  cursor: pointer; transition: opacity .15s; white-space: nowrap;
+}
+.btn-search-refer:hover { opacity: .88; }
+.refer-results { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
+.refer-result-btn {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 12px;
+  text-decoration: none; color: var(--text);
+  transition: background .15s, border-color .15s;
+}
+.refer-result-btn:hover { background: #f0fdf4; border-color: #bbf7d0; }
+.refer-result-emoji { font-size: 1.25rem; flex-shrink: 0; }
+.refer-result-label { font-size: .82rem; font-weight: 700; color: var(--text); }
+.refer-result-sub   { font-size: .7rem; color: var(--muted); margin-top: 1px; }
 .pagination { display: flex; align-items: center; gap: 5px; padding: 10px 14px; border-top: 1px solid var(--border); font-size: .78rem; color: var(--muted); }
 .pagination .count { flex: 1; }
 .page-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .78rem; font-weight: 500; color: var(--text); }
@@ -179,107 +258,6 @@ textarea.form-control      { min-height: 62px; padding: 7px 9px; }
 .toast.show    { opacity: 1; transform: translateY(0); }
 .toast.success { background: var(--green); }
 .toast.error   { background: var(--red); }
-
-.avatar {
-    width: 38px;
-    height: 38px;
-
-    border-radius: 50%;
-
-    background: #2563eb;
-    color: white;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    font-weight: 700;
-    font-size: 15px;
-}
-
-.role-name {
-    font-size: 15px;
-    font-weight: 600;
-    color: #1e293b;
-}
-
-.avatar {
-    width: 38px;
-    height: 38px;
-
-    border-radius: 50%;
-
-    background: #2563eb;
-    color: white;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    font-weight: 700;
-    font-size: 15px;
-}
-
-.role-name {
-    font-size: 15px;
-    font-weight: 600;
-    color: #1e293b;
-}
-
-
-.avatar {
-    width: 38px;
-    height: 38px;
-
-    border-radius: 50%;
-
-    background: #2563eb;
-    color: white;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    font-weight: 700;
-    font-size: 15px;
-}
-
-.role-name {
-    font-size: 15px;
-    font-weight: 600;
-    color: #1e293b;
-}
-.user-profile {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-
-    padding: 8px 16px;
-}
-
-.avatar {
-    width: 38px;
-    height: 38px;
-
-    border-radius: 50%;
-
-    background: #2563eb;
-    color: white;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    font-weight: 700;
-    font-size: 15px;
-}
-
-.role-name {
-    font-size: 15px;
-    font-weight: 600;
-    color: #1e293b;
-}
 </style>
 </head>
 <body>
@@ -291,21 +269,19 @@ textarea.form-control      { min-height: 62px; padding: 7px 9px; }
     JumeauNum
   </div>
   <div class="spacer"></div>
-
- <div class="user-profile">
-    <div class="avatar">
-        <?= strtoupper(substr($roleLabel, 0, 1)) ?>
-    </div>
-
-    <span class="role-name">
-        <?= $roleLabel ?>
-    </span>
-</div>
-  
+  <div class="header-user">
+    <div class="avatar-icon">A</div>
+    Admin
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="header-power">
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v10M4.93 4.93a10 10 0 100 14.14"/></svg>
+  </div>
 </header>
 
 <div class="layout">
   <!-- SIDEBAR -->
+  
   <?php require_once __DIR__ . '/../../../partials/backoffice_sidebar.php'; ?>
 
   <!-- MAIN -->
@@ -366,6 +342,14 @@ textarea.form-control      { min-height: 62px; padding: 7px 9px; }
           <button class="btn btn-outline" onclick="exportDossierCSV()">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 10v6M9 13l3 3 3-3M5 17a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2"/></svg>
             Exporter CSV
+          </button>
+          <button class="btn btn-ghost" id="dossierSortAsc" onclick="sortDossierAsc()" title="Trier par date croissante">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M6 12h12M9 18h6"/></svg>
+            Date ↑
+          </button>
+          <button class="btn btn-ghost" id="dossierSortDesc" onclick="sortDossierDesc()" title="Trier par date décroissante">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M6 12h12M9 18h6"/></svg>
+            Date ↓
           </button>
         </div>
         <div class="search-row">
@@ -469,6 +453,14 @@ textarea.form-control      { min-height: 62px; padding: 7px 9px; }
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 10v6M9 13l3 3 3-3M5 17a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2"/></svg>
             Exporter CSV
           </button>
+          <button class="btn btn-ghost" id="consultationSortAsc" onclick="sortConsultationAsc()" title="Trier par date croissante">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M6 12h12M9 18h6"/></svg>
+            Date ↑
+          </button>
+          <button class="btn btn-ghost" id="consultationSortDesc" onclick="sortConsultationDesc()" title="Trier par date décroissante">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M6 12h12M9 18h6"/></svg>
+            Date ↓
+          </button>
         </div>
         <div class="search-row">
           <div class="search-wrap">
@@ -560,6 +552,65 @@ textarea.form-control      { min-height: 62px; padding: 7px 9px; }
     </div>
 
   </main>
+</div>
+
+<!-- REMINDER MODAL -->
+<div class="modal-overlay" id="reminderModal" onclick="if(event.target===this)closeReminderModal()">
+  <div class="modal-box">
+    <div class="modal-title">📧 Envoyer un rappel de consultation</div>
+    <div class="modal-sub">Un email sera envoyé automatiquement au patient concerné.</div>
+
+    <input type="hidden" id="reminderConsultId"/>
+
+    <div class="modal-info-grid">
+      <span class="modal-info-label">Date</span>
+      <span class="modal-info-val" id="reminderDateVal">—</span>
+      <span class="modal-info-label">Motif</span>
+      <span class="modal-info-val" id="reminderMotifVal">—</span>
+      <span class="modal-info-label">Diagnostic</span>
+      <span class="modal-info-val" id="reminderDiagVal">—</span>
+      <span class="modal-info-label">N° Dossier</span>
+      <span class="modal-info-val" id="reminderDossierVal">—</span>
+    </div>
+
+    <div class="modal-divider"></div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel-modal" onclick="closeReminderModal()">Annuler</button>
+      <button class="btn-send" id="reminderSendBtn" onclick="sendReminder()">📧 Envoyer le rappel</button>
+    </div>
+
+    <div id="reminderStatus"></div>
+  </div>
+</div>
+
+<!-- RÉFÉRENCEMENT MODAL -->
+<div class="modal-overlay" id="referModal" onclick="if(event.target===this)closeReferModal()">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-title">📍 Référencer le patient</div>
+    <div class="modal-sub">Besoins détectés automatiquement depuis le diagnostic et les notes.</div>
+
+    <input type="hidden" id="referConsultId"/>
+
+    <div class="refer-tags-wrap" id="referTags"></div>
+
+    <div class="modal-divider"></div>
+
+    <div style="font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:6px;">Ville du patient</div>
+    <div class="refer-city-row">
+      <input class="refer-city-input" type="text" id="referCity" placeholder="Ex: Tunis, Sfax, Sousse..."/>
+      <button class="btn-search-refer" onclick="searchRefer()">🔍 Rechercher</button>
+    </div>
+
+    <div class="refer-results" id="referResults"></div>
+
+    <div class="modal-divider"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel-modal" onclick="closeReferModal()">Fermer</button>
+      <button class="btn-send" id="referSendBtn" onclick="sendReferEmail()" style="display:none;background:#16a34a;">📧 Envoyer au patient</button>
+    </div>
+    <div id="referStatus"></div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>

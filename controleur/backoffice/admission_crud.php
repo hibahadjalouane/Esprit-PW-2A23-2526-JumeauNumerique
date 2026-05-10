@@ -1,7 +1,6 @@
 <?php
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
-
 // Chemins depuis : gestion_admission/controleur/backoffice/
 require_once dirname(__DIR__, 2) . '/config.php';
 require_once '../../modele/Admission.php';

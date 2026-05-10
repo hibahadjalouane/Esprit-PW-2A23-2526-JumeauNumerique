@@ -96,7 +96,7 @@ $user = getCurrentUser();
             <li><a class="dropdown-item" href="../../../gestion_rdv/vue/frontoffice/mes_rdv.php">
               <span class="material-symbols-outlined">calendar_month</span> Mes Rendez-vous
             </a></li>
-<li><a class="dropdown-item" href="#"> <span class="material-symbols-outlined">clinical_notes</span> Mon Dossier Médical
+<li><a class="dropdown-item" href="../../../gestion_dossier/vue/frontoffice/mon_dossier.php"> <span class="material-symbols-outlined">clinical_notes</span> Mon Dossier Médical
             </a></li>
             <li><a class="dropdown-item" href="../../../gestion_admission/vue/frontoffice/mes_admissions.php">
               <span class="material-symbols-outlined">local_hospital</span> Mes Admissions
