@@ -72,14 +72,13 @@ function determineLoginUrl(): string
  */
 function getDashboardForRole(int $roleId): string
 {
-        $map = [
-        1 => '/Esprit-PW-2A23-2526-JumeauNumerique/gestion_user/vue/frontoffice/home.php',
-        2 => '/Esprit-PW-2A23-2526-JumeauNumerique/bord.php',
-        3 => '/Esprit-PW-2A23-2526-JumeauNumerique/bord.php',
-        4 => '/Esprit-PW-2A23-2526-JumeauNumerique/bord.php',
-
+    $map = [
+        1 => '/Esprit-PW-2A23-2526-JumeauNumerique/gestion_user/vue/frontoffice/dashboard_patient.php',
+        2 => '/Esprit-PW-2A23-2526-JumeauNumerique/gestion_user/vue/backoffice/dashboard_admin.php',
+        3 => '/Esprit-PW-2A23-2526-JumeauNumerique/gestion_user/vue/backoffice/dashboard_medecin.php',
+        4 => '/Esprit-PW-2A23-2526-JumeauNumerique/gestion_user/vue/backoffice/dashboard_superadmin.php',
     ];
-    return $map[$roleId] ?? '/Esprit-PW-2A23-2526-JumeauNumerique/gestion_user/vue/frontoffice/home.php';
+    return $map[$roleId] ?? '/Esprit-PW-2A23-2526-JumeauNumerique/gestion_user/vue/frontoffice/dashboard_patient.php';
 }
 
 /**
@@ -94,7 +93,6 @@ function getCurrentUser(): array
         'email'   => $_SESSION['user_email'] ?? '',
         'id_role' => $_SESSION['id_role']    ?? null,
         'role'    => $_SESSION['nom_role']   ?? '',
-        
     ];
 }
 

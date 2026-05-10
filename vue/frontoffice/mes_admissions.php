@@ -759,40 +759,6 @@ body {
 .fade-up-2 { animation-delay: .12s; }
 .fade-up-3 { animation-delay: .20s; }
 .fade-up-4 { animation-delay: .28s; }
-.user-profile {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-
-    padding: 8px 16px;
-}
-
-.avatar {
-    width: 38px;
-    height: 38px;
-
-    border-radius: 50%;
-
-    background: #2563eb;
-    color: white;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    font-weight: 700;
-    font-size: 15px;
-}
-
-.role-name {
-    font-size: 15px;
-    font-weight: 600;
-    color: #1e293b;
-}
 </style>
 </head>
 <body>
@@ -819,15 +785,11 @@ body {
 
   <!-- User chip -->
   <div class="user-chip">
-    <div class="user-profile">
     <div class="avatar">
-        <?= strtoupper(substr($roleLabel, 0, 1)) ?>
+      <?= strtoupper(mb_substr($user['prenom'],0,1)) . strtoupper(mb_substr($user['nom'],0,1)) ?>
     </div>
-
-    <span class="role-name">
-        <?= $roleLabel ?>
-    </span>
-</div>
+    <span class="name"><?= $prenom ?></span>
+  </div>
 
   <!-- Deconnexion -->
   <a href="../../controleur/frontoffice/logout.php" class="btn-logout-nav">

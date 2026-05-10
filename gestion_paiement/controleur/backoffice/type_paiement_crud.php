@@ -2,7 +2,7 @@
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 
-require_once dirname(__DIR__, 3) . '/config.php';
+require_once '../../modele/config.php';
 require_once '../../modele/TypePaiement.php';
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';

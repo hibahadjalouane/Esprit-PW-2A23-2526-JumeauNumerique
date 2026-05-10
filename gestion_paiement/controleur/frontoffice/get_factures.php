@@ -15,7 +15,7 @@ checkSession([1]); // patients seulement
 
 // Connexion BDD — utilise le modele de gestion_des_paiements
 // Si tu n'as pas encore de config.php dans ce modele, pointe vers celui de gestion_users
-require_once dirname(__DIR__, 3) . '/config.php';
+require_once __DIR__ . '/../../modele/config.php';
 $pdo = config::getConnexion();
 
 $id_patient = (int) $_SESSION['user_id'];

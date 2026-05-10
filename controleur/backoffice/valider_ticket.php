@@ -12,7 +12,7 @@
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 
-require_once dirname(__DIR__, 2) . '/config.php';
+require_once '../../modele/config.php';
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 

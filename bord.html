@@ -1,22 +1,3 @@
-<?php
-require_once __DIR__ . '/inc_session.php';
-checkSession([2, 3, 4]);
-
-$user = getCurrentUser();
-
-$nom = $user['Nom'] ?? $user['nom'] ?? '';
-$prenom = $user['Prenom'] ?? $user['prenom'] ?? $user['username'] ?? 'Utilisateur';
-$role = (int)($user['id_role'] ?? 0);
-
-$initial = strtoupper(substr($prenom, 0, 1));
-
-$roleLabel = match ($role) {
-    2 => 'Admin',
-    3 => 'Médecin',
-    4 => 'Super Admin',
-    default => 'Utilisateur'
-};
-?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -230,48 +211,14 @@ main { margin-left: var(--sidebar-w); flex: 1; padding: 22px 20px 40px; min-widt
 .resume-label { color: var(--muted); font-weight: 500; display: flex; align-items: center; gap: 7px; }
 .resume-label span.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 .resume-val   { font-weight: 500; font-family: 'DM Mono', monospace; font-size: .85rem; }
-.user-profile {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-
-    padding: 8px 16px;
-}
-
-.avatar {
-    width: 38px;
-    height: 38px;
-
-    border-radius: 50%;
-
-    background: #2563eb;
-    color: white;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    font-weight: 700;
-    font-size: 15px;
-}
-
-.role-name {
-    font-size: 15px;
-    font-weight: 600;
-    color: #1e293b;
-}
 </style>
 </head>
 <body>
 
 <!-- ════════════════ HEADER ════════════════ -->
 <header>
-<a class="logo" href="bord.php">
-      <svg viewBox="0 0 40 40" fill="none">
+  <a class="logo" href="bord.html">
+    <svg viewBox="0 0 40 40" fill="none">
       <rect width="40" height="40" rx="10" fill="#2563eb"/>
       <path d="M10 20h4l3-7 4 14 3-10 3 6 3-3h4" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
@@ -281,18 +228,14 @@ main { margin-left: var(--sidebar-w); flex: 1; padding: 22px 20px 40px; min-widt
   <div class="spacer"></div>
 
   <!-- Profil -->
- <div class="user-profile">
-    <div class="avatar">
-        <?= strtoupper(substr($roleLabel, 0, 1)) ?>
-    </div>
-
-    <span class="role-name">
-        <?= $roleLabel ?>
-    </span>
-</div>
+  <a class="header-user" href="gestion_user/vue/backoffice/profile.html">
+    <div class="avatar-icon">A</div>
+    Admin
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+  </a>
 
   <!-- Déconnexion -->
-  <a class="header-logout" href="gestion_user/controleur/frontoffice/logout.php">
+  <a class="header-logout" href="#">
     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
       <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
       <polyline points="16 17 21 12 16 7"/>
@@ -306,7 +249,42 @@ main { margin-left: var(--sidebar-w); flex: 1; padding: 22px 20px 40px; min-widt
 <div class="layout">
 
   <!-- ── SIDEBAR ── -->
- <?php require_once __DIR__ . '/partials/backoffice_sidebar.php'; ?>
+  <aside>
+    <a class="nav-item active" href="bord.html">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Tableau de bord
+    </a>
+    <a class="nav-item" href="gestion_ressource/vue/backoffice/ressource.html">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/><path d="M12 12v5M9 14.5h6"/></svg>
+      Ressources
+    </a>
+    <a class="nav-item" href="gestion_rdv/vue/backoffice/rdv.html">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Les rendez-vous
+    </a>
+    <a class="nav-item" href="gestion_admission/vue/backoffice/admission.html">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+      Admissions
+    </a>
+    <a class="nav-item" href="gestion_dossier/vue/backoffice/dossier.html">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+      Dossiers médicaux
+    </a>
+    <a class="nav-item" href="gestion_paiement/vue/backoffice/facture.html">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 15h2M13 15h3"/></svg>
+      Les factures
+    </a>
+    <a class="nav-item" href="gestion_user/vue/backoffice/medecin.html">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M2 19c0-3 3-5 7-5s7 2 7 5"/><path d="M17 14c2 0 4 1.5 4 4"/></svg>
+      Les médecins
+    </a>
+    <div class="nav-bottom">
+      <a class="nav-item" href="#">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        Paramètres
+      </a>
+    </div>
+  </aside>
 
   <!-- ── MAIN ── -->
   <main>
@@ -463,7 +441,7 @@ main { margin-left: var(--sidebar-w); flex: 1; padding: 22px 20px 40px; min-widt
       </a>
 
       <!-- Médecins -->
-      <a class="module-card" href="gestion_user/vue/backoffice/supadmin.html">
+      <a class="module-card" href="gestion_user/vue/backoffice/medecin.html">
         <div class="module-card-icon" style="background:var(--green-lt)">
           <svg width="20" height="20" fill="none" stroke="var(--green)" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M2 19c0-3 3-5 7-5s7 2 7 5"/><path d="M17 14c2 0 4 1.5 4 4"/></svg>
         </div>
@@ -581,7 +559,7 @@ async function loadDashboard() {
     document.getElementById('kpi-fac-attente').textContent = k.factures_attente + ' en attente (non payées)';
 
     document.getElementById('kpi-rdv-today').textContent   = k.rdv_aujourd_hui;
-    document.getElementById('kpi-rdv-avenir').textContent  = k.rdv_avenir + ' à venir · ' + k.rdv_confirmes + ' confirmés · ' + k.rdv_attente + ' en attente · ' + k.rdv_refuses + ' refusés';
+    document.getElementById('kpi-rdv-avenir').textContent  = k.rdv_avenir + ' à venir';
 
     document.getElementById('kpi-adm-total').textContent   = k.admissions_total;
     document.getElementById('kpi-adm-today').textContent   = k.admissions_aujourd_hui + ' aujourd\'hui';
@@ -591,7 +569,7 @@ async function loadDashboard() {
 
     // ── Modules ──
     document.getElementById('mod-fac').textContent = m.factures   + ' en attente';
-    document.getElementById('mod-rdv').textContent = m.rdv + ' aujourd\'hui · ' + k.rdv_confirmes + ' confirmés';
+    document.getElementById('mod-rdv').textContent = m.rdv        + ' aujourd\'hui';
     document.getElementById('mod-adm').textContent = m.admissions + ' au total';
     document.getElementById('mod-dos').textContent = m.dossiers   + ' dossiers';
     document.getElementById('mod-res').textContent = m.ressources + ' en service';
@@ -599,7 +577,7 @@ async function loadDashboard() {
 
     // ── Résumé rapide ──
     document.getElementById('res-fac-np').textContent  = m.factures;
-    document.getElementById('res-rdv').textContent     = m.rdv + ' / ' + k.rdv_confirmes + ' confirmés';
+    document.getElementById('res-rdv').textContent     = m.rdv;
     document.getElementById('res-adm').textContent     = m.admissions;
     document.getElementById('res-dos').textContent     = m.dossiers;
     document.getElementById('res-res').textContent     = k.ressources_en_service;

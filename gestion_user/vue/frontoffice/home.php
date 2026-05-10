@@ -84,8 +84,7 @@ $user = getCurrentUser();
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav mx-auto">
-        <li class="nav-item">
-<a class="nav-link active" href="../../../gestion_user/vue/frontoffice/home.php">Accueil</a>        </li>
+        <li class="nav-item"><a class="nav-link" href="home.php">Accueil</a></li>
 
         <!-- DROPDOWN SERVICES -->
         <li class="nav-item dropdown">
@@ -96,7 +95,8 @@ $user = getCurrentUser();
             <li><a class="dropdown-item" href="../../../gestion_rdv/vue/frontoffice/mes_rdv.php">
               <span class="material-symbols-outlined">calendar_month</span> Mes Rendez-vous
             </a></li>
-<li><a class="dropdown-item" href="#"> <span class="material-symbols-outlined">clinical_notes</span> Mon Dossier Médical
+            <li><a class="dropdown-item" href="../../../gestion_dossier/vue/frontoffice/mon_dossier.php">
+              <span class="material-symbols-outlined">clinical_notes</span> Mon Dossier Médical
             </a></li>
             <li><a class="dropdown-item" href="../../../gestion_admission/vue/frontoffice/mes_admissions.php">
               <span class="material-symbols-outlined">local_hospital</span> Mes Admissions
@@ -139,17 +139,10 @@ $user = getCurrentUser();
         <h1 class="hero-title">Le Jumeau Numérique au Service de <span>Votre Santé</span></h1>
         <p class="lead text-muted-custom mb-4">JumeauNum révolutionne votre parcours patient grâce à une réplique virtuelle précise de l'environnement hospitalier.</p>
         <div class="d-flex gap-3 flex-wrap">
-          <a href="../../../gestion_rdv/vue/frontoffice/mes_rdv.php" class="btn btn-primary-custom px-4 py-3 shadow-sm text-decoration-none">
-            Mes rendez-vous
-          </a>
-
-          <a href="../../../gestion_dossier_medical/vue/frontoffice/mon_dossier.php"
-   class="btn btn-outline-secondary px-4 py-3 rounded-4 border-2 fw-bold text-primary border-light bg-white shadow-sm text-decoration-none">
-   Mon dossier médical
-</a>
+          <a href="../../../gestion_rdv/vue/frontoffice/mes_rdv.php" class="btn btn-primary-custom px-4 py-3 shadow-sm text-decoration-none">Mes rendez-vous</a>
+          <a href="../../../gestion_dossier/vue/frontoffice/mon_dossier.php" class="btn btn-outline-secondary px-4 py-3 rounded-4 border-2 fw-bold text-primary border-light bg-white shadow-sm text-decoration-none">Mon dossier médical</a>
         </div>
       </div>
-
       <div class="col-lg-6">
         <div class="hero-image-container position-relative">
           <img src="../../../../assets/bg1.jpg" alt="JumeauNum" onerror="this.src='https://placehold.co/600x400/2563eb/ffffff?text=JumeauNum'"/>
@@ -178,13 +171,13 @@ $user = getCurrentUser();
           <h5 class="fw-bold mb-2">Mes Rendez-vous</h5><p class="text-muted-custom small">Consulter ou prendre un nouveau rendez-vous.</p>
         </div>
       </a></div>
-      <div class="col-md-3"><a href="../../../gestion_dossier_medical/vue/frontoffice/mon_dossier.php" class="text-decoration-none">
+      <div class="col-md-3"><a href="../../../gestion_dossier/vue/frontoffice/mon_dossier.php" class="text-decoration-none">
         <div class="service-card text-center h-100">
           <div class="service-icon-wrapper mx-auto mb-3" style="background:rgba(20,184,166,.1);"><span class="material-symbols-outlined fs-2" style="color:var(--dark-teal)">clinical_notes</span></div>
           <h5 class="fw-bold mb-2">Mon Dossier</h5><p class="text-muted-custom small">Accéder à vos consultations et historique médical.</p>
         </div>
       </a></div>
-      <div class="col-md-3"><a href="../../../gestion_paiement/vue/frontoffice/mes_factures.php" class="text-decoration-none">
+      <div class="col-md-3"><a href="../../../gestion_des_paiements/vue/frontoffice/mes_factures.php" class="text-decoration-none">
         <div class="service-card text-center h-100">
           <div class="service-icon-wrapper mx-auto mb-3" style="background:rgba(139,92,246,.1);"><span class="material-symbols-outlined fs-2" style="color:var(--soft-blue)">receipt_long</span></div>
           <h5 class="fw-bold mb-2">Mes Factures</h5><p class="text-muted-custom small">Consulter et payer vos factures en ligne.</p>
@@ -248,8 +241,8 @@ $user = getCurrentUser();
         <h5 class="footer-heading">Services</h5>
         <ul class="footer-links">
           <li><a href="../../../gestion_rdv/vue/frontoffice/mes_rdv.php">Rendez-vous</a></li>
-          <li><a href="../../../gestion_dossier_medical/vue/frontoffice/mon_dossier.php">Dossier médical</a></li>
-          <li><a href="../../../gestion_paiement/vue/frontoffice/mes_factures.php">Factures</a></li>
+          <li><a href="../../../gestion_dossier/vue/frontoffice/mon_dossier.php">Dossier médical</a></li>
+          <li><a href="../../../gestion_des_paiements/vue/frontoffice/mes_factures.php">Factures</a></li>
         </ul>
       </div>
       <div class="col-md-3"><h5 class="footer-heading">Légal</h5><ul class="footer-links"><li><a href="#">Confidentialité</a></li><li><a href="#">Mentions Légales</a></li></ul></div>

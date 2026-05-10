@@ -117,40 +117,6 @@ $user = getCurrentUser();
 
   .section-label { font-size:1.1rem;font-weight:700;color:var(--slate-gray);display:flex;align-items:center;gap:8px;margin-bottom:20px; }
   .section-label .material-symbols-outlined { font-size:20px;color:var(--muted); }
-.user-profile {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-
-    padding: 8px 16px;
-}
-
-.avatar {
-    width: 38px;
-    height: 38px;
-
-    border-radius: 50%;
-
-    background: #2563eb;
-    color: white;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    font-weight: 700;
-    font-size: 15px;
-}
-
-.role-name {
-    font-size: 15px;
-    font-weight: 600;
-    color: #1e293b;
-}
 </style>
 </head>
 <body>
