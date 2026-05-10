@@ -11,6 +11,16 @@ require_once __DIR__ . '/../../controleur/frontoffice/admission_patient.php';
 // sont injectees par le controleur.
 
 $prenom = htmlspecialchars($user['prenom']);
+$role = (int)($user['id_role'] ?? 0);
+
+$roleLabel = match ($role) {
+    1 => 'Patient',
+    2 => 'Admin',
+    3 => 'Médecin',
+    4 => 'Super Admin',
+    default => 'Utilisateur'
+};
+$username = $user['username'] ?? $prenom;
 $nom    = htmlspecialchars($user['nom']);
 
 // Formater la date d'arrivee pour l'affichage
