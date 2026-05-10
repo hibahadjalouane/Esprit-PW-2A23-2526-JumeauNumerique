@@ -1,0 +1,1545 @@
+<?php
+require_once __DIR__ . '/../../../inc_session.php';
+checkSession([3, 4]);
+
+$user = getCurrentUser();
+
+$prenom = $user['Prenom'] ?? $user['prenom'] ?? $user['username'] ?? 'Utilisateur';
+$role = (int)($user['id_role'] ?? 0);
+$username = $user['username'] ?? 'Utilisateur';
+
+$roleLabel = match ($role) {
+    2 => 'Admin',
+    3 => 'Médecin',
+    4 => 'Super Admin',
+    default => 'Utilisateur'
+};
+
+$initial = strtoupper(substr($roleLabel, 0, 1));
+?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>jumeaunum2– Gestion des Rendez-vous</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    /* ═══════════════════════════════════════════════
+       RESET & VARIABLES — identiques à notre template
+    ═══════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --sidebar-bg:     #1a3a8f;
+      --sidebar-hover:  #2248b0;
+      --sidebar-active: #3560d4;
+      --sidebar-w:      200px;
+      --bg:             #f0f4fb;
+      --surface:        #ffffff;
+      --surface2:       #eef1f8;
+      --border:         #dde2ef;
+      --primary:        #2563eb;
+      --primary-lt:     #eff4ff;
+      --text:           #111827;
+      --muted:          #6b7280;
+      --green:          #16a34a;
+      --green-lt:       #dcfce7;
+      --red:            #dc2626;
+      --red-lt:         #fee2e2;
+      --amber:          #d97706;
+      --amber-lt:       #fef3c7;
+      --header-h:       58px;
+      --radius:         10px;
+      --shadow:         0 1px 4px rgba(0,0,0,.07), 0 4px 14px rgba(0,0,0,.05);
+    }
+
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* ── HEADER ── */
+    header { height: var(--header-h); background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 12px; position: fixed; top: 0; left: 0; right: 0; z-index: 200; box-shadow: 0 1px 0 var(--border); }
+    .logo { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 1rem; color: var(--primary); }
+    .logo svg { width: 32px; height: 32px; }
+    header .spacer { flex: 1; }
+    .header-user { display: flex; align-items: center; gap: 8px; font-size: .85rem; font-weight: 500; background: var(--surface2); border: 1px solid var(--border); border-radius: 30px; padding: 4px 12px 4px 5px; cursor: pointer; }
+    .avatar-icon { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; color: #fff; font-size: .75rem; font-weight: 700; }
+    .header-power { width: 34px; height: 34px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: background .15s; }
+    .header-power:hover { background: var(--red-lt); color: var(--red); }
+
+    /* ── USER ROLE DROPDOWN ── */
+    .role-selector { position: relative; }
+    .role-selector .header-user { user-select: none; }
+    .role-dropdown { position: absolute; top: calc(100% + 8px); right: 0; min-width: 190px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 6px; z-index: 999; display: none; flex-direction: column; gap: 2px; }
+    .role-selector.open .role-dropdown { display: flex; }
+    .role-option { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; font-size: .84rem; font-weight: 500; color: var(--text); cursor: pointer; text-decoration: none; transition: background .12s; }
+    .role-option:hover { background: var(--surface2); }
+    .role-option.active { background: var(--primary-lt); color: var(--primary); }
+    .role-option .role-avatar { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: .72rem; font-weight: 700; flex-shrink: 0; }
+    .role-option .role-avatar.admin { background: var(--primary); }
+    .role-option .role-avatar.patient { background: #0d9488; }
+    .role-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+    /* ── LAYOUT ── */
+    .layout { display: flex; margin-top: var(--header-h); min-height: calc(100vh - var(--header-h)); }
+
+    /* ── SIDEBAR ── */
+    aside { width: var(--sidebar-w); background: var(--sidebar-bg); position: fixed; top: var(--header-h); bottom: 0; left: 0; display: flex; flex-direction: column; padding: 14px 8px; gap: 2px; overflow-y: auto; z-index: 100; }
+    .nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-radius: 8px; font-size: .84rem; font-weight: 500; color: rgba(255,255,255,.7); cursor: pointer; user-select: none; white-space: nowrap; transition: background .12s, color .12s; text-decoration: none; }
+    .nav-item:hover  { background: var(--sidebar-hover);  color: #fff; }
+    .nav-item.active { background: var(--sidebar-active); color: #fff; }
+    .nav-item svg { flex-shrink: 0; width: 17px; height: 17px; }
+    .nav-bottom { margin-top: auto; }
+
+    /* ── MAIN ── */
+    main { margin-left: var(--sidebar-w); flex: 1; padding: 22px 20px 40px; min-width: 0; overflow-x: hidden; }
+    .page-title { font-size: 1.45rem; font-weight: 700; }
+    .page-sub   { color: var(--muted); font-size: .82rem; margin-top: 2px; }
+
+    /* ── STATS ── */
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; margin-bottom: 18px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+    .stat-badge { position: absolute; top: 10px; right: 10px; font-size: .7rem; font-weight: 600; padding: 2px 7px; border-radius: 20px; }
+    .badge-blue  { background: var(--primary-lt); color: var(--primary); }
+    .badge-amber { background: var(--amber-lt);   color: var(--amber); }
+    .badge-green { background: var(--green-lt);   color: var(--green); }
+    .badge-red   { background: var(--red-lt);     color: var(--red); }
+    .stat-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+    .stat-icon.blue { background: var(--primary-lt); color: var(--primary); }
+    .stat-icon.teal { background: #d1faf5; color: #0d9488; }
+    .stat-icon.pink { background: #fce7f3; color: #db2777; }
+    .stat-icon.ambr { background: var(--amber-lt); color: var(--amber); }
+    .stat-label { font-size: .75rem; color: var(--muted); }
+    .stat-value { font-size: 1.35rem; font-weight: 700; margin-top: 1px; }
+    .stat-sub   { font-size: .7rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── SECTION TITLES ── */
+    .section-title { font-size: 1.1rem; font-weight: 700; color: var(--text); margin: 22px 0 12px; }
+
+    /* ── TWIN ZONE (tableau + formulaire) ── */
+    .twin-zone { display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: start; }
+
+    /* ── TOOLBAR / SEARCH ── */
+    .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-family: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; border: none; transition: opacity .15s; }
+    .btn:hover { opacity: .88; }
+    .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.22); width: 100%; justify-content: center; margin-top: 4px; }
+    .btn-primary:disabled { background: var(--surface2); color: var(--muted); box-shadow: none; cursor: not-allowed; }
+    .toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .filter-label  { font-size: .8rem; color: var(--muted); white-space: nowrap; }
+    .filter-select { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px 10px; font-family: inherit; font-size: .82rem; color: var(--text); cursor: pointer; }
+    .search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .search-wrap { flex: 1; position: relative; }
+    .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); width: 14px; height: 14px; pointer-events: none; }
+    .search-wrap input { width: 100%; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 8px 10px 8px 32px; font-family: inherit; font-size: .82rem; color: var(--text); outline: none; }
+    .search-wrap input:focus { border-color: var(--primary); }
+
+    /* ── TABLE ── */
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    thead th { text-align: left; padding: 10px 12px; font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--surface2); border-bottom: 1px solid var(--border); }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: 10px 12px; vertical-align: middle; }
+    .id-cell { font-family: 'DM Mono', monospace; font-size: .75rem; color: var(--muted); }
+
+    /* status badges — gardés compatibles avec le JS de la coéquipière */
+    .status-badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: .72rem; font-weight: 600; }
+    .status-badge.confirme   { background: var(--green-lt); color: var(--green); }
+    .status-badge.en-attente { background: var(--amber-lt); color: var(--amber); }
+    .status-badge.available  { background: var(--green-lt); color: var(--green); }
+    .status-badge.reserved   { background: var(--red-lt);   color: var(--red); }
+
+    /* boutons d'action dans le tableau */
+    .actions { display: flex; gap: 5px; }
+    .actions i { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: background .12s, color .12s; font-size: 11px; }
+    .actions i:hover           { background: var(--primary-lt); color: var(--primary); border-color: var(--primary); }
+    .actions .fa-trash:hover,
+    .actions .fa-ellipsis:hover { background: var(--red-lt); color: var(--red); border-color: var(--red); }
+    .actions .fa-check:hover   { background: var(--green-lt); color: var(--green); border-color: var(--green); }
+    .actions .fa-xmark:hover   { background: var(--red-lt); color: var(--red); border-color: var(--red); }
+
+    /* input inline lors de l'édition en ligne */
+    tbody td input { border: 1px solid var(--border); border-radius: 6px; padding: 4px 7px; font-family: inherit; font-size: .8rem; color: var(--text); width: 100%; outline: none; }
+    tbody td input:focus { border-color: var(--primary); }
+
+    /* no-data */
+    .no-data { text-align: center; padding: 40px 20px; color: var(--muted); font-size: .85rem; }
+
+    /* ── PAGINATION ── */
+    .pagination-row { display: flex; align-items: center; gap: 5px; padding: 10px 14px; border-top: 1px solid var(--border); font-size: .78rem; color: var(--muted); }
+    .pagination-row .count { flex: 1; }
+    .page-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .78rem; font-weight: 500; color: var(--text); }
+    /* la classe active est gérée par le JS de la coéquipière via .page-number */
+    .page-number { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .78rem; font-weight: 500; color: var(--text); }
+    .page-number.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    /* ── RIGHT PANEL / FORMS ── */
+    .right-panel { display: flex; flex-direction: column; gap: 14px; }
+    .panel-card  { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+    .panel-title { font-size: .92rem; font-weight: 700; margin-bottom: 12px; }
+    .form-group  { margin-bottom: 10px; }
+    .form-label  { font-size: .72rem; font-weight: 600; color: var(--muted); margin-bottom: 3px; display: block; }
+    .form-label .required { color: var(--red); margin-left: 2px; }
+    .form-control { width: 100%; border: 1px solid var(--border); background: var(--bg); border-radius: 7px; padding: 7px 9px; font-family: inherit; font-size: .8rem; color: var(--text); outline: none; transition: border-color .15s; }
+    .form-control:focus       { border-color: var(--primary); background: var(--surface); }
+    .form-control::placeholder { color: #b0b8cc; }
+    .form-control:disabled    { background: var(--surface2); color: var(--muted); cursor: not-allowed; }
+
+    /* ── TOAST ── */
+    #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+    .toast { padding: 10px 18px; border-radius: 8px; font-size: .83rem; font-weight: 500; color: #fff; background: var(--text); box-shadow: var(--shadow); animation: toastIn .25s ease; }
+    .toast.success { background: var(--green); }
+    .toast.error   { background: var(--red); }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ════════════════════════════════════════════════════════
+       JUMEAU NUMÉRIQUE — MODULE D'ALERTES PRÉDICTIVES
+       Section ajoutée pour le métier avancé (back office only).
+       Toutes les classes sont préfixées .jn- pour éviter
+       les conflits avec le reste du back office.
+       ════════════════════════════════════════════════════════ */
+
+    .jn-section { margin: 8px 0 22px; }
+
+    /* En-tête du module : titre + stats vivantes + bouton refresh */
+    .jn-header {
+      background: linear-gradient(135deg, #1a3a8f 0%, #2563eb 50%, #3560d4 100%);
+      color: #fff; border-radius: var(--radius);
+      padding: 14px 18px;
+      display: flex; align-items: center; gap: 14px;
+      box-shadow: 0 4px 18px rgba(37,99,235,.25);
+      position: relative; overflow: hidden;
+    }
+    /* effet "scanlines" subtil pour évoquer un radar/tableau de bord */
+    .jn-header::before {
+      content: ""; position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        90deg, transparent 0 18px, rgba(255,255,255,.03) 18px 19px
+      );
+      pointer-events: none;
+    }
+    .jn-pulse-icon {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: rgba(255,255,255,.18);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; position: relative;
+    }
+    .jn-pulse-icon::after {
+      content: ""; position: absolute; inset: -4px;
+      border-radius: 50%; border: 2px solid rgba(255,255,255,.5);
+      animation: jnPulse 2s ease-out infinite;
+    }
+    @keyframes jnPulse {
+      0%   { transform: scale(0.9); opacity: 1; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+    .jn-header-text { flex: 1; min-width: 0; }
+    .jn-header-title {
+      font-size: 1.02rem; font-weight: 700; letter-spacing: .2px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .jn-live-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #22ef8b; box-shadow: 0 0 8px #22ef8b;
+      animation: jnBlink 1.4s ease-in-out infinite;
+    }
+    @keyframes jnBlink { 50% { opacity: .3; } }
+    .jn-header-sub {
+      font-size: .76rem; opacity: .85; margin-top: 2px;
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* Compteurs par niveau — pills à droite du header */
+    .jn-counters { display: flex; gap: 6px; flex-shrink: 0; }
+    .jn-counter {
+      background: rgba(255,255,255,.15); backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,.2);
+      padding: 5px 10px; border-radius: 20px;
+      font-size: .72rem; font-weight: 600;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .jn-counter .dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    }
+    .jn-counter.critique     .dot { background: #ff5a5a; }
+    .jn-counter.attention    .dot { background: #ffb547; }
+    .jn-counter.prediction   .dot { background: #5eb8ff; }
+    .jn-counter.optimisation .dot { background: #b9bbc7; }
+
+    /* Score de santé : un anneau circulaire SVG-like en CSS */
+    .jn-score {
+      width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
+      background: conic-gradient(#22ef8b 0deg, #22ef8b var(--score-deg, 0deg), rgba(255,255,255,.18) var(--score-deg, 0deg));
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .jn-score::before {
+      content: ""; position: absolute; inset: 4px;
+      background: rgba(26,58,143,.95); border-radius: 50%;
+    }
+    .jn-score-value {
+      position: relative; z-index: 1;
+      font-size: .92rem; font-weight: 700; color: #fff;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .jn-refresh {
+      background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.25);
+      color: #fff; cursor: pointer; padding: 7px 9px; border-radius: 8px;
+      transition: background .15s, transform .25s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .jn-refresh:hover { background: rgba(255,255,255,.3); }
+    .jn-refresh.spin svg { animation: jnSpin .8s linear; }
+    @keyframes jnSpin { to { transform: rotate(360deg); } }
+
+    /* Grille des cartes d'alertes */
+    .jn-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 10px; margin-top: 10px;
+    }
+
+    /* Carte d'alerte */
+    .jn-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 14px 11px 16px;
+      display: flex; flex-direction: column; gap: 5px;
+      position: relative; overflow: hidden;
+      transition: transform .15s, box-shadow .15s;
+      animation: jnCardIn .35s ease-out backwards;
+    }
+    .jn-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(0,0,0,.07);
+    }
+    @keyframes jnCardIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    /* barre verticale gauche colorée par niveau */
+    .jn-card::before {
+      content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 4px; border-radius: 4px 0 0 4px;
+    }
+    .jn-card.critique::before     { background: var(--red); }
+    .jn-card.attention::before    { background: var(--amber); }
+    .jn-card.prediction::before   { background: var(--primary); }
+    .jn-card.optimisation::before { background: var(--muted); }
+
+    .jn-card-top {
+      display: flex; align-items: center; gap: 7px;
+      flex-wrap: wrap;
+    }
+    .jn-pill {
+      font-size: .65rem; font-weight: 700;
+      letter-spacing: .04em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 20px;
+    }
+    .jn-pill.critique     { background: var(--red-lt);     color: var(--red); }
+    .jn-pill.attention    { background: var(--amber-lt);   color: var(--amber); }
+    .jn-pill.prediction   { background: var(--primary-lt); color: var(--primary); }
+    .jn-pill.optimisation { background: var(--surface2);   color: var(--muted); }
+    .jn-cat { font-size: .68rem; color: var(--muted); }
+
+    .jn-card-title {
+      font-size: .83rem; font-weight: 600; color: var(--text);
+      line-height: 1.3;
+    }
+    .jn-card-detail {
+      font-size: .73rem; color: var(--muted);
+      line-height: 1.45;
+    }
+    .jn-card-action {
+      font-size: .71rem; color: var(--primary);
+      font-weight: 600; margin-top: 2px;
+      display: flex; align-items: center; gap: 4px;
+    }
+    /* Action devient cliquable quand l'alerte a un payload */
+    .jn-card-action.clickable {
+      cursor: pointer; padding: 5px 9px;
+      background: var(--primary-lt); border-radius: 6px;
+      align-self: flex-start; margin-top: 4px;
+      transition: background .15s, transform .1s;
+    }
+    .jn-card-action.clickable:hover {
+      background: #dde9ff; transform: translateX(2px);
+    }
+    .jn-card-action.clickable:active { transform: scale(.97); }
+
+    /* ════════════════════════════════════════════════════════
+       MODALE — Génération de créneaux supplémentaires
+       ════════════════════════════════════════════════════════ */
+    .jn-modal-backdrop {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(15, 23, 42, .55); backdrop-filter: blur(4px);
+      z-index: 9000;
+      align-items: center; justify-content: center;
+      animation: jnFadeIn .2s ease;
+    }
+    .jn-modal-backdrop.open { display: flex; }
+    @keyframes jnFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .jn-modal {
+      background: var(--surface); border-radius: 14px;
+      width: 92%; max-width: 580px; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+      animation: jnSlideUp .3s cubic-bezier(.34,1.4,.64,1);
+    }
+    @keyframes jnSlideUp {
+      from { opacity: 0; transform: translateY(20px) scale(.96); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .jn-modal-header {
+      background: linear-gradient(135deg, #1a3a8f 0%, #2563eb 100%);
+      color: #fff; padding: 18px 22px;
+      border-radius: 14px 14px 0 0;
+      display: flex; align-items: center; gap: 12px;
+      position: relative; overflow: hidden;
+    }
+    .jn-modal-header::before {
+      content: ""; position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        90deg, transparent 0 18px, rgba(255,255,255,.04) 18px 19px);
+      pointer-events: none;
+    }
+    .jn-modal-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: rgba(255,255,255,.18);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .jn-modal-title { font-size: 1.05rem; font-weight: 700; }
+    .jn-modal-sub {
+      font-size: .76rem; opacity: .85; margin-top: 2px;
+      font-family: 'DM Mono', monospace;
+    }
+    .jn-modal-close {
+      margin-left: auto; cursor: pointer;
+      width: 32px; height: 32px; border-radius: 8px;
+      background: rgba(255,255,255,.18);
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .jn-modal-close:hover { background: rgba(255,255,255,.3); }
+
+    .jn-modal-body { padding: 20px 22px; }
+    .jn-modal-info {
+      background: var(--primary-lt); border-left: 3px solid var(--primary);
+      padding: 10px 14px; border-radius: 8px;
+      font-size: .79rem; color: var(--text); margin-bottom: 16px;
+      line-height: 1.5;
+    }
+    .jn-modal-info strong { color: var(--primary); }
+
+    .jn-form-row {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 12px; margin-bottom: 12px;
+    }
+    .jn-form-group { margin-bottom: 12px; }
+    .jn-form-label {
+      font-size: .73rem; font-weight: 600; color: var(--muted);
+      margin-bottom: 4px; display: block;
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+    .jn-form-control {
+      width: 100%; border: 1px solid var(--border); background: var(--bg);
+      border-radius: 8px; padding: 9px 11px;
+      font-family: inherit; font-size: .85rem;
+      color: var(--text); outline: none;
+      transition: border-color .15s, background .15s;
+    }
+    .jn-form-control:focus { border-color: var(--primary); background: var(--surface); }
+    .jn-form-control:disabled { background: var(--surface2); color: var(--muted); }
+
+    /* Aperçu en direct du nombre de créneaux qui seront générés */
+    .jn-preview {
+      margin-top: 14px; padding: 14px 16px;
+      background: linear-gradient(135deg, #f0f7ff 0%, #e6f0ff 100%);
+      border: 1px solid #c5d9f7; border-radius: 10px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .jn-preview-num {
+      font-size: 2rem; font-weight: 800; color: var(--primary);
+      font-family: 'DM Mono', monospace; line-height: 1;
+    }
+    .jn-preview-text {
+      font-size: .78rem; color: var(--text); line-height: 1.4;
+    }
+    .jn-preview-text strong { color: var(--primary); }
+
+    .jn-modal-footer {
+      padding: 14px 22px; border-top: 1px solid var(--border);
+      display: flex; justify-content: flex-end; gap: 8px;
+      background: var(--surface2); border-radius: 0 0 14px 14px;
+    }
+    .jn-btn {
+      padding: 9px 16px; border-radius: 8px; border: none;
+      font-family: inherit; font-size: .82rem; font-weight: 600;
+      cursor: pointer; transition: opacity .15s, transform .1s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .jn-btn:hover { opacity: .9; }
+    .jn-btn:active { transform: scale(.97); }
+    .jn-btn-secondary { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+    .jn-btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.3); }
+    .jn-btn-primary:disabled {
+      background: var(--surface2); color: var(--muted);
+      box-shadow: none; cursor: not-allowed;
+    }
+
+    /* ── Liste sélectionnable dans les modales d'action ─────── */
+    .jn-list {
+      max-height: 280px; overflow-y: auto;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: var(--surface);
+    }
+    .jn-list-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background .12s;
+    }
+    .jn-list-item:last-child { border-bottom: none; }
+    .jn-list-item:hover { background: var(--surface2); }
+    .jn-list-item input[type="checkbox"] {
+      width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary);
+    }
+    .jn-list-main { flex: 1; min-width: 0; }
+    .jn-list-title { font-size: .82rem; font-weight: 600; color: var(--text); }
+    .jn-list-meta { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+    .jn-list-tag {
+      font-size: .65rem; font-weight: 600; padding: 2px 7px;
+      border-radius: 20px; flex-shrink: 0;
+      text-transform: uppercase; letter-spacing: .03em;
+    }
+    .jn-list-tag.urgence    { background: var(--red-lt);     color: var(--red); }
+    .jn-list-tag.suivi      { background: var(--primary-lt); color: var(--primary); }
+    .jn-list-tag.generale   { background: var(--surface2);   color: var(--muted); }
+    .jn-list-tag.specialisee{ background: var(--amber-lt);   color: var(--amber); }
+    .jn-list-tag.confirme   { background: var(--green-lt);   color: var(--green); }
+    .jn-list-tag.en_attente { background: var(--amber-lt);   color: var(--amber); }
+
+    .jn-list-empty {
+      padding: 30px; text-align: center;
+      color: var(--muted); font-size: .82rem;
+    }
+
+    /* Sélecteur "Tout/Rien" en haut de liste */
+    .jn-list-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 12px; background: var(--surface2);
+      border-radius: 8px 8px 0 0; border-bottom: 1px solid var(--border);
+      font-size: .73rem; color: var(--muted);
+    }
+    .jn-link {
+      color: var(--primary); cursor: pointer; font-weight: 600;
+    }
+    .jn-link:hover { text-decoration: underline; }
+
+    /* Aperçu coût total (modale facture) */
+    .jn-cost {
+      margin-top: 12px;
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+      border: 1px solid #a7f3d0; border-radius: 10px;
+      padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .jn-cost-num {
+      font-size: 1.7rem; font-weight: 800; color: var(--green);
+      font-family: 'DM Mono', monospace; line-height: 1;
+    }
+    .jn-cost-text { font-size: .78rem; color: var(--text); line-height: 1.4; }
+
+    /* Aperçu rouge (modale suppression) */
+    .jn-warning {
+      margin-top: 12px;
+      background: var(--red-lt);
+      border: 1px solid #fca5a5; border-radius: 10px;
+      padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+    }
+    .jn-warning svg { flex-shrink: 0; color: var(--red); }
+    .jn-warning-text { font-size: .79rem; color: var(--red); line-height: 1.4; font-weight: 500; }
+
+    /* Variante danger pour le bouton */
+    .jn-btn-danger {
+      background: var(--red); color: #fff;
+      box-shadow: 0 2px 8px rgba(220,38,38,.3);
+    }
+
+    /* ────── Modale Profil détaillé du médecin ────── */
+    .jn-profil-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+      margin-bottom: 16px;
+    }
+    .jn-stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .jn-stat-label {
+      font-size: .68rem; color: var(--muted); font-weight: 600;
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+    .jn-stat-big {
+      font-size: 1.8rem; font-weight: 800; color: var(--text);
+      font-family: 'DM Mono', monospace; line-height: 1;
+    }
+    .jn-stat-big.bad  { color: #dc2626; }
+    .jn-stat-big.warn { color: #d97706; }
+    .jn-stat-big.good { color: #10b981; }
+    .jn-stat-detail { font-size: .73rem; color: var(--muted); }
+
+    /* Comparaison hôpital */
+    .jn-bar-compare {
+      margin: 14px 0;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px;
+    }
+    .jn-bar-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 8px;
+    }
+    .jn-bar-row:last-child { margin-bottom: 0; }
+    .jn-bar-label {
+      font-size: .76rem; color: var(--text); font-weight: 600;
+      width: 120px; flex-shrink: 0;
+    }
+    .jn-bar-track {
+      flex: 1; height: 14px; background: var(--surface2);
+      border-radius: 8px; overflow: hidden;
+    }
+    .jn-bar-fill {
+      height: 100%; border-radius: 8px;
+      transition: width .8s cubic-bezier(.34,1.4,.64,1);
+    }
+    .jn-bar-fill.bad  { background: linear-gradient(90deg, #ef4444, #f87171); }
+    .jn-bar-fill.good { background: linear-gradient(90deg, #10b981, #34d399); }
+    .jn-bar-value {
+      font-size: .82rem; font-weight: 700; font-family: 'DM Mono', monospace;
+      width: 50px; text-align: right; flex-shrink: 0;
+    }
+
+    /* Mini-graphique évolution (sparkline) */
+    .jn-spark {
+      display: flex; align-items: flex-end; gap: 4px;
+      height: 70px; padding: 6px 0;
+    }
+    .jn-spark-bar {
+      flex: 1; background: linear-gradient(180deg, #6366f1, #4f46e5);
+      border-radius: 3px 3px 0 0; position: relative;
+      min-height: 4px;
+      transition: height .6s cubic-bezier(.34,1.4,.64,1);
+    }
+    .jn-spark-bar:hover { background: linear-gradient(180deg, #4f46e5, #3730a3); }
+    .jn-spark-tooltip {
+      position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+      background: var(--text); color: #fff; padding: 3px 7px;
+      border-radius: 4px; font-size: .65rem; white-space: nowrap;
+      opacity: 0; transition: opacity .15s;
+      pointer-events: none; margin-bottom: 4px;
+    }
+    .jn-spark-bar:hover .jn-spark-tooltip { opacity: 1; }
+    .jn-spark-labels {
+      display: flex; gap: 4px; margin-top: 4px;
+      font-size: .65rem; color: var(--muted);
+    }
+    .jn-spark-labels span { flex: 1; text-align: center; }
+
+    /* Section title */
+    .jn-section-title {
+      font-size: .82rem; font-weight: 700; color: var(--text);
+      margin: 18px 0 10px; display: flex; align-items: center; gap: 7px;
+    }
+    .jn-section-title svg { color: var(--primary); }
+
+    /* Liste de suggestions */
+    .jn-suggestion {
+      display: flex; gap: 10px; padding: 10px 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--primary); border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    .jn-suggestion-icon {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: var(--primary-lt); color: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .jn-suggestion-text { flex: 1; min-width: 0; }
+    .jn-suggestion-title {
+      font-size: .79rem; font-weight: 600; color: var(--text);
+      margin-bottom: 3px;
+    }
+    .jn-suggestion-detail { font-size: .71rem; color: var(--muted); line-height: 1.4; }
+
+    /* États : empty, loading, error */
+    .jn-empty {
+      grid-column: 1 / -1;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      padding: 22px 16px; text-align: center;
+      color: var(--muted); font-size: .82rem;
+    }
+    .jn-empty .check {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--green-lt); color: var(--green);
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 6px;
+    }
+    .jn-loading {
+      grid-column: 1 / -1;
+      display: flex; align-items: center; justify-content: center;
+      padding: 22px; color: var(--muted); font-size: .8rem; gap: 8px;
+    }
+    .jn-spinner {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid var(--border); border-top-color: var(--primary);
+      animation: jnSpinLoader .7s linear infinite;
+    }
+    .nav-item svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+
+.avatar {
+    width: 38px;
+    height: 38px;
+
+    border-radius: 50%;
+
+    background: #2563eb;
+    color: white;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.role-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+}
+    @keyframes jnSpinLoader { to { transform: rotate(360deg); } }
+
+    /* responsive : une colonne sur écrans plus étroits */
+    @media (max-width: 1100px) {
+      .jn-grid { grid-template-columns: 1fr; }
+      .jn-counters { display: none; }
+    }
+.user-profile{
+    display:flex;
+    align-items:center;
+    gap:12px;
+
+    padding:10px 16px;
+
+   
+    width:fit-content;
+}
+
+.avatar{
+    width:42px;
+    height:42px;
+
+    border-radius:50%;
+
+    background:#2563eb;
+    color:white;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-weight:700;
+    font-size:16px;
+
+    flex-shrink:0;
+}
+
+.user-details{
+    display:flex;
+    flex-direction:column;
+    line-height:1.1;
+}
+
+.username{
+    font-size:15px;
+    font-weight:700;
+    color:#0f172a;
+}
+
+.role-name{
+    font-size:13px;
+    color:#64748b;
+}
+    /* Font Awesome (icons dans les tableaux uniquement) */
+  </style>
+  <!-- Font Awesome uniquement pour les icônes d'action dans les tableaux -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     HEADER
+════════════════════════════════════════ -->
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 40 40" fill="none">
+      <rect width="40" height="40" rx="10" fill="#2563eb"/>
+      <path d="M10 20h4l3-7 4 14 3-10 3 6 3-3h4" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    JumeauNum
+  </div>
+  <div class="spacer"></div>
+  
+
+<div class="user-profile">
+    
+    <div class="avatar">
+        <?= strtoupper(substr($username, 0, 1)) ?>
+    </div>
+
+    <div class="user-details">
+       
+
+        <span class="role-name">
+            <?= $roleLabel ?>
+        </span>
+    </div>
+
+</div>
+    <div class="role-dropdown">
+      <a class="role-option active" href="back_office.html">
+        <div class="role-avatar admin">A</div>
+        Médecin / Secrétaire
+      </a>
+      <div class="role-divider"></div>
+        
+      </a>
+    </div>
+  </div>
+  
+</header>
+<script>
+  document.addEventListener('click', function(e) {
+    var sel = document.getElementById('roleSelector');
+    if (sel && !sel.contains(e.target)) sel.classList.remove('open');
+  });
+</script>
+
+<div class="layout">
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
+
+<?php require_once __DIR__ . '/../../../partials/backoffice_sidebar.php'; ?>
+
+
+
+
+  
+  <!-- ═══════════════════════════════════════
+       MAIN
+  ════════════════════════════════════════ -->
+  <main>
+
+    <!-- Titre page -->
+    <div class="page-title">Gestion des Rendez-vous</div>
+    <div class="page-sub">Consultez, gérez et suivez tous les rendez-vous de l'hôpital.</div>
+
+    <!-- ════════════════════════════════════════════════════
+         JUMEAU NUMÉRIQUE — Alertes & prédictions temps réel
+         (Section ajoutée pour le métier avancé)
+    ════════════════════════════════════════════════════ -->
+    <section class="jn-section" id="jnSection">
+
+      <!-- Header animé : titre, score, compteurs, refresh -->
+      <div class="jn-header">
+        <div class="jn-pulse-icon" title="Module actif">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M3 12h4l3-8 4 16 3-8h4"/>
+          </svg>
+        </div>
+        <div class="jn-header-text">
+          <div class="jn-header-title">
+            <span class="jn-live-dot"></span>
+            Jumeau Numérique — Alertes & Prédictions
+          </div>
+          <div class="jn-header-sub" id="jnSub">Initialisation du moteur d'analyse…</div>
+        </div>
+        <div class="jn-counters" id="jnCounters">
+          <span class="jn-counter critique">    <span class="dot"></span><span id="jnCntCritique">0</span> critique</span>
+          <span class="jn-counter attention">   <span class="dot"></span><span id="jnCntAttention">0</span> attention</span>
+          <span class="jn-counter prediction">  <span class="dot"></span><span id="jnCntPrediction">0</span> prédiction</span>
+          <span class="jn-counter optimisation"><span class="dot"></span><span id="jnCntOptim">0</span> optim.</span>
+        </div>
+        <div class="jn-score" id="jnScore" title="Score de santé global">
+          <span class="jn-score-value" id="jnScoreVal">—</span>
+        </div>
+        <div class="jn-refresh" id="jnRefresh" title="Rafraîchir maintenant">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path d="M3 12a9 9 0 0115-6.7L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 01-15 6.7L3 16"/>
+            <path d="M3 21v-5h5"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Grille des cartes d'alertes (peuplée par le JS) -->
+      <div class="jn-grid" id="jnGrid">
+        <div class="jn-loading">
+          <div class="jn-spinner"></div>
+          Analyse de la base de données en cours…
+        </div>
+      </div>
+    </section>
+
+    <!-- ── STATS ──
+         Les IDs rdvConfirmes, rdvEnAttente, creneauxDispo
+         peuvent être branchés dynamiquement si besoin -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <span class="stat-badge badge-blue" id="stat-badge-confirme">—</span>
+        <div class="stat-icon blue">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <div class="stat-label">Rendez-vous confirmés</div>
+        <div class="stat-value" id="rdvConfirmes">—</div>
+        <div class="stat-sub">Statut confirmé</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-amber" id="stat-badge-attente">—</span>
+        <div class="stat-icon ambr">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        <div class="stat-label">Rendez-vous en attente</div>
+        <div class="stat-value" id="rdvEnAttente">—</div>
+        <div class="stat-sub">Statut en attente</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-badge badge-green" id="stat-badge-creneaux">—</span>
+        <div class="stat-icon teal">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </div>
+        <div class="stat-label">Créneaux disponibles</div>
+        <div class="stat-value" id="creneauxDispo">—</div>
+        <div class="stat-sub">Prêts à réserver</div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════
+         SECTION 1 — TABLEAU DES RENDEZ-VOUS
+    ════════════════════════════════════════════ -->
+    <div class="section-title">Tableau des Rendez-vous</div>
+
+    <div class="twin-zone">
+
+      <!-- Gauche : tableau RDV -->
+      <div>
+        <!-- Toolbar RDV -->
+        <div class="toolbar">
+          <div class="toolbar-right">
+            <span class="filter-label">Filtrer :</span>
+            <select class="filter-select" id="filterRdv">
+              <option value="">Tous</option>
+              <option value="confirme">Confirmé</option>
+              <option value="en-attente">En attente</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Recherche RDV -->
+        <div class="search-row">
+          <div class="search-wrap">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" id="searchRdv" placeholder="Rechercher par ID, médecin, type..."/>
+          </div>
+        </div>
+
+        <!-- Tableau RDV — IDs tbody gardés pour le JS -->
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID RDV ↑</th>
+                <th>Date Demande</th>
+                <th>Date RDV ↕</th>
+                <th>Type Consultation</th>
+                <th>Médecin</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="rdvTableBody">
+              <tr><td colspan="7" class="no-data">Chargement...</td></tr>
+            </tbody>
+          </table>
+          <!-- Pagination RDV — classes page-number et page-btn gardées pour le JS -->
+          <div class="pagination-row">
+            <div class="count" id="rdvCount">—</div>
+            <div class="page-btn"><i class="fa-solid fa-chevron-left" style="font-size:10px"></i></div>
+            <div class="page-number active">1</div>
+            <div class="page-number">2</div>
+            <div class="page-btn"><i class="fa-solid fa-chevron-right" style="font-size:10px"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Droite : formulaire Nouveau RDV
+           Tous les IDs des champs sont conservés tels quels pour le JS -->
+      <div class="right-panel">
+        <div class="panel-card">
+          <div class="panel-title">Nouveau Rendez-vous</div>
+
+          <!-- ID RDV -->
+          <div class="form-group">
+            <label class="form-label" for="idRdv">ID RDV <span class="required">*</span></label>
+            <input id="idRdv" type="text" class="form-control" placeholder="1"/>
+          </div>
+
+          <!-- ID Patient -->
+          <div class="form-group">
+            <label class="form-label" for="idPatient">ID Patient <span class="required">*</span></label>
+            <input id="idPatient" type="text" class="form-control" placeholder="P-001"/>
+          </div>
+
+          <!-- Date de demande -->
+          <div class="form-group">
+            <label class="form-label" for="dateDemande">Date de demande <span class="required">*</span></label>
+            <input id="dateDemande" type="date" class="form-control"/>
+          </div>
+
+          <!-- Type de consultation -->
+          <div class="form-group">
+            <label class="form-label" for="typeConsultation">Type de consultation <span class="required">*</span></label>
+            <select id="typeConsultation" class="form-control">
+              <option value="">— Choisir —</option>
+              <option value="Générale">Première Consultation</option>
+               <option value="Suivi">Consultation de Suivi</option>
+                <option value="Urgence">Urgence</option>
+              <option value="Spécialisée">Téléconsultation</option>
+                            <option value="Spécialisée">Contrôle de Routine </option>
+
+             
+             
+            </select>
+          </div>
+
+          <!-- Médecin — rempli dynamiquement par le JS via chargerMedecinsDepuisBD() -->
+          <div class="form-group">
+            <label class="form-label" for="idMedecin">Médecin <span class="required">*</span></label>
+            <select id="idMedecin" class="form-control">
+              <option value="">— Chargement des médecins —</option>
+            </select>
+          </div>
+
+          <!-- Créneau — rempli dynamiquement par le JS après sélection du médecin -->
+          <div class="form-group">
+            <label class="form-label" for="idCreneau">Créneau disponible <span class="required">*</span></label>
+            <select id="idCreneau" class="form-control" disabled>
+              <option value="">— Sélectionnez un médecin d'abord —</option>
+            </select>
+          </div>
+
+          <!-- Bouton — id="btnAjouterRdv" requis par le JS -->
+          <button id="btnAjouterRdv" class="btn btn-primary">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            Ajouter Rendez-vous
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /twin-zone RDV -->
+
+    <!-- ════════════════════════════════════════════
+         SECTION 2 — TABLEAU DES CRÉNEAUX
+    ════════════════════════════════════════════ -->
+    <div class="section-title" style="margin-top: 32px;">Gestion des Créneaux</div>
+
+    <div class="twin-zone">
+
+      <!-- Gauche : tableau Créneaux -->
+      <div>
+        <!-- Toolbar Créneaux -->
+        <div class="toolbar">
+          <div class="toolbar-right">
+            <span class="filter-label">Filtrer :</span>
+            <select class="filter-select" id="filterCreneau">
+              <option value="">Tous</option>
+              <option value="disponible">Disponible</option>
+              <option value="reserve">Réservé</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Recherche Créneaux -->
+        <div class="search-row">
+          <div class="search-wrap">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" id="searchCreneau" placeholder="Rechercher par ID, date, médecin..."/>
+          </div>
+        </div>
+
+        <!-- Tableau Créneaux — id="creneauTableBody" requis par le JS -->
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID Créneau</th>
+                <th>Date</th>
+                <th>Heure Début</th>
+                <th>Heure Fin</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="creneauTableBody">
+              <tr><td colspan="6" class="no-data">Chargement...</td></tr>
+            </tbody>
+          </table>
+          <div class="pagination-row">
+            <div class="count">—</div>
+            <div class="page-btn"><i class="fa-solid fa-chevron-left" style="font-size:10px"></i></div>
+            <div class="page-number active">1</div>
+            <div class="page-btn"><i class="fa-solid fa-chevron-right" style="font-size:10px"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Droite : formulaire Nouveau Créneau
+           Tous les IDs requis par le JS sont conservés -->
+      <div class="right-panel">
+        <div class="panel-card">
+          <div class="panel-title">Nouveau Créneau</div>
+
+          <!-- Date du créneau -->
+          <div class="form-group">
+            <label class="form-label" for="dateCreneau">Date du créneau <span class="required">*</span></label>
+            <input id="dateCreneau" type="date" class="form-control"/>
+          </div>
+
+          <!-- Heure début -->
+          <div class="form-group">
+            <label class="form-label" for="heureDebut">Heure début <span class="required">*</span></label>
+            <input id="heureDebut" type="time" class="form-control"/>
+          </div>
+
+          <!-- Heure fin -->
+          <div class="form-group">
+            <label class="form-label" for="heureFin">Heure fin <span class="required">*</span></label>
+            <input id="heureFin" type="time" class="form-control"/>
+          </div>
+
+          <!-- Médecin créneau — rempli par remplirSelectMedecins() dans le JS -->
+          <div class="form-group">
+            <label class="form-label" for="medecinCreneau">Médecin <span class="required">*</span></label>
+            <select id="medecinCreneau" class="form-control">
+              <option value="">— Chargement des médecins —</option>
+            </select>
+          </div>
+
+          <!-- Bouton — id="btnAjouterCreneau" requis par le JS -->
+          <button id="btnAjouterCreneau" class="btn btn-primary">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            Ajouter Créneau
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /twin-zone Créneaux -->
+
+  </main>
+</div><!-- /layout -->
+
+<!-- Toast container — id="toast-container" requis par showToast() dans le JS -->
+<div id="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════
+     CHARGEMENT DU FICHIER JS EXTERNE
+     Doit être dans le même dossier que ce HTML.
+     defer = s'exécute après le chargement du HTML.
+════════════════════════════════════════════ -->
+<script src="front_office.js?v=2" defer></script>
+
+<!-- ═══════════════════════════════════════════
+     MODALE — Génération de créneaux supplémentaires
+     Action déclenchée par les alertes du Jumeau Numérique
+════════════════════════════════════════════ -->
+<div class="jn-modal-backdrop" id="jnModalBackdrop">
+  <div class="jn-modal" role="dialog" aria-modal="true">
+    <div class="jn-modal-header">
+      <div class="jn-modal-icon">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <path d="M16 2v4M8 2v4M3 10h18"/>
+          <path d="M12 14v4M10 16h4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="jn-modal-title">Génération de créneaux</div>
+        <div class="jn-modal-sub" id="jnModalSub">Recommandation du Jumeau Numérique</div>
+      </div>
+      <div class="jn-modal-close" id="jnModalClose">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="jn-modal-body">
+      <div class="jn-modal-info" id="jnModalInfo">
+        Le moteur d'analyse a détecté un engorgement sur cette spécialité.
+        Configurez la plage horaire ci-dessous pour générer rapidement plusieurs créneaux.
+      </div>
+
+      <div class="jn-form-group">
+        <label class="jn-form-label">Médecin</label>
+        <select class="jn-form-control" id="jnSelectMedecin">
+          <option value="">— Chargement des médecins de cette spécialité —</option>
+        </select>
+      </div>
+
+      <div class="jn-form-row">
+        <div class="jn-form-group" style="margin-bottom:0;">
+          <label class="jn-form-label">Date</label>
+          <input type="date" class="jn-form-control" id="jnInputDate"/>
+        </div>
+        <div class="jn-form-group" style="margin-bottom:0;">
+          <label class="jn-form-label">Durée par RDV (min)</label>
+          <select class="jn-form-control" id="jnInputDuree">
+            <option value="15">15 min</option>
+            <option value="20">20 min</option>
+            <option value="30" selected>30 min</option>
+            <option value="45">45 min</option>
+            <option value="60">60 min</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="jn-form-row">
+        <div class="jn-form-group" style="margin-bottom:0;">
+          <label class="jn-form-label">Heure début</label>
+          <input type="time" class="jn-form-control" id="jnInputDebut" value="09:00"/>
+        </div>
+        <div class="jn-form-group" style="margin-bottom:0;">
+          <label class="jn-form-label">Heure fin</label>
+          <input type="time" class="jn-form-control" id="jnInputFin" value="17:00"/>
+        </div>
+      </div>
+
+      <div class="jn-form-row">
+        <div class="jn-form-group" style="margin-bottom:0;">
+          <label class="jn-form-label">Pause début (optionnel)</label>
+          <input type="time" class="jn-form-control" id="jnInputPauseDebut" value="12:00"/>
+        </div>
+        <div class="jn-form-group" style="margin-bottom:0;">
+          <label class="jn-form-label">Pause fin (optionnel)</label>
+          <input type="time" class="jn-form-control" id="jnInputPauseFin" value="13:00"/>
+        </div>
+      </div>
+
+      <!-- Aperçu calculé en direct -->
+      <div class="jn-preview">
+        <div class="jn-preview-num" id="jnPreviewNum">—</div>
+        <div class="jn-preview-text" id="jnPreviewText">
+          Sélectionnez un médecin et une plage horaire pour voir l'aperçu.
+        </div>
+      </div>
+    </div>
+
+    <div class="jn-modal-footer">
+      <button class="jn-btn jn-btn-secondary" id="jnBtnCancel">Annuler</button>
+      <button class="jn-btn jn-btn-primary" id="jnBtnConfirm" disabled>
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path d="M5 13l4 4L19 7"/>
+        </svg>
+        <span id="jnBtnLabel">Générer les créneaux</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODALE 2 — Marquer RDV à confirmer (patient à risque)
+════════════════════════════════════════════ -->
+<div class="jn-modal-backdrop" id="jnModalConfirmBackdrop">
+  <div class="jn-modal" role="dialog" aria-modal="true">
+    <div class="jn-modal-header">
+      <div class="jn-modal-icon">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="jn-modal-title">Demander confirmation 24h avant</div>
+        <div class="jn-modal-sub" id="jnConfirmSub">Patient à risque — Action préventive</div>
+      </div>
+      <div class="jn-modal-close" data-close="jnModalConfirmBackdrop">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="jn-modal-body">
+      <div class="jn-modal-info" id="jnConfirmInfo">
+        Sélectionnez les RDV à venir à marquer comme « à confirmer ».
+        Le patient devra être contacté 24h avant pour valider sa présence.
+      </div>
+
+      <div id="jnConfirmListWrap">
+        <div class="jn-list-toolbar">
+          <span><span id="jnConfirmCount">0</span> RDV sélectionné(s)</span>
+          <span><span class="jn-link" id="jnConfirmAll">Tout cocher</span> · <span class="jn-link" id="jnConfirmNone">Tout décocher</span></span>
+        </div>
+        <div class="jn-list" id="jnConfirmList">
+          <div class="jn-list-empty">Chargement des RDV…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="jn-modal-footer">
+      <button class="jn-btn jn-btn-secondary" data-close="jnModalConfirmBackdrop">Annuler</button>
+      <button class="jn-btn jn-btn-primary" id="jnBtnConfirmAction" disabled>
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z"/>
+        </svg>
+        <span id="jnBtnConfirmLabel">Marquer 0 RDV</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODALE 3 — Régénération factures (RDV fantômes)
+════════════════════════════════════════════ -->
+<div class="jn-modal-backdrop" id="jnModalFactureBackdrop">
+  <div class="jn-modal" role="dialog" aria-modal="true">
+    <div class="jn-modal-header" style="background:linear-gradient(135deg,#0f766e 0%,#14b8a6 100%);">
+      <div class="jn-modal-icon">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <rect x="3" y="5" width="18" height="14" rx="2"/>
+          <path d="M3 10h18M8 15h2M13 15h3"/>
+        </svg>
+      </div>
+      <div>
+        <div class="jn-modal-title">Régénération automatique des factures</div>
+        <div class="jn-modal-sub" id="jnFactureSub">Correction de la rupture facturation</div>
+      </div>
+      <div class="jn-modal-close" data-close="jnModalFactureBackdrop">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="jn-modal-body">
+      <div class="jn-modal-info" id="jnFactureInfo">
+        Le Jumeau Numérique a détecté <strong id="jnFactureNbInfo">—</strong> RDV confirmés
+        sans facture associée. Saisissez le montant à appliquer pour générer toutes les factures
+        manquantes en une seule opération.
+      </div>
+
+      <div class="jn-form-group">
+        <label class="jn-form-label">Montant unique par facture (DT)</label>
+        <input type="number" class="jn-form-control" id="jnFactureMontant"
+               value="50" min="1" max="10000" step="0.5"/>
+      </div>
+
+      <div id="jnFactureListWrap">
+        <div class="jn-list-toolbar">
+          <span>RDV concernés <span id="jnFactureNbList">—</span></span>
+        </div>
+        <div class="jn-list" id="jnFactureList" style="max-height:200px;">
+          <div class="jn-list-empty">Chargement…</div>
+        </div>
+      </div>
+
+      <div class="jn-cost">
+        <div class="jn-cost-num" id="jnFactureTotal">0 DT</div>
+        <div class="jn-cost-text">
+          Total à facturer pour <strong id="jnFactureNbTotal">0</strong> RDV.
+          <br>Toutes les factures seront créées avec le statut <strong>impayée</strong>.
+        </div>
+      </div>
+    </div>
+
+    <div class="jn-modal-footer">
+      <button class="jn-btn jn-btn-secondary" data-close="jnModalFactureBackdrop">Annuler</button>
+      <button class="jn-btn jn-btn-primary" id="jnBtnFactureAction" style="background:#0f766e;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path d="M5 13l4 4L19 7"/>
+        </svg>
+        <span id="jnBtnFactureLabel">Générer les factures</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODALE 4 — Suppression créneaux morts
+════════════════════════════════════════════ -->
+<div class="jn-modal-backdrop" id="jnModalDeleteBackdrop">
+  <div class="jn-modal" role="dialog" aria-modal="true">
+    <div class="jn-modal-header" style="background:linear-gradient(135deg,#991b1b 0%,#dc2626 100%);">
+      <div class="jn-modal-icon">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+        </svg>
+      </div>
+      <div>
+        <div class="jn-modal-title">Supprimer les créneaux morts</div>
+        <div class="jn-modal-sub" id="jnDeleteSub">Optimisation du planning</div>
+      </div>
+      <div class="jn-modal-close" data-close="jnModalDeleteBackdrop">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="jn-modal-body">
+      <div class="jn-modal-info" id="jnDeleteInfo">
+        Voici les créneaux <strong id="jnDeleteHeure">—</strong> jamais réservés sur les
+        45 derniers jours. Vous pouvez les supprimer en sécurité — seuls les créneaux
+        avec statut <em>disponible</em> seront supprimés.
+      </div>
+
+      <div id="jnDeleteListWrap">
+        <div class="jn-list-toolbar">
+          <span><span id="jnDeleteCount">0</span> créneau(x) sélectionné(s)</span>
+          <span><span class="jn-link" id="jnDeleteAll">Tout cocher</span> · <span class="jn-link" id="jnDeleteNone">Tout décocher</span></span>
+        </div>
+        <div class="jn-list" id="jnDeleteList">
+          <div class="jn-list-empty">Chargement…</div>
+        </div>
+      </div>
+
+      <div class="jn-warning">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 17h.01"/>
+        </svg>
+        <div class="jn-warning-text">
+          Cette action est <strong>irréversible</strong>. Les créneaux supprimés ne pourront pas être restaurés.
+        </div>
+      </div>
+    </div>
+
+    <div class="jn-modal-footer">
+      <button class="jn-btn jn-btn-secondary" data-close="jnModalDeleteBackdrop">Annuler</button>
+      <button class="jn-btn jn-btn-danger" id="jnBtnDeleteAction" disabled>
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+        </svg>
+        <span id="jnBtnDeleteLabel">Supprimer 0 créneau</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODALE 5 — Redistribution RDV (médecin surchargé)
+════════════════════════════════════════════ -->
+<div class="jn-modal-backdrop" id="jnModalRedistBackdrop">
+  <div class="jn-modal" role="dialog" aria-modal="true">
+    <div class="jn-modal-header" style="background:linear-gradient(135deg,#92400e 0%,#d97706 100%);">
+      <div class="jn-modal-icon">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5"/>
+          <path d="M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="jn-modal-title">Redistribuer les RDV non urgents</div>
+        <div class="jn-modal-sub" id="jnRedistSub">Allègement de la surcharge</div>
+      </div>
+      <div class="jn-modal-close" data-close="jnModalRedistBackdrop">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="jn-modal-body">
+      <div class="jn-modal-info" id="jnRedistInfo">
+        <strong id="jnRedistMedecin">—</strong> est surchargé(e). Cochez les RDV non urgents
+        à reporter (ils passeront en statut <em>à reporter</em> et leur créneau sera libéré).
+      </div>
+
+      <div id="jnRedistListWrap">
+        <div class="jn-list-toolbar">
+          <span><span id="jnRedistCount">0</span> RDV à reporter</span>
+          <span><span class="jn-link" id="jnRedistAll">Tout cocher</span> · <span class="jn-link" id="jnRedistNone">Tout décocher</span></span>
+        </div>
+        <div class="jn-list" id="jnRedistList">
+          <div class="jn-list-empty">Chargement…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="jn-modal-footer">
+      <button class="jn-btn jn-btn-secondary" data-close="jnModalRedistBackdrop">Annuler</button>
+      <button class="jn-btn jn-btn-primary" id="jnBtnRedistAction" style="background:#d97706;" disabled>
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5"/>
+        </svg>
+        <span id="jnBtnRedistLabel">Reporter 0 RDV</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODALE 6 — Profil détaillé du médecin (sous-utilisation)
+════════════════════════════════════════════ -->
+<div class="jn-modal-backdrop" id="jnModalProfilBackdrop">
+  <div class="jn-modal" role="dialog" aria-modal="true" style="max-width:680px;">
+    <div class="jn-modal-header" style="background:linear-gradient(135deg,#475569 0%,#64748b 100%);">
+      <div class="jn-modal-icon">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="jn-modal-title" id="jnProfilTitle">Profil détaillé du médecin</div>
+        <div class="jn-modal-sub" id="jnProfilSub">Analyse du Jumeau Numérique</div>
+      </div>
+      <div class="jn-modal-close" data-close="jnModalProfilBackdrop">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="jn-modal-body" id="jnProfilBody">
+      <div class="jn-list-empty">Chargement du profil…</div>
+    </div>
+
+    <div class="jn-modal-footer">
+      <button class="jn-btn jn-btn-secondary" data-close="jnModalProfilBackdrop">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     JUMEAU NUMÉRIQUE — moteur d'alertes (front)
+     Auto-refresh toutes les 30 secondes.
+════════════════════════════════════════════ -->
+
+</body>
+</html>
