@@ -3,7 +3,7 @@ header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 
 // Chemins depuis : gestion_admission/controleur/backoffice/
-require_once '../../modele/config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 require_once '../../modele/Admission.php';
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';

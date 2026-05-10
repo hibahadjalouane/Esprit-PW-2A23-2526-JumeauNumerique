@@ -1,31 +1,24 @@
 <?php
 session_start();
 
-// Anti-cache
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('Expires: Sat, 01 Jan 2000 00:00:00 GMT');
 
-// Si déjà connecté → renvoyer vers son dashboard
 if (!empty($_SESSION['logged_in']) && !empty($_SESSION['id_role'])) {
     $roleId = (int) $_SESSION['id_role'];
+
     $map = [
-        1 => 'home.php',
-        2 => '../../backoffice/dashboard_admin.php',
-        3 => '../../backoffice/dashboard_medecin.php',
-        4 => '../../backoffice/dashboard_superadmin.php',
-    ];
-    header('Location: ' . ($map[$roleId] ?? 'home.php'));
+      1 => '/Esprit-PW-2A23-2526-JumeauNumerique/gestion_user/vue/frontoffice/home.php',
+      2 => '/Esprit-PW-2A23-2526-JumeauNumerique/bord.php',
+      3 => '/Esprit-PW-2A23-2526-JumeauNumerique/bord.php',
+      4 => '/Esprit-PW-2A23-2526-JumeauNumerique/bord.php',
+  ];
+
+    header('Location: ' . ($map[$roleId] ?? $map[1]));
     exit;
 }
 ?>
-
-
-
-
-
-
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -336,7 +329,7 @@ if (!empty($_SESSION['logged_in']) && !empty($_SESSION['id_role'])) {
 </div><!-- /page-wrap -->
 
 <footer>
-  <span>© 2024 JumeauNum. Tous droits réservés.</span>
+  <span>© 2026 JumeauNum. Tous droits réservés.</span>
   <div>
     <a href="#">Politique de confidentialité</a>
     <a href="#">Directives cliniques</a>
@@ -419,10 +412,10 @@ if (!empty($_SESSION['logged_in']) && !empty($_SESSION['id_role'])) {
       // Appel au contrôleur PHP
       // login.html est dans : gestion_user/vue/frontoffice/
       // On remonte 2 niveaux (frontoffice → vue) puis on va dans controleur/frontoffice
-      const response = await fetch(
-        '../../controleur/frontoffice/login_process.php',
+        const response = await fetch(
+      '/Esprit-PW-2A23-2526-JumeauNumerique/gestion_user/controleur/frontoffice/login_process.php',
         { method: 'POST', body: formData }
-      );
+       );
 
       const result = await response.json();
 

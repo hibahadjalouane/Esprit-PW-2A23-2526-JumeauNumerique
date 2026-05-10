@@ -1,4 +1,27 @@
-<!DOCTYPE html>
+<?php
+require_once __DIR__ . '/../../../inc_session.php';
+checkSession([2, 3, 4]);
+
+$user = getCurrentUser();
+$nom = $user['Nom'] ?? $user['nom'] ?? '';
+$prenom = $user['Prenom'] ?? $user['prenom'] ?? $user['username'] ?? 'Utilisateur';
+$role = (int)($user['id_role'] ?? 0);
+
+$initial = strtoupper(substr($prenom, 0, 1));
+
+$roleLabel = match ($role) {
+    2 => 'Admin',
+    3 => 'Médecin',
+    4 => 'Super Admin',
+    default => 'Utilisateur'
+};
+$username = $user['username'] ?? '';
+
+$email = $user['Email'] ?? $user['email'] ?? '';
+$cin = $user['CIN'] ?? '';
+$service = $user['Service'] ?? '';
+$nomComplet = trim($prenom . ' ' . $nom);
+?><!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8"/>
@@ -102,6 +125,59 @@ main { margin-left:var(--sidebar-w); flex:1; padding:22px 20px 40px; min-width:0
 .toast.show    { opacity:1; transform:translateY(0); }
 .toast.success { background:var(--green); }
 .toast.error   { background:var(--red); }
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    padding: 8px 16px;
+}
+
+.avatar {
+    width: 38px;
+    height: 38px;
+
+    border-radius: 50%;
+
+    background: #2563eb;
+    color: white;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.role-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.avatar {
+    width: 38px;
+    height: 38px;
+
+    border-radius: 50%;
+
+    background: #2563eb;
+    color: white;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.role-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+}
 </style>
 </head>
 <body>
@@ -112,29 +188,20 @@ main { margin-left:var(--sidebar-w); flex:1; padding:22px 20px 40px; min-width:0
     JumeauNum
   </div>
   <div class="spacer"></div>
-  <div class="header-user">
-    <div class="avatar-icon">A</div>
-    Admin
-    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-  </div>
-  <div class="header-power">
-    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v10M4.93 4.93a10 10 0 100 14.14"/></svg>
-  </div>
+  <div class="user-profile">
+    <div class="avatar">
+        <?= strtoupper(substr($roleLabel, 0, 1)) ?>
+    </div>
+
+    <span class="role-name">
+        <?= $roleLabel ?>
+    </span>
+</div>
+  
 </header>
 
 <div class="layout">
-  <aside>
-    <a href="#"       class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Tableau de bord</a>
-    <a href="#"       class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Ressources</a>
-    <a href="#"       class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Les rendez-vous</a>
-    <a href="#"       class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Admissions</a>
-    <a href="#"       class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>Dossiers médicaux</a>
-    <a href="#"       class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 15h2M13 15h3"/></svg>Les factures</a>
-    <a href="#"       class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M2 19c0-3 3-5 7-5s7 2 7 5"/><path d="M17 14c2 0 4 1.5 4 4"/></svg>Les médecins</a>
-    <div class="nav-bottom">
-      <a href="profil.html" class="nav-item active"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Paramètres</a>
-    </div>
-  </aside>
+ <?php require_once __DIR__ . '/../../../partials/backoffice_sidebar.php'; ?>
 
   <main>
     <div class="page-header">
@@ -151,18 +218,19 @@ main { margin-left:var(--sidebar-w); flex:1; padding:22px 20px 40px; min-width:0
     <!-- EN-TÊTE PROFIL -->
     <div class="profil-header-card">
       <div class="profil-left">
-        <div class="profil-avatar">
-          A
+      <div class="profil-avatar">
+  <?= htmlspecialchars(strtoupper(substr($username, 0, 1))) ?>
           <div class="edit-dot"><svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
         </div>
         <div>
           <div style="display:flex;align-items:center;gap:8px">
-            <span class="profil-name" id="profilNomComplet">Chargement...</span>
-            <span class="role-badge" id="profilRole">—</span>
-          </div>
-          <div class="profil-email" id="profilEmail">—</div>
-          <div class="profil-id" id="profilId">—</div>
-        </div>
+           <span class="profil-name"><?= htmlspecialchars($nomComplet ?: $username) ?></span>
+<span class="role-badge"><?= htmlspecialchars($roleLabel) ?></span>
+</div>
+<div class="profil-email"><?= htmlspecialchars($email) ?></div>
+<div class="profil-id">
+    #<?= htmlspecialchars($user['id_user'] ?? $user['id'] ?? '') ?>
+</div>        </div>
       </div>
       <div class="profil-right">
         <div class="last-login-label">Dernière connexion</div>
@@ -184,38 +252,42 @@ main { margin-left:var(--sidebar-w); flex:1; padding:22px 20px 40px; min-width:0
           <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label" for="p_nom">Nom</label>
-              <input class="form-control" type="text" id="p_nom"/>
-              <div class="field-msg" id="err_p_nom"></div>
+<input class="form-control" type="text" id="p_nom"
+       value="<?= htmlspecialchars($nom) ?>"/>              <div class="field-msg" id="err_p_nom"></div>
             </div>
             <div class="form-group">
               <label class="form-label" for="p_prenom">Prénom</label>
-              <input class="form-control" type="text" id="p_prenom"/>
-              <div class="field-msg" id="err_p_prenom"></div>
+<input class="form-control" type="text" id="p_prenom"
+       value="<?= htmlspecialchars($prenom) ?>"/>              <div class="field-msg" id="err_p_prenom"></div>
             </div>
           </div>
 
           <div class="form-group">
             <label class="form-label" for="p_email">Email Professionnel</label>
-            <input class="form-control" type="email" id="p_email"/>
-            <div class="field-msg" id="err_p_email"></div>
+<input class="form-control" type="email" id="p_email"
+       value="<?= htmlspecialchars($email) ?>"/>            <div class="field-msg" id="err_p_email"></div>
           </div>
 
           <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label" for="p_username">Nom d'utilisateur</label>
-              <input class="form-control" type="text" id="p_username"/>
-              <div class="field-msg" id="err_p_username"></div>
+<input class="form-control" type="text" id="p_username"
+       value="<?= htmlspecialchars($username) ?>"/>              <div class="field-msg" id="err_p_username"></div>
             </div>
             <div class="form-group">
               <label class="form-label" for="p_cin">Numéro CIN / Identité</label>
-              <input class="form-control" type="text" id="p_cin" maxlength="8"/>
-              <div class="field-msg" id="err_p_cin"></div>
+<input class="form-control"
+       type="text"
+       id="p_cin"
+       maxlength="8"
+       value="<?= htmlspecialchars($cin) ?>"
+       placeholder="135678000"/>             <div class="field-msg" id="err_p_cin"></div>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label" for="p_service">Service</label>
-            <input class="form-control" type="text" id="p_service" placeholder="Ex : Cardiologie"/>
-          </div>
+<input class="form-control" type="text" id="p_service"
+       value="<?= htmlspecialchars($service) ?>"  placeholder="Géneraliste"/>          </div>
 
           <p class="msg-error"   id="msg_profil_global"></p>
           <p class="msg-success" id="msg_profil_success"></p>
@@ -308,6 +380,5 @@ main { margin-left:var(--sidebar-w); flex:1; padding:22px 20px 40px; min-width:0
 </div>
 
 <div class="toast" id="toast"></div>
-<script src="profil.js" defer></script>
-</body>
+<!-- <script src="profil.js" defer></script> --></body>
 </html>

@@ -1,20 +1,14 @@
 <?php
-/**
- * login_process.php
- * Chemin : projetweb/gestion_users/controleur/frontoffice/login_process.php
- */
+// session_start() DOIT être la toute première instruction, avant tout header
+session_start();
 
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 header('Content-Type: application/json');
 
-session_start();
-
 // ── Connexion BDD ─────────────────────────────────────────────────────────────
-// Remonte jusqu'au modele du module gestion_users
-require_once __DIR__ . '/../../modele/config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 $pdo = config::getConnexion();
-// Ce fichier doit exposer une variable $pdo (PDO)
 
 // ── Données POST ──────────────────────────────────────────────────────────────
 $identifiant  = trim($_POST['identifiant']  ?? '');
@@ -50,13 +44,23 @@ if (!$user) {
     exit;
 }
 
-if ($mot_de_passe !== $user['mot_de_passe']) {
-    echo json_encode(['success' => false, 'message' => 'Identifiant ou mot de passe incorrect.']);
-    exit;
+$hash = $user['mot_de_passe'];
+
+if (str_starts_with($hash, '$2y$') || str_starts_with($hash, '$2a$') || str_starts_with($hash, '$argon2')) {
+    $passwordOk = password_verify($mot_de_passe, $hash);
+} else {
+    $passwordOk = hash_equals($hash, $mot_de_passe);
 }
 
+if (!$passwordOk) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Identifiant ou mot de passe incorrect.'
+    ]);
+    exit;
+}
 if (in_array($user['Statut_Cmpt'], ['bloque', 'inactif'])) {
-    echo json_encode(['success' => false, 'message' => 'Compte désactivé. Contactez l\'administrateur.']);
+    echo json_encode(['success' => false, 'message' => "Compte désactivé. Contactez l'administrateur."]);
     exit;
 }
 
@@ -70,16 +74,15 @@ $_SESSION['id_role']     = (int) $user['id_role'];
 $_SESSION['nom_role']    = $user['nom_role'];
 $_SESSION['logged_in']   = true;
 
-// ── Redirection ───────────────────────────────────────────────────────────────
-// Depuis controleur/frontoffice/ → remonter 2 niveaux → vue/
+// ── Redirection selon le rôle ─────────────────────────────────────────────────
 $roleId = (int) $user['id_role'];
 $redirectMap = [
-    1 => '../../vue/frontoffice/home.php',
-    2 => '../../vue/backoffice/dashboard_admin.php',
-    3 => '../../vue/backoffice/dashboard_medecin.php',
-    4 => '../../vue/backoffice/dashboard_superadmin.php',
+    1 => '/Esprit-PW-2A23-2526-JumeauNumerique/gestion_user/vue/frontoffice/home.php',
+    2 => '/Esprit-PW-2A23-2526-JumeauNumerique/bord.php',
+    3 => '/Esprit-PW-2A23-2526-JumeauNumerique/bord.php',
+    4 => '/Esprit-PW-2A23-2526-JumeauNumerique/bord.php',
 ];
-$redirect = $redirectMap[$roleId] ?? '../../vue/frontoffice/home.php';
+$redirect = $redirectMap[$roleId] ?? $redirectMap[1];
 
 echo json_encode(['success' => true, 'redirect' => $redirect, 'role' => $user['nom_role']]);
 exit;

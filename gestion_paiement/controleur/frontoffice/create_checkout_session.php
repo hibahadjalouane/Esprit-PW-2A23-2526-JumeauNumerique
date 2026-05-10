@@ -13,7 +13,7 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 require_once __DIR__ . '/../../../inc_session.php';
 checkSession([1]);
 
-require_once __DIR__ . '/../../modele/config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 $pdo = config::getConnexion();
 
 $id_patient = (int) $_SESSION['user_id'];

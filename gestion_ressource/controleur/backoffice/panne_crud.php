@@ -7,8 +7,7 @@ header('Access-Control-Allow-Headers: Content-Type');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require_once '../../modele/config.php';
-require_once '../../modele/Panne.php';
+require_once dirname(__DIR__, 3) . '/config.php';require_once '../../modele/Panne.php';
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 

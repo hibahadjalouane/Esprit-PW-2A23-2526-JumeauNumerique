@@ -1,3 +1,24 @@
+<?php
+require_once __DIR__ . '/../../../inc_session.php';
+
+checkSession([2,4]);
+
+$user = getCurrentUser();
+
+$nom = $user['Nom'] ?? $user['nom'] ?? '';
+$prenom = $user['Prenom'] ?? $user['prenom'] ?? $user['username'] ?? 'Utilisateur';
+$role = (int)($user['id_role'] ?? 0);
+
+$initial = strtoupper(substr($prenom, 0, 1));
+
+$roleLabel = match ($role) {
+    2 => 'Admin',
+    3 => 'Médecin',
+    4 => 'Super Admin',
+    default => 'Utilisateur'
+};
+?>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -175,7 +196,41 @@ tbody td { padding: 10px 12px; vertical-align: middle; }
 .toast.show    { opacity: 1; transform: translateY(0); }
 .toast.success { background: var(--green); }
 .toast.error   { background: var(--red); }
-</style>
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+
+    padding: 8px 16px;
+}
+
+.avatar {
+    width: 38px;
+    height: 38px;
+
+    border-radius: 50%;
+
+    background: #2563eb;
+    color: white;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.role-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+}</style>
 </head>
 <body>
 
@@ -186,30 +241,23 @@ tbody td { padding: 10px 12px; vertical-align: middle; }
     JumeauNum
   </div>
   <div class="spacer"></div>
-  <div class="header-user">
-    <div class="avatar-icon">A</div>
-    Admin
-    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-  </div>
-  <div class="header-power">
-    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v10M4.93 4.93a10 10 0 100 14.14"/></svg>
-  </div>
+
+<div class="user-profile">
+    <div class="avatar">
+        <?= strtoupper(substr($roleLabel, 0, 1)) ?>
+    </div>
+
+    <span class="role-name">
+        <?= $roleLabel ?>
+    </span>
+</div>
+
+
 </header>
 
 <div class="layout">
   <!-- SIDEBAR -->
-  <aside>
-    <a href="#" class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Tableau de bord</a>
-    <a href="#" class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Ressources</a>
-    <a href="#" class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Les rendez-vous</a>
-    <a href="#" class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Admissions</a>
-    <a href="#" class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>Dossiers medicaux</a>
-    <a href="#" class="nav-item active"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 15h2M13 15h3"/></svg>Les factures</a>
-    <a href="#" class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M2 19c0-3 3-5 7-5s7 2 7 5"/><path d="M17 14c2 0 4 1.5 4 4"/></svg>Les medecins</a>
-    <div class="nav-bottom">
-      <a href="#" class="nav-item"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Parametres</a>
-    </div>
-  </aside>
+  <?php require_once __DIR__ . '/../../../partials/backoffice_sidebar.php'; ?>
 
   <!-- MAIN -->
   <main>

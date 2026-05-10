@@ -13,7 +13,7 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../../inc_session.php';
 checkSession([1]);
 
-require_once __DIR__ . '/../../modele/config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 
 
 require_once __DIR__ . '/../../../vendor/autoload.php';
