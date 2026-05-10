@@ -12,16 +12,13 @@ const formData   = {};
 function getRedirectForRole(roleId) {
   const role = parseInt(roleId, 10);
   switch(role) {
-    case 1: 
-      return './patient.html';
-    case 3: 
-      return './medecin_dashboard.html';
-    case 2:   // Admin
-    case 4:   // Super Admin
-      return '../backoffice/supadmin.html';          // ← Correction
-    default:
-      return '../backoffice/supadmin.html';
+    case 1:  return './patient.html';
+    case 3:  return './medecin_dashboard.html';
+    case 2:
+    case 4:  return '../backoffice/supadmin.html';
+    default: return '../backoffice/supadmin.html';
   }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   checkAlreadyLoggedIn();
@@ -70,7 +67,6 @@ function showStep(n) {
     el.classList.toggle('done',     idx + 1 < n);
     el.classList.toggle('inactive', idx + 1 > n);
   });
-  // Afficher service uniquement pour Médecin à l'étape 2
   if (n === 2) {
     const sg = document.getElementById('serviceGroup');
     if (sg) sg.style.display = selectedRole === 3 ? 'block' : 'none';
@@ -99,13 +95,13 @@ async function nextStep1() {
   clearErrors(['nom', 'prenom', 'email']);
   let ok = true;
 
-  if (!formData.nom)                                         { showErr('nom', 'Le nom est obligatoire.'); ok = false; }
-  else if (!/^[a-zA-ZÀ-ÿ\s\-']+$/.test(formData.nom))      { showErr('nom', 'Lettres uniquement.'); ok = false; }
+  if (!formData.nom)                                            { showErr('nom', 'Le nom est obligatoire.'); ok = false; }
+  else if (!/^[a-zA-ZÀ-ÿ\s\-']+$/.test(formData.nom))         { showErr('nom', 'Lettres uniquement.'); ok = false; }
 
-  if (!formData.prenom)                                      { showErr('prenom', 'Le prénom est obligatoire.'); ok = false; }
-  else if (!/^[a-zA-ZÀ-ÿ\s\-']+$/.test(formData.prenom))   { showErr('prenom', 'Lettres uniquement.'); ok = false; }
+  if (!formData.prenom)                                         { showErr('prenom', 'Le prénom est obligatoire.'); ok = false; }
+  else if (!/^[a-zA-ZÀ-ÿ\s\-']+$/.test(formData.prenom))      { showErr('prenom', 'Lettres uniquement.'); ok = false; }
 
-  if (!formData.email)                                       { showErr('email', "L'email est obligatoire."); ok = false; }
+  if (!formData.email)                                          { showErr('email', "L'email est obligatoire."); ok = false; }
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) { showErr('email', 'Format invalide.'); ok = false; }
   else {
     try {
@@ -126,8 +122,8 @@ async function nextStep2() {
   clearErrors(['cin', 'service']);
   let ok = true;
 
-  if (!formData.cin)                        { showErr('cin', 'Le CIN est obligatoire.'); ok = false; }
-  else if (!/^\d{8}$/.test(formData.cin))   { showErr('cin', 'Exactement 8 chiffres.'); ok = false; }
+  if (!formData.cin)                       { showErr('cin', 'Le CIN est obligatoire.'); ok = false; }
+  else if (!/^\d{8}$/.test(formData.cin))  { showErr('cin', 'Exactement 8 chiffres.'); ok = false; }
   else {
     try {
       const r = await fetch(CRUD_USER + `?action=checkCin&cin=${encodeURIComponent(formData.cin)}`);
@@ -156,11 +152,11 @@ async function submitSignup() {
   let ok = true;
 
   const mdp = formData.mot_de_passe;
-  if (!mdp)                            { showErr('mot_de_passe', 'Le mot de passe est obligatoire.'); ok = false; }
-  else if (mdp.length < 6)             { showErr('mot_de_passe', 'Minimum 6 caractères.'); ok = false; }
-  else if (!/[a-zA-Z]/.test(mdp))      { showErr('mot_de_passe', 'Au moins une lettre.'); ok = false; }
-  else if (!/[0-9]/.test(mdp))         { showErr('mot_de_passe', 'Au moins un chiffre.'); ok = false; }
-  else if (!/[^a-zA-Z0-9]/.test(mdp))  { showErr('mot_de_passe', 'Au moins un caractère spécial (@, !, #...).'); ok = false; }
+  if (!mdp)                           { showErr('mot_de_passe', 'Le mot de passe est obligatoire.'); ok = false; }
+  else if (mdp.length < 6)            { showErr('mot_de_passe', 'Minimum 6 caractères.'); ok = false; }
+  else if (!/[a-zA-Z]/.test(mdp))     { showErr('mot_de_passe', 'Au moins une lettre.'); ok = false; }
+  else if (!/[0-9]/.test(mdp))        { showErr('mot_de_passe', 'Au moins un chiffre.'); ok = false; }
+  else if (!/[^a-zA-Z0-9]/.test(mdp)) { showErr('mot_de_passe', 'Au moins un caractère spécial (@, !, #...).'); ok = false; }
 
   if (mdp && formData.confirm_mdp !== mdp) { showErr('confirm_mdp', 'Les mots de passe ne correspondent pas.'); ok = false; }
   if (!ok) return;
@@ -186,7 +182,6 @@ async function submitSignup() {
       const isPending = r.en_attente === true;
       const roleId    = parseInt(formData.role);
 
-      // Stocker en session locale seulement si actif (patient)
       if (!isPending) {
         localStorage.setItem('jn_user_id',   r.id_user);
         localStorage.setItem('jn_user_role', roleId);
@@ -194,13 +189,11 @@ async function submitSignup() {
         sessionStorage.setItem('jn_logged', '1');
       }
 
-      // Afficher écran succès
       document.getElementById('signupForm').style.display    = 'none';
       document.getElementById('signupSuccess').style.display = 'block';
       document.getElementById('successName').textContent     = formData.prenom + ' ' + formData.nom;
 
       if (isPending) {
-        // Compte en attente → écran orange
         const icon = document.getElementById('successIcon');
         icon.style.background = '#fef3c7';
         icon.innerHTML = '<svg width="36" height="36" fill="none" stroke="#d97706" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
@@ -210,7 +203,6 @@ async function submitSignup() {
           '</strong> a été soumise. L\'administrateur recevra un email et devra l\'approuver. ' +
           'Vous serez notifié par email dès l\'activation de votre compte.';
       } else {
-        // Patient → redirection auto dans 2s
         document.getElementById('successMsg').textContent = 'Votre compte patient a été créé. Redirection en cours...';
         setTimeout(() => { window.location.replace(getRedirectForRole(roleId)); }, 2000);
       }
@@ -240,11 +232,11 @@ function checkPasswordStrength(val) {
   if (/[^a-zA-Z0-9]/.test(val)) score++;
   if (val.length >= 10)         score++;
   const levels = [
-    {w:'20%',color:'#dc2626',text:'Très faible'},
-    {w:'40%',color:'#d97706',text:'Faible'},
-    {w:'60%',color:'#f59e0b',text:'Moyen'},
-    {w:'80%',color:'#16a34a',text:'Fort'},
-    {w:'100%',color:'#15803d',text:'Très fort'},
+    {w:'20%', color:'#dc2626', text:'Très faible'},
+    {w:'40%', color:'#d97706', text:'Faible'},
+    {w:'60%', color:'#f59e0b', text:'Moyen'},
+    {w:'80%', color:'#16a34a', text:'Fort'},
+    {w:'100%',color:'#15803d', text:'Très fort'},
   ];
   const lvl = levels[Math.min(score-1,4)] || levels[0];
   bar.style.width = val ? lvl.w : '0'; bar.style.background = val ? lvl.color : 'transparent';

@@ -307,7 +307,7 @@ switch ($action) {
             $q->execute(['t' => $token]);
             $row = $q->fetch();
             if ($row) {
-                echo json_encode(['success' => true, 'id_user' => $row['id_user']]);
+                echo json_encode(['success' => true, 'valid' => true, 'id_user' => $row['id_user']]);
             } else {
                 echo json_encode(['success' => false, 'error' => 'Token invalide ou expiré.']);
             }
@@ -878,6 +878,45 @@ switch ($action) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
         break;
+
+
+
+        case 'resetPassword':
+    try {
+        $email = $_POST['email'] ?? '';
+        $token = $_POST['token'] ?? '';
+        $new_password = $_POST['password'] ?? '';
+
+        if (empty($email) || empty($token) || empty($new_password)) {
+            throw new Exception("Données incomplètes.");
+        }
+
+        $db = config::getConnexion();
+
+        // 1. Vérifier si le token est valide pour cet utilisateur
+        $stmt = $db->prepare("SELECT id_user FROM user WHERE email = :email AND reset_token = :token");
+        $stmt->execute(['email' => $email, 'token' => $token]);
+        $user = $stmt->fetch();
+
+        if ($user) {
+            // 2. Sécuriser le nouveau mot de passe
+            $hashedPassword = password_hash($new_password, PASSWORD_DEFAULT);
+
+            // 3. Mettre à jour et supprimer le token pour qu'il ne serve plus
+            $update = $db->prepare("UPDATE user SET mot_de_passe = :mdp, reset_token = NULL WHERE email = :email");
+            $update->execute([
+                'mdp'   => $hashedPassword,
+                'email' => $email
+            ]);
+
+            echo json_encode(['success' => true, 'message' => 'Mot de passe mis à jour !']);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Lien invalide ou expiré.']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    break;
 
     default:
         echo json_encode(['success'=>false,'error'=>'Action inconnue : "' . $action . '"']);
